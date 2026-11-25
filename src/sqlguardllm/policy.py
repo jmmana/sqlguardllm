@@ -41,6 +41,15 @@ class Policy:
         extra_denied_functions: Added to the denylist.
         function_policy: ``"denylist"`` (default) or ``"allowlist"``.
         allowed_functions: Functions allowed in ``"allowlist"`` mode.
+        max_joins: Maximum joins in the whole query, across every scope. ``None`` = no limit.
+        max_subquery_depth: Maximum nesting of subqueries, derived tables and CTEs. ``0`` allows
+            none. ``None`` = no limit.
+        forbid_cartesian: Reject joins with no ``ON``/``USING`` whose tables aren't linked by an
+            equality in ``WHERE``, and every explicit ``CROSS JOIN``.
+        required_filters: Table → columns. Every read of the table must be filtered on at least
+            one of them in its own ``WHERE`` or ``JOIN … ON``, such as a date range on a large
+            fact table.
+        output_dialect: Generate the rewritten SQL in this dialect instead of ``dialect``.
     """
 
     dialect: str
@@ -53,6 +62,11 @@ class Policy:
     extra_denied_functions: Collection[str] = frozenset()
     function_policy: FunctionPolicy = "denylist"
     allowed_functions: Collection[str] | None = None
+    max_joins: int | None = None
+    max_subquery_depth: int | None = None
+    forbid_cartesian: bool = False
+    required_filters: Mapping[str, Collection[str]] = field(default_factory=dict)
+    output_dialect: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.dialect, str) or not self.dialect.strip():
@@ -85,6 +99,29 @@ class Policy:
             raise PolicyError('function_policy must be "denylist" or "allowlist"')
         if self.function_policy == "allowlist" and self.allowed_functions is None:
             raise PolicyError('function_policy="allowlist" requires allowed_functions')
+        for name in ("max_joins", "max_subquery_depth"):
+            value = getattr(self, name)
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, int) or value < 0
+            ):
+                raise PolicyError(f"{name} must be a non-negative integer or None")
+        if not isinstance(self.forbid_cartesian, bool):
+            raise PolicyError("forbid_cartesian must be true or false")
+        if not isinstance(self.required_filters, Mapping):
+            raise PolicyError("required_filters must map table names to lists of columns")
+        required: dict[str, frozenset[str]] = {}
+        for table, columns in self.required_filters.items():
+            if not isinstance(table, str) or not table.strip():
+                raise PolicyError("required_filters keys must be non-empty table names")
+            frozen = _frozen(columns, f"required_filters[{table!r}]")
+            if not frozen:
+                raise PolicyError(f"required_filters[{table!r}] needs at least one column")
+            required[table] = frozen
+        object.__setattr__(self, "required_filters", MappingProxyType(required))
+        if self.output_dialect is not None and (
+            not isinstance(self.output_dialect, str) or not self.output_dialect.strip()
+        ):
+            raise PolicyError("output_dialect must be a non-empty string or None")
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Policy:

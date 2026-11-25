@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect
@@ -35,3 +35,8 @@ class Compiled:
     allowed: frozenset[str] | None
     max_rows: int | None
     default_schema: str | None
+    output_dialect_name: str
+    max_joins: int | None = None
+    max_subquery_depth: int | None = None
+    forbid_cartesian: bool = False
+    required: Mapping[TableName, frozenset[str]] = field(default_factory=dict)

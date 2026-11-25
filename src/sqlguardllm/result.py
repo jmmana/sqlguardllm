@@ -20,6 +20,8 @@ class ViolationCode(str, Enum):
     DENIED_FUNCTION = "denied_function"
     MISSING_CONTEXT = "missing_context"
     INVALID_CONTEXT = "invalid_context"
+    TOO_COMPLEX = "too_complex"
+    MISSING_REQUIRED_FILTER = "missing_required_filter"
 
 
 @dataclass(frozen=True)

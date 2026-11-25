@@ -1,0 +1,76 @@
+# Required filters: invoices can only be read with a predicate on issued_at.
+- id: required-missing
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: SELECT SUM(total) FROM invoices
+  expect: reject
+  codes: [missing_required_filter]
+- id: required-in-where
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: SELECT SUM(total) FROM invoices WHERE issued_at >= '2026-11-01'
+  expect: allow
+- id: required-qualified-with-alias
+  dialect: tsql
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: >-
+    SELECT b.name, SUM(i.total) FROM invoices i JOIN branches b ON b.id = i.branch_id
+    WHERE i.issued_at >= '20261101' GROUP BY b.name
+  expect: allow
+- id: required-in-join-on
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: >-
+    SELECT b.name, SUM(i.total) FROM branches b
+    JOIN invoices i ON i.branch_id = b.id AND i.issued_at >= '2026-11-01' GROUP BY b.name
+  expect: allow
+- id: required-column-of-another-table-does-not-count
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: >-
+    SELECT SUM(i.total) FROM invoices i JOIN branches b ON b.id = i.branch_id
+    WHERE b.issued_at >= '2026-11-01'
+  expect: reject
+  codes: [missing_required_filter]
+- id: required-inside-cte-missing
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: WITH recent AS (SELECT * FROM invoices) SELECT SUM(total) FROM recent
+  expect: reject
+  codes: [missing_required_filter]
+- id: required-inside-cte-present
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: >-
+    WITH recent AS (SELECT * FROM invoices WHERE issued_at >= '2026-11-01')
+    SELECT SUM(total) FROM recent
+  expect: allow
+- id: required-filter-in-nested-subquery-does-not-count
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: >-
+    SELECT SUM(total) FROM invoices
+    WHERE id IN (SELECT invoice_id FROM invoice_lines WHERE issued_at >= '2026-11-01')
+  expect: reject
+  codes: [missing_required_filter]
+  note: The predicate inside the subquery filters invoice_lines, not this read of invoices.
+- id: required-every-occurrence
+  dialect: postgres
+  policy: {required_filters: {invoices: [issued_at]}}
+  sql: >-
+    SELECT SUM(total) FROM invoices WHERE issued_at >= '2026-11-01'
+    UNION ALL SELECT SUM(total) FROM invoices
+  expect: reject
+  codes: [missing_required_filter]
+- id: required-any-of-the-columns
+  dialect: mysql
+  policy: {required_filters: {invoices: [issued_at, branch_id]}}
+  sql: SELECT SUM(total) FROM invoices WHERE branch_id = 3
+  expect: allow
+- id: required-row-filter-does-not-satisfy-it
+  dialect: postgres
+  policy: {required_filters: {invoices: [branch_id]}}
+  sql: SELECT SUM(total) FROM invoices
+  expect: reject
+  codes: [missing_required_filter]
+  note: The row filter on branch_id is injected after this check, so it never counts.

@@ -106,3 +106,54 @@ def test_no_limit_when_disabled() -> None:
 def test_pretty_output() -> None:
     result = Guard(Policy(dialect="postgres", tables={"t"}), pretty=True).check("SELECT id FROM t")
     assert result.sql is not None and "\n" in result.sql
+
+
+@pytest.mark.parametrize(
+    ("dialect", "output", "sql", "expected"),
+    [
+        (
+            "postgres",
+            "tsql",
+            "SELECT id, total FROM invoices ORDER BY total DESC",
+            # sqlglot keeps PostgreSQL's NULLS FIRST for DESC with a CASE in SQL Server.
+            "SELECT TOP 1000 id, total FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2))"
+            " AS invoices ORDER BY CASE WHEN total IS NULL THEN 1 ELSE 0 END DESC, total DESC",
+        ),
+        (
+            "postgres",
+            "oracle",
+            "SELECT id FROM invoices WHERE issued_at >= CURRENT_DATE - INTERVAL '7 days'",
+            "FETCH FIRST 1000 ROWS ONLY",
+        ),
+        (
+            "mysql",
+            "postgres",
+            "SELECT `id`, IFNULL(total, 0) AS total FROM invoices",
+            'SELECT "id", COALESCE(total, 0) AS total FROM (SELECT * FROM invoices WHERE branch_id'
+            " IN (1, 2)) AS invoices LIMIT 1000",
+        ),
+    ],
+)
+def test_output_dialect(dialect: str, output: str, sql: str, expected: str) -> None:
+    result = Guard(standard_policy(dialect, output_dialect=output)).check(sql, CONTEXT)
+    assert result.ok, result.messages
+    assert result.sql is not None
+    assert expected in result.sql
+
+
+def test_output_dialect_keeps_parsing_in_the_input_dialect() -> None:
+    # T-SQL syntax is not valid input when the policy reads PostgreSQL.
+    guard = Guard(standard_policy("postgres", output_dialect="tsql"))
+    result = guard.check("SELECT TOP 5 id FROM invoices", CONTEXT)
+    assert result.codes == {ViolationCode.PARSE_ERROR}
+
+
+def test_new_codes_have_spanish_messages() -> None:
+    guard = Guard(
+        standard_policy(max_joins=0, required_filters={"invoices": ["issued_at"]}), language="es"
+    )
+    result = guard.check(
+        "SELECT b.name FROM invoices i JOIN branches b ON b.id = i.branch_id", CONTEXT
+    )
+    assert result.codes == {ViolationCode.TOO_COMPLEX, ViolationCode.MISSING_REQUIRED_FILTER}
+    assert all("consulta" in m or "Leer" in m for m in result.messages)

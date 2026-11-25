@@ -23,6 +23,7 @@ KEYS = {
     "context",
     "note",
     "pending",
+    "policy",
 }
 DIALECTS = {
     "postgres",
@@ -69,7 +70,7 @@ def test_corpus_is_well_formed() -> None:
 def test_case(case: dict[str, Any]) -> None:
     if case.get("pending"):
         pytest.skip(f"pending: {case['pending']}")
-    guard = Guard(standard_policy(case["dialect"]))
+    guard = Guard(standard_policy(case["dialect"], **case.get("policy", {})))
     result = guard.check(case["sql"], case.get("context", CONTEXT))
     if case["expect"] == "reject":
         assert not result.ok, f"accepted: {result.sql}"
