@@ -57,6 +57,18 @@ sqlguardllm convierte la sentencia en un árbol sintáctico con sqlglot y **deci
 | 6️⃣ | **Límite de filas** aplicado o reducido, con la sintaxis de cada dialecto (`LIMIT`, `TOP`, `FETCH FIRST`) |
 | 🔒 | **Falla cerrado**: si el SQL no se puede analizar, o al contexto le falta un valor que exige un filtro, la respuesta es *no* |
 
+### Límites opcionales
+
+Apagados por defecto; activa los que necesites. Frenan consultas mucho más costosas que la pregunta que las originó.
+
+| Opción de la política | Qué hace | Violación |
+|---|---|---|
+| `max_joins=4` | Limita los joins de toda la consulta, contando CTE y subconsultas | `too_complex` |
+| `max_subquery_depth=2` | Limita el anidamiento de subconsultas, tablas derivadas y CTE | `too_complex` |
+| `forbid_cartesian=True` | Rechaza `CROSS JOIN` y joins con coma sin una igualdad que los una en el `WHERE` | `too_complex` |
+| `required_filters={"invoices": ["issued_at"]}` | Toda lectura de la tabla debe filtrar por una de esas columnas, como un rango de fechas en una tabla de hechos grande | `missing_required_filter` |
+| `output_dialect="tsql"` | El modelo escribe PostgreSQL y el SQL reescrito sale para SQL Server, Oracle o cualquier dialecto de sqlglot | — |
+
 ## Un vistazo
 
 ```bash

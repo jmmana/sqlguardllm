@@ -4,6 +4,13 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+
+- Complexity limits, all off by default: `max_joins`, `max_subquery_depth` and `forbid_cartesian`, with the new violation code `too_complex` (#23).
+- `required_filters`: a table can only be read with a predicate on one of the given columns, such as a date range on a fact table, with the new code `missing_required_filter` (#24).
+- `output_dialect`: parse in the policy's dialect and generate the rewritten SQL in another one; limits render as `TOP` or `FETCH FIRST` where needed (#25).
+- Corpus cases can set their own policy options with a `policy` key.
+
 ## [0.1.0a2] - 2026-11-25
 
 One name everywhere: the project is now **sqlguardllm**.

@@ -20,6 +20,14 @@ EXAMPLE = Path(__file__).parents[1] / "examples" / "policy.yaml"
         ({"dialect": "postgres", "tables": "invoices"}, "collection"),
         ({"dialect": "postgres", "function_policy": "allowlist"}, "allowed_functions"),
         ({"dialect": "postgres", "function_policy": "maybe"}, "function_policy"),
+        ({"dialect": "postgres", "max_joins": -1}, "max_joins"),
+        ({"dialect": "postgres", "max_joins": True}, "max_joins"),
+        ({"dialect": "postgres", "max_subquery_depth": 1.5}, "max_subquery_depth"),
+        ({"dialect": "postgres", "forbid_cartesian": "yes"}, "forbid_cartesian"),
+        ({"dialect": "postgres", "required_filters": ["invoices"]}, "required_filters"),
+        ({"dialect": "postgres", "required_filters": {"invoices": []}}, "at least one column"),
+        ({"dialect": "postgres", "required_filters": {"invoices": "issued_at"}}, "collection"),
+        ({"dialect": "postgres", "output_dialect": ""}, "output_dialect"),
     ],
 )
 def test_invalid_policy_values(kwargs: dict[str, object], message: str) -> None:
@@ -74,3 +82,28 @@ def test_from_file_json(tmp_path: Path) -> None:
     file.write_text(json.dumps({"dialect": "sqlite", "tables": ["t"], "max_rows": 5}))
     result = Guard(Policy.from_file(file)).check("SELECT a FROM t")
     assert result.ok and result.sql == "SELECT a FROM t LIMIT 5"
+
+
+def test_unknown_output_dialect() -> None:
+    with pytest.raises(PolicyError, match="unknown output_dialect"):
+        Guard(Policy(dialect="postgres", output_dialect="not-a-dialect"))
+
+
+def test_required_filter_for_table_outside_allowlist() -> None:
+    with pytest.raises(PolicyError, match="not in the allowed tables"):
+        Guard(standard_policy(required_filters={"secrets": ["created_at"]}))
+
+
+def test_new_options_from_dict() -> None:
+    policy = Policy.from_dict(
+        {
+            "dialect": "postgres",
+            "max_joins": 3,
+            "max_subquery_depth": 2,
+            "forbid_cartesian": True,
+            "required_filters": {"invoices": ["issued_at"]},
+            "output_dialect": "tsql",
+        }
+    )
+    assert policy.required_filters["invoices"] == frozenset({"issued_at"})
+    assert Guard(policy).check("SELECT 1 AS x").sql == "SELECT TOP 1000 1 AS x"

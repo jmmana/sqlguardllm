@@ -1,0 +1,125 @@
+# Complexity limits (docs/DESIGN.md#complexity-limits). Each case sets the limits it needs.
+- id: joins-within-limit
+  dialect: postgres
+  policy: {max_joins: 2}
+  sql: >-
+    SELECT b.name, SUM(l.quantity) FROM invoices i
+    JOIN branches b ON b.id = i.branch_id
+    JOIN invoice_lines l ON l.invoice_id = i.id GROUP BY b.name
+  expect: allow
+- id: joins-over-limit
+  dialect: postgres
+  policy: {max_joins: 1}
+  sql: >-
+    SELECT b.name, SUM(l.quantity) FROM invoices i
+    JOIN branches b ON b.id = i.branch_id
+    JOIN invoice_lines l ON l.invoice_id = i.id GROUP BY b.name
+  expect: reject
+  codes: [too_complex]
+- id: joins-counted-across-scopes
+  dialect: postgres
+  policy: {max_joins: 1}
+  sql: >-
+    WITH t AS (SELECT i.id FROM invoices i JOIN branches b ON b.id = i.branch_id)
+    SELECT p.name FROM products p JOIN invoice_lines l ON l.product_id = p.id
+    WHERE l.invoice_id IN (SELECT id FROM t)
+  expect: reject
+  codes: [too_complex]
+  note: One join in the CTE plus one in the main query is two.
+- id: joins-zero-allows-single-table
+  dialect: tsql
+  policy: {max_joins: 0}
+  sql: SELECT SUM(total) FROM invoices
+  expect: allow
+- id: depth-zero-rejects-subquery
+  dialect: postgres
+  policy: {max_subquery_depth: 0}
+  sql: SELECT name FROM branches WHERE id IN (SELECT branch_id FROM invoices)
+  expect: reject
+  codes: [too_complex]
+- id: depth-counts-ctes
+  dialect: postgres
+  policy: {max_subquery_depth: 0}
+  sql: WITH t AS (SELECT id FROM branches) SELECT id FROM t
+  expect: reject
+  codes: [too_complex]
+- id: depth-nested-over-limit
+  dialect: mysql
+  policy: {max_subquery_depth: 1}
+  sql: >-
+    SELECT name FROM products WHERE id IN (SELECT product_id FROM invoice_lines
+    WHERE invoice_id IN (SELECT id FROM invoices))
+  expect: reject
+  codes: [too_complex]
+- id: depth-within-limit
+  dialect: mysql
+  policy: {max_subquery_depth: 1}
+  sql: SELECT name FROM products WHERE id IN (SELECT product_id FROM invoice_lines)
+  expect: allow
+- id: depth-union-is-not-nesting
+  dialect: postgres
+  policy: {max_subquery_depth: 0}
+  sql: SELECT name FROM branches UNION ALL SELECT name FROM products
+  expect: allow
+- id: cartesian-comma-join
+  dialect: postgres
+  policy: {forbid_cartesian: true}
+  sql: SELECT * FROM invoices, branches
+  expect: reject
+  codes: [too_complex]
+- id: cartesian-comma-join-linked-in-where
+  dialect: postgres
+  policy: {forbid_cartesian: true}
+  sql: SELECT i.total, b.name FROM invoices i, branches b WHERE i.branch_id = b.id
+  expect: allow
+  note: The classic comma join with its link in WHERE keeps working.
+- id: cartesian-chain-linked-in-where
+  dialect: oracle
+  policy: {forbid_cartesian: true}
+  sql: >-
+    SELECT l.quantity FROM invoices i, invoice_lines l, products p
+    WHERE l.invoice_id = i.id AND l.product_id = p.id
+  expect: allow
+- id: cartesian-one-table-left-out
+  dialect: oracle
+  policy: {forbid_cartesian: true}
+  sql: >-
+    SELECT l.quantity FROM invoices i, invoice_lines l, products p
+    WHERE l.invoice_id = i.id
+  expect: reject
+  codes: [too_complex]
+- id: cartesian-link-under-or-does-not-count
+  dialect: postgres
+  policy: {forbid_cartesian: true}
+  sql: SELECT * FROM invoices i, branches b WHERE i.branch_id = b.id OR i.total > 0
+  expect: reject
+  codes: [too_complex]
+- id: cartesian-explicit-cross-join
+  dialect: tsql
+  policy: {forbid_cartesian: true}
+  sql: SELECT b.name, p.name FROM branches b CROSS JOIN products p
+  expect: reject
+  codes: [too_complex]
+- id: cartesian-join-without-on
+  dialect: mysql
+  policy: {forbid_cartesian: true}
+  sql: SELECT b.name FROM branches b JOIN products p
+  expect: reject
+  codes: [too_complex]
+- id: cartesian-in-subquery
+  dialect: postgres
+  policy: {forbid_cartesian: true}
+  sql: SELECT name FROM branches WHERE id IN (SELECT b.id FROM branches b, products p)
+  expect: reject
+  codes: [too_complex]
+- id: cartesian-on-and-using-are-fine
+  dialect: postgres
+  policy: {forbid_cartesian: true}
+  sql: >-
+    SELECT b.name FROM invoices i JOIN branches b ON b.id = i.branch_id
+    JOIN invoice_lines l USING (id)
+  expect: allow
+- id: cartesian-off-by-default
+  dialect: postgres
+  sql: SELECT b.name, p.name FROM branches b CROSS JOIN products p
+  expect: allow

@@ -55,6 +55,18 @@ sqlguardllm parses the statement into a syntax tree with sqlglot and **decides o
 | 6️⃣ | **Row limit** applied or lowered, in the dialect's own syntax (`LIMIT`, `TOP`, `FETCH FIRST`) |
 | 🔒 | **Fails closed**: if the SQL can't be parsed, or the user context is missing a value a filter needs, the answer is *no* |
 
+### Optional limits
+
+Off by default; turn on what you need. They stop queries that are far more expensive than the question that produced them.
+
+| Policy option | What it does | Violation |
+|---|---|---|
+| `max_joins=4` | Caps joins in the whole query, CTEs and subqueries included | `too_complex` |
+| `max_subquery_depth=2` | Caps nesting of subqueries, derived tables and CTEs | `too_complex` |
+| `forbid_cartesian=True` | Rejects `CROSS JOIN` and comma joins with no linking equality in `WHERE` | `too_complex` |
+| `required_filters={"invoices": ["issued_at"]}` | Every read of the table must filter on one of the columns, such as a date range on a big fact table | `missing_required_filter` |
+| `output_dialect="tsql"` | The model writes PostgreSQL; the rewritten SQL comes out for SQL Server, Oracle or any sqlglot dialect | — |
+
 ## Quick look
 
 ```bash

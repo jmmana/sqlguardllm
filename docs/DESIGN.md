@@ -32,6 +32,12 @@ policy = Policy(
     extra_denied_functions=set(),             # added to the built-in list
     function_policy="denylist",               # "denylist" (default) or "allowlist"
     allowed_functions=None,                   # required when function_policy="allowlist"
+    # Optional limits (0.2), all off by default:
+    max_joins=None,                           # joins in the whole query
+    max_subquery_depth=None,                  # nesting of subqueries, derived tables and CTEs
+    forbid_cartesian=False,                   # CROSS JOIN and unlinked comma joins
+    required_filters={},                      # {"invoices": ["issued_at"]}
+    output_dialect=None,                      # generate in another dialect
 )
 
 guard = Guard(policy)                         # validates the policy once (fails fast)
@@ -66,8 +72,8 @@ Codes are part of the public API and **stable across minor versions**. Messages 
 | `denied_function` | A denied function, or any non-allowlisted function in allowlist mode |
 | `missing_context` | A row filter needs a context value that wasn't provided |
 | `invalid_context` | A context value has a type that can't be bound safely as a literal |
-| `too_complex` | *(planned, v0.3)* The query exceeds a complexity limit of the policy |
-| `missing_required_filter` | *(planned, v0.3)* A table that requires a filter is read without it |
+| `too_complex` | The query exceeds `max_joins`, `max_subquery_depth` or `forbid_cartesian` |
+| `missing_required_filter` | A table in `required_filters` is read without a predicate on one of its columns |
 | `aggregate_required` | *(planned, v0.3)* An aggregate-only table is read without aggregating |
 
 ## Pipeline
@@ -196,9 +202,16 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 
 ## Planned capabilities
 
-> Status: **specified, not implemented yet.** Milestones [v0.3 · More power](https://github.com/jmmana/sqlguardllm/milestone/4) and [v0.4 · MCP server](https://github.com/jmmana/sqlguardllm/milestone/5). Every new option is opt-in: an existing policy keeps behaving exactly the same.
+> Status: **partly implemented.** Complexity limits, required filters and `output_dialect` shipped in 0.2.0a1; the rest is specified, not implemented yet. Milestones [v0.3 · More power](https://github.com/jmmana/sqlguardllm/milestone/4) and [v0.4 · MCP server](https://github.com/jmmana/sqlguardllm/milestone/5). Every new option is opt-in: an existing policy keeps behaving exactly the same.
 
 ### Complexity limits
+
+> Status: **implemented in 0.2.0a1.**
+
+- Joins are counted with every `Join` node in the tree, so CTEs and subqueries add up. Comma joins count too.
+- Depth is the number of enclosing subqueries, derived tables and CTEs of the deepest scope; the branches of a `UNION` don't nest.
+- `forbid_cartesian` looks at each `SELECT`: a join with `ON`, `USING` or `NATURAL` links its table; a comma join (or a join with no condition) needs an equality between qualified columns of two sources among the top-level `AND`s of `WHERE`. An equality under `OR` doesn't count. Every source must end up linked to the first one. Explicit `CROSS JOIN` is always rejected.
+- `required_filters` runs before row filters are injected, so a row filter never satisfies it. The predicate must be in the `WHERE` of the `SELECT` that reads the table, or in the `ON`/`USING` of its join; a filter in an outer query over a derived table doesn't count. An unqualified column counts when its name matches.
 
 | Policy option | Effect | Violation |
 |---|---|---|
@@ -218,7 +231,7 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 - **`Policy.from_database(url, include=[...])`** reads tables and columns with the SQLAlchemy inspector (optional extra `sqlguardllm[db]`) to build `schema` and `tables`.
 - **`PolicySet`**: one file with a `base` policy and `roles` that override or extend it (`roles: {manager: {...}, analyst: {extends: manager, ...}}`), loaded once and asked for `policy_set.for_role("manager")`.
 - **`Guard.explain(sql, context)`** returns what a query reads (tables, columns per table), the filters and masks it would get, its limit and any violation, plus a short text in English or Spanish for UIs and audit logs.
-- **`output_dialect`**: read the model's SQL in one dialect and generate it in another, so a model that writes PostgreSQL can target SQL Server.
+- **`output_dialect`** *(implemented in 0.2.0a1)*: read the model's SQL in one dialect and generate it in another, so a model that writes PostgreSQL can target SQL Server. sqlglot keeps semantics where dialects differ: PostgreSQL's `ORDER BY x DESC` (nulls first) becomes a `CASE` in SQL Server.
 
 ### MCP server
 

@@ -55,6 +55,14 @@ _TEMPLATES: dict[ViolationCode, dict[str, str]] = {
         "en": "The context value {detail} can't be used safely in a row filter",
         "es": "El valor de contexto {detail} no se puede usar con seguridad en un filtro por fila",
     },
+    ViolationCode.TOO_COMPLEX: {
+        "en": "The query is too complex for the policy: {detail}",
+        "es": "La consulta es demasiado compleja para la política: {detail}",
+    },
+    ViolationCode.MISSING_REQUIRED_FILTER: {
+        "en": "Reading {detail} requires a filter on one of those columns",
+        "es": "Leer {detail} exige un filtro sobre una de esas columnas",
+    },
 }
 
 

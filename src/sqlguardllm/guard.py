@@ -19,8 +19,10 @@ from sqlguardllm.messages import LANGUAGES, violation
 from sqlguardllm.policy import Policy
 from sqlguardllm.result import CheckResult, GuardViolation, PolicyError, Violation, ViolationCode
 from sqlguardllm.rules.columns import check_columns
+from sqlguardllm.rules.complexity import check_complexity
 from sqlguardllm.rules.functions import check_functions
 from sqlguardllm.rules.limit import apply_limit
+from sqlguardllm.rules.required_filters import check_required_filters
 from sqlguardllm.rules.row_filters import apply_filters, compile_filter
 from sqlguardllm.rules.sources import collect_sources
 from sqlguardllm.rules.statement import check_statements
@@ -41,6 +43,11 @@ def _compile(policy: Policy, language: str) -> Compiled:
         dialect = Dialect.get_or_raise(dialect_name)
     except (ValueError, SqlglotError) as exc:
         raise PolicyError(f"unknown dialect {policy.dialect!r}") from exc
+    output_name = (policy.output_dialect or dialect_name).lower()
+    try:
+        Dialect.get_or_raise(output_name)
+    except (ValueError, SqlglotError) as exc:
+        raise PolicyError(f"unknown output_dialect {policy.output_dialect!r}") from exc
 
     tables = (
         tuple(parse_table_entry(t, dialect, dialect_name) for t in sorted(policy.tables))
@@ -60,6 +67,13 @@ def _compile(policy: Policy, language: str) -> Compiled:
         if tables is not None and find(tables, table, default_schema) is None:
             raise PolicyError(f"row filter for {key!r}, which is not in the allowed tables")
         filters[table] = compile_filter(table, template, dialect_name)
+
+    required: dict[TableName, frozenset[str]] = {}
+    for key, columns in sorted(policy.required_filters.items()):
+        table = parse_table_entry(key, dialect, dialect_name)
+        if tables is not None and find(tables, table, default_schema) is None:
+            raise PolicyError(f"required filter for {key!r}, which is not in the allowed tables")
+        required[table] = frozenset(norm(column, dialect) for column in columns)
 
     base = (
         policy.denied_functions
@@ -83,6 +97,11 @@ def _compile(policy: Policy, language: str) -> Compiled:
         allowed=allowed,
         max_rows=policy.max_rows,
         default_schema=default_schema,
+        output_dialect_name=output_name,
+        max_joins=policy.max_joins,
+        max_subquery_depth=policy.max_subquery_depth,
+        forbid_cartesian=policy.forbid_cartesian,
+        required=required,
     )
 
 
@@ -137,6 +156,8 @@ class Guard:
         refs, problems = collect_sources(root, scopes, compiled)
         problems += check_columns(scopes, compiled)
         problems += check_functions(root, compiled)
+        problems += check_complexity(root, scopes, compiled)
+        problems += check_required_filters(refs, compiled)
         if problems:
             return self._rejected(problems)
 
@@ -147,7 +168,7 @@ class Guard:
         root = apply_limit(root, compiled.max_rows)
         return CheckResult(
             ok=True,
-            sql=root.sql(dialect=compiled.dialect_name, pretty=self._pretty),
+            sql=root.sql(dialect=compiled.output_dialect_name, pretty=self._pretty),
             tables=frozenset(str(ref.name) for ref in refs),
             applied_filters=tuple(applied),
         )
