@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.2.0a1] - 2026-11-25
+
+Optional limits for queries that are far more expensive than the question that produced them. All new options are off by default: existing policies behave exactly the same.
+
 ### Added
 
 - Complexity limits, all off by default: `max_joins`, `max_subquery_depth` and `forbid_cartesian`, with the new violation code `too_complex` (#23).
@@ -43,6 +47,7 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a2...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a1...HEAD
+[0.2.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a2...v0.2.0a1
 [0.1.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a1...v0.1.0a2
 [0.1.0a1]: https://github.com/jmmana/sqlguardllm/releases/tag/v0.1.0a1
