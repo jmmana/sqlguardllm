@@ -178,6 +178,10 @@ sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}
   "SELECT * FROM invoices"
 ```
 
+## Other languages
+
+sqlguardllm is a Python library today: its engine is [sqlglot](https://github.com/tobymao/sqlglot), which only exists in Python, and three engines in three languages could disagree, which in a security library means a bypass. **Node.js and .NET are planned** as one engine with many clients: `sqlguardllm serve` (an HTTP sidecar and Docker image) plus official npm and NuGet clients, with the attack corpus as a conformance suite so every language behaves the same. Follow it in [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6) and the [design](docs/DESIGN.md#other-languages). Until then, any language can use the MCP server (v0.4) or the CLI (v0.2).
+
 ## Playground: try to break it
 
 A static playground (planned for v0.3) will run sqlguardllm **entirely in your browser** with Pyodide and a demo SQLite database: pick a role, type the nastiest SQL you can think of, and watch it get blocked or rewritten. No server, no sign-up.
@@ -188,7 +192,10 @@ A static playground (planned for v0.3) will run sqlguardllm **entirely in your b
 |---|---|
 | [**v0.1 · Core guard**](https://github.com/jmmana/sqlguardllm/milestone/1) | Statement and read-only checks, allowlists, hidden columns, denied functions, row limit, adversarial corpus |
 | [**v0.2 · Row-level security & CLI**](https://github.com/jmmana/sqlguardllm/milestone/2) | Row filters as derived tables, policy files, CLI, dialect test matrix, docs site, PyPI release |
-| [**v0.3 · Ecosystem & playground**](https://github.com/jmmana/sqlguardllm/milestone/3) | Integration recipes, browser playground, performance budget |
+| [**v0.3 · More power**](https://github.com/jmmana/sqlguardllm/milestone/4) | Complexity limits, required filters, PII masking, aggregate-only tables (k-anonymity), exact schema from the database, policies per role, `explain()`, dialect translation |
+| [**v0.4 · MCP server**](https://github.com/jmmana/sqlguardllm/milestone/5) | A safe database tool for Claude Desktop, Cursor and any agent, with an optional cost guard |
+| [**v0.5 · Ecosystem & playground**](https://github.com/jmmana/sqlguardllm/milestone/3) | Integration recipes, browser playground, performance budget |
+| [**Later · Node.js and .NET**](https://github.com/jmmana/sqlguardllm/milestone/6) | One engine, many clients: server mode plus npm and NuGet clients |
 
 Details in [docs/ROADMAP.md](docs/ROADMAP.md).
 

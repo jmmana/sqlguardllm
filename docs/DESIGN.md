@@ -66,6 +66,9 @@ Codes are part of the public API and **stable across minor versions**. Messages 
 | `denied_function` | A denied function, or any non-allowlisted function in allowlist mode |
 | `missing_context` | A row filter needs a context value that wasn't provided |
 | `invalid_context` | A context value has a type that can't be bound safely as a literal |
+| `too_complex` | *(planned, v0.3)* The query exceeds a complexity limit of the policy |
+| `missing_required_filter` | *(planned, v0.3)* A table that requires a filter is read without it |
+| `aggregate_required` | *(planned, v0.3)* An aggregate-only table is read without aggregating |
 
 ## Pipeline
 
@@ -190,6 +193,58 @@ Why a derived table and not an extra `WHERE` condition: it doesn't need to under
 ### 9. Generate
 
 The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. What runs is regenerated from the validated tree, never the input string with patches.
+
+## Planned capabilities
+
+> Status: **specified, not implemented yet.** Milestones [v0.3 · More power](https://github.com/jmmana/sqlguardllm/milestone/4) and [v0.4 · MCP server](https://github.com/jmmana/sqlguardllm/milestone/5). Every new option is opt-in: an existing policy keeps behaving exactly the same.
+
+### Complexity limits
+
+| Policy option | Effect | Violation |
+|---|---|---|
+| `max_joins: int` | Rejects queries with more joins than allowed, across all scopes | `too_complex` |
+| `max_subquery_depth: int` | Rejects nesting deeper than allowed (subqueries and CTEs) | `too_complex` |
+| `forbid_cartesian: bool` | Rejects joins with no `ON`/`USING` whose tables aren't linked by an equality in `WHERE` (explicit `CROSS JOIN` included) | `too_complex` |
+| `required_filters: {table: [columns]}` | Every occurrence of the table must be filtered on at least one of the columns (for example a date range on a large fact table) | `missing_required_filter` |
+
+### Protecting personal data
+
+- **`masked_columns: {"table.column": strategy}`**, an alternative to hiding: the column can be selected but comes back masked. Strategies: `null`, `redact` (`'***'`), `hash` (the dialect's SHA-256, hex) and `partial` (first characters plus `***`). Masked columns may only appear in the select list; using them in predicates, joins or ordering is `hidden_column`, because filtering on the real value would leak it. `SELECT *` over a table with masked columns needs `schema` so the star can be expanded with the masks; without it, the query is rejected.
+- **`aggregate_only: {table: k}`**: the table can only be read through aggregates. The `SELECT` that reads it must project only aggregates and `GROUP BY` columns, and the guard adds `HAVING COUNT(*) >= k` so no group smaller than `k` people comes back (k-anonymity). Raw reads are `aggregate_required`.
+
+### Richer policies
+
+- **`schema: {table: [columns]}`** enables exact column checks: columns are qualified with `sqlglot.optimizer.qualify`, unknown columns are rejected, and stars can be expanded (needed by masking).
+- **`Policy.from_database(url, include=[...])`** reads tables and columns with the SQLAlchemy inspector (optional extra `sqlguardllm[db]`) to build `schema` and `tables`.
+- **`PolicySet`**: one file with a `base` policy and `roles` that override or extend it (`roles: {manager: {...}, analyst: {extends: manager, ...}}`), loaded once and asked for `policy_set.for_role("manager")`.
+- **`Guard.explain(sql, context)`** returns what a query reads (tables, columns per table), the filters and masks it would get, its limit and any violation, plus a short text in English or Spanish for UIs and audit logs.
+- **`output_dialect`**: read the model's SQL in one dialect and generate it in another, so a model that writes PostgreSQL can target SQL Server.
+
+### MCP server
+
+`sqlguardllm mcp --policy policy.yaml --db "$DATABASE_URL" [--context JSON]` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio (optional extra `sqlguardllm[mcp]`). It gives any MCP client (Claude Desktop, Cursor, VS Code, agents) a database tool that can't do harm:
+
+| Tool | What it does |
+|---|---|
+| `list_tables` | Allowed tables with their visible columns |
+| `describe_table` | Columns, masked and aggregate-only markers of one table |
+| `explain_query` | `Guard.explain()` for a query, without running it |
+| `query` | `Guard.enforce()` then runs the safe SQL in a read-only transaction with a timeout, returning at most `max_rows` rows |
+
+Violations are returned as tool errors with their messages, so the model can repair its query. An optional cost guard runs the engine's `EXPLAIN` first (PostgreSQL, MySQL) and rejects plans above a threshold.
+
+## Other languages
+
+sqlguardllm is a Python library today because its engine is [sqlglot](https://github.com/tobymao/sqlglot), which parses 32 dialects and only exists in Python. Rewriting the parser and the rules in each language would mean several security engines that could disagree, and a disagreement is a bypass.
+
+The plan for Node.js, .NET and others is **one engine, many clients** (milestone [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6)):
+
+1. `sqlguardllm serve`: the same engine as a small HTTP service and Docker image (`POST /v1/check`), to run next to the app as a sidecar.
+2. Official clients with the same API shape: `sqlguardllm` on npm (TypeScript) and `SqlGuardLlm` on NuGet (.NET).
+3. The adversarial corpus as a **conformance suite** that runs through every client in CI, so all languages behave identically.
+4. A WebAssembly build of the engine, explored later for in-process use in Node.js and the browser.
+
+Until then, other languages can already use the [MCP server](#mcp-server) or, from v0.2, the CLI.
 
 ## Performance budget
 
