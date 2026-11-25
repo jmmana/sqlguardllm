@@ -1,0 +1,58 @@
+# Legitimate queries that must keep working, and the rewrites they get (gallery cases 25-28).
+- id: pg-drop-in-string
+  dialect: postgres
+  sql: SELECT 'x; DROP TABLE invoices' AS note
+  expect: allow
+  contains: ["'x; DROP TABLE invoices'"]
+- id: pg-drop-in-comment
+  dialect: postgres
+  sql: SELECT 1 /* ; DROP TABLE invoices */
+  expect: allow
+- id: pg-cte-shadows-table
+  dialect: postgres
+  sql: WITH invoices AS (SELECT 1 AS id) SELECT * FROM invoices
+  expect: allow
+  contains: ["SELECT 1 AS id"]
+  not_contains: ["branch_id"]
+- id: pg-cte-reads-real-table
+  dialect: postgres
+  sql: WITH invoices AS (SELECT * FROM invoices) SELECT * FROM invoices
+  expect: allow
+  contains: ["WHERE branch_id IN (1, 2)"]
+  note: Inside a non-recursive CTE, the name refers to the real table, which must be filtered.
+- id: tsql-default-schema-top
+  dialect: tsql
+  sql: SELECT SUM(total) FROM dbo.invoices
+  expect: allow
+  contains: ["TOP 1000", "branch_id IN (1, 2)"]
+- id: oracle-fetch-first
+  dialect: oracle
+  sql: SELECT name FROM branches
+  expect: allow
+  contains: ["FETCH FIRST 1000 ROWS ONLY"]
+- id: pg-union-limited-as-a-whole
+  dialect: postgres
+  sql: SELECT id FROM invoices UNION SELECT id FROM branches
+  expect: allow
+  contains: ["sqlguard_rows", "LIMIT 1000"]
+- id: pg-join-filtered
+  dialect: postgres
+  sql: SELECT b.name, SUM(i.total) FROM invoices i JOIN branches b ON b.id = i.branch_id GROUP BY b.name
+  expect: allow
+  contains: ["(SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i"]
+- id: pg-subquery-filtered
+  dialect: postgres
+  sql: SELECT name FROM customers WHERE id IN (SELECT customer_id FROM invoices)
+  expect: allow
+  contains: ["FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices"]
+- id: pg-lower-limit
+  dialect: postgres
+  sql: SELECT id FROM invoices LIMIT 50000
+  expect: allow
+  contains: ["LIMIT 1000"]
+  not_contains: ["50000"]
+- id: pg-keep-smaller-limit
+  dialect: postgres
+  sql: SELECT id FROM invoices LIMIT 10
+  expect: allow
+  contains: ["LIMIT 10"]

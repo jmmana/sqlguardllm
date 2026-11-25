@@ -12,7 +12,8 @@
 
 Your model writes SQL. **sqlguard** makes sure it can only read what it's allowed to read: one read-only statement, allowlisted tables and columns, row-level filters per user, and a row limit, in any of the 32 dialects [sqlglot](https://github.com/tobymao/sqlglot) speaks.
 
-[![Status](https://img.shields.io/badge/status-pre--release-F59E0B)](https://github.com/jmmana/sqlguard/milestones)
+[![PyPI](https://img.shields.io/pypi/v/sqlguardllm?include_prereleases&label=pypi&color=10B981)](https://pypi.org/project/sqlguardllm/)
+[![CI](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml/badge.svg)](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-3B82F6)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](docs/DESIGN.md)
 [![Built on sqlglot](https://img.shields.io/badge/built%20on-sqlglot-10B981)](https://github.com/tobymao/sqlglot)
@@ -23,7 +24,7 @@ Your model writes SQL. **sqlguard** makes sure it can only read what it's allowe
 </div>
 
 > [!NOTE]
-> **Status: pre-release, designed in the open.** The API and the security rules are specified in [docs/DESIGN.md](docs/DESIGN.md) and the work is tracked in [milestones](https://github.com/jmmana/sqlguard/milestones). It is not on PyPI yet. ⭐ Star or watch the repo to know when v0.1 ships, and tell us what you think of the API in [Discussions](https://github.com/jmmana/sqlguard/discussions).
+> **Status: alpha.** `0.1.0a1` is on PyPI as [`sqlguardllm`](https://pypi.org/project/sqlguardllm/) (the import name is `sqlguard`), with the rules of [docs/DESIGN.md](docs/DESIGN.md) and a 64-case adversarial corpus. The API may still change before 1.0; violation codes are stable. ⭐ Star the repo to follow along, and tell us what you think in [Discussions](https://github.com/jmmana/sqlguard/discussions).
 
 ---
 
@@ -56,7 +57,9 @@ sqlguard parses the statement into a syntax tree with sqlglot and **decides on t
 
 ## Quick look
 
-> The API below is the [designed](docs/DESIGN.md) v0.1 API. Feedback welcome before it's frozen.
+```bash
+pip install sqlguardllm          # Python 3.10+, one dependency: sqlglot
+```
 
 ```python
 from sqlguard import Guard, Policy

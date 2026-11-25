@@ -1,0 +1,68 @@
+# Table allowlist and hidden columns (gallery cases 21-24 and more).
+- id: pg-union-not-allowed-table
+  dialect: postgres
+  sql: SELECT * FROM invoices UNION ALL SELECT * FROM (SELECT * FROM users) u
+  expect: reject
+  codes: [table_not_allowed]
+- id: pg-other-schema
+  dialect: postgres
+  sql: SELECT * FROM other.invoices
+  expect: reject
+  codes: [table_not_allowed]
+  note: Allowing invoices never allows the same name in another schema.
+- id: pg-subquery-in-where
+  dialect: postgres
+  sql: SELECT id FROM invoices WHERE customer_id IN (SELECT id FROM secrets)
+  expect: reject
+  codes: [table_not_allowed]
+- id: pg-hidden-column
+  dialect: postgres
+  sql: SELECT name, email FROM customers
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-star
+  dialect: postgres
+  sql: SELECT * FROM customers
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-qualified-star
+  dialect: postgres
+  sql: SELECT c.* FROM customers c
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-in-predicate
+  dialect: postgres
+  sql: SELECT name FROM customers WHERE email LIKE '%@acme.com'
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-in-order-by
+  dialect: postgres
+  sql: SELECT name FROM customers ORDER BY tax_id
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-whole-row
+  dialect: postgres
+  sql: SELECT c FROM customers c
+  expect: reject
+  codes: [hidden_column]
+  note: In PostgreSQL a bare alias is the whole row, hidden columns included.
+- id: pg-hidden-correlated
+  dialect: postgres
+  sql: SELECT name FROM customers c WHERE EXISTS (SELECT 1 FROM branches b WHERE c.email LIKE 'a%')
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-using
+  dialect: postgres
+  sql: SELECT c.name FROM customers c JOIN invoices i USING (email)
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-alias-rename
+  dialect: postgres
+  sql: SELECT c.email AS contact FROM customers c
+  expect: reject
+  codes: [hidden_column]
+- id: pg-visible-columns
+  dialect: postgres
+  sql: SELECT c.name, c.segment FROM customers c ORDER BY c.name
+  expect: allow
+  contains: ["c.name", "LIMIT 1000"]
