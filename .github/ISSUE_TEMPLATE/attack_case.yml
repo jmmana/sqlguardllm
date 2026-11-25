@@ -1,5 +1,5 @@
 name: Attack case (already blocked)
-description: Propose a new case for the adversarial corpus that sqlguard should handle.
+description: Propose a new case for the adversarial corpus that sqlguardllm should handle.
 title: "Corpus: "
 labels: ["type:corpus", "good first issue"]
 body:
@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Use this for cases that are **not** a bypass: new attack patterns to keep covered, or legitimate queries that must keep working.
-        If sqlguard currently **accepts** a dangerous query, report it privately instead ([SECURITY.md](https://github.com/jmmana/sqlguard/blob/main/SECURITY.md)).
+        If sqlguardllm currently **accepts** a dangerous query, report it privately instead ([SECURITY.md](https://github.com/jmmana/sqlguardllm/blob/main/SECURITY.md)).
   - type: input
     id: dialect
     attributes:

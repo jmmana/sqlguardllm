@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="660" viewBox="0 0 1280 660" role="img" aria-label="sqlguard">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="660" viewBox="0 0 1280 660" role="img" aria-label="sqlguardllm">
 <defs>
 <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
 <linearGradient id="gt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6EE7B7"/><stop offset="1" stop-color="#22D3EE"/></linearGradient>
@@ -37,7 +37,7 @@
 <rect x="760" y="70" width="250" height="28" rx="14" fill="rgba(16,185,129,0.12)" stroke="#34D399" stroke-opacity="0.6"/>
 <text x="884.88" y="88.5" font-family="Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#6EE7B7" font-weight="600" text-anchor="middle" >Open source · Python · Apache-2.0</text>
 <path d="M794 139.0 L824.0 148.6 L824.0 172.0 C824.0 190.6 804.8 201.4 794 206.2 C783.2 201.4 764.0 190.6 764.0 172.0 L764.0 148.6 Z" fill="url(#g)"/><path d="M780.8 173.2 L791.0 183.4 L809.0 162.4" fill="none" stroke="#FFFFFF" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="840" y="190" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace" font-size="44" font-weight="700" letter-spacing="-1"><tspan fill="#94A3B8">sql</tspan><tspan fill="url(#gt)">guard</tspan></text>
+<text x="840" y="190" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace" font-size="44" font-weight="700" letter-spacing="-1"><tspan fill="#94A3B8">sql</tspan><tspan fill="url(#gt)">guard</tspan><tspan fill="#94A3B8">llm</tspan></text>
 <text x="760" y="268" font-family="Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="36" fill="#F8FAFC" font-weight="750" text-anchor="start" letter-spacing="-0.8">The SQL firewall</text>
 <text x="760" y="312" font-family="Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="36" fill="url(#gt)" font-weight="750" text-anchor="start" letter-spacing="-0.8">for LLM apps.</text>
 <text x="760" y="356" font-family="Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" fill="#94A3B8" font-weight="400" text-anchor="start" >One function between the model and your</text>

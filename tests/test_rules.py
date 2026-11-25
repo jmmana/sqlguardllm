@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from conftest import CONTEXT, standard_policy
-from sqlguard import Guard, Policy, ViolationCode
+from sqlguardllm import Guard, Policy, ViolationCode
 
 
 def test_result_lists_physical_tables(guard: Guard) -> None:

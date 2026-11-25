@@ -1,12 +1,12 @@
 # Attack gallery
 
-Every row is a test case of the adversarial corpus in [`tests/corpus/`](../tests/corpus/), which has 64 cases in 0.1.0a1 and runs on every pull request. The column **sqlglot sees** was verified with **sqlglot 30.35.0** on 2026-11-25; the column **sqlguard** is what 0.1.0a1 does, checked by that corpus.
+Every row is a test case of the adversarial corpus in [`tests/corpus/`](../tests/corpus/), which has 64 cases in 0.1.0a1 and runs on every pull request. The column **sqlglot sees** was verified with **sqlglot 30.35.0** on 2026-11-25; the column **sqlguardllm** is what 0.1.0a1 does, checked by that corpus.
 
 Policy used in the examples: tables `invoices`, `branches`, `customers`; hidden column `customers.email`; row filter on `invoices`.
 
 ## Writes and statement shape
 
-| # | Dialect | Attempt | sqlglot sees | sqlguard |
+| # | Dialect | Attempt | sqlglot sees | sqlguardllm |
 |---|---|---|---|---|
 | 1 | postgres | `DELETE FROM invoices` | root `Delete` | ❌ `not_a_query` |
 | 2 | tsql | `SELECT 1; DROP TABLE invoices` | 2 statements: `Select`, `Drop` | ❌ `multiple_statements` |
@@ -26,7 +26,7 @@ Policy used in the examples: tables `invoices`, `branches`, `customers`; hidden 
 
 ## Functions
 
-| # | Dialect | Attempt | sqlglot sees | sqlguard |
+| # | Dialect | Attempt | sqlglot sees | sqlguardllm |
 |---|---|---|---|---|
 | 16 | postgres | `SELECT pg_sleep(10)` | anonymous function `pg_sleep` | ❌ `denied_function` |
 | 17 | postgres | `SELECT pg_read_file('/etc/passwd')` | anonymous function `pg_read_file` | ❌ `denied_function` |
@@ -36,7 +36,7 @@ Policy used in the examples: tables `invoices`, `branches`, `customers`; hidden 
 
 ## Tables and columns
 
-| # | Dialect | Attempt | sqlglot sees | sqlguard |
+| # | Dialect | Attempt | sqlglot sees | sqlguardllm |
 |---|---|---|---|---|
 | 21 | postgres | `SELECT * FROM invoices UNION ALL SELECT * FROM (SELECT * FROM users) u` | root `Union`; table `users` | ❌ `table_not_allowed` |
 | 22 | postgres | `SELECT name, email FROM customers` | column `email` of `customers` | ❌ `hidden_column` |
@@ -47,7 +47,7 @@ Policy used in the examples: tables `invoices`, `branches`, `customers`; hidden 
 
 False positives matter too: a guard that blocks legitimate queries gets switched off.
 
-| # | Dialect | Query | sqlglot sees | sqlguard |
+| # | Dialect | Query | sqlglot sees | sqlguardllm |
 |---|---|---|---|---|
 | 25 | postgres | `SELECT 'x; DROP TABLE invoices' AS note` | one `Select`, a string literal | ✅ allowed |
 | 26 | postgres | `SELECT 1 /* ; DROP TABLE invoices */` | one `Select`, a comment | ✅ allowed |
@@ -67,4 +67,4 @@ Cases live as YAML in `tests/corpus/`, one file per category:
   note: A write hidden in a CTE, invisible to keyword filters.
 ```
 
-Adding cases is one of the best first contributions: see [CONTRIBUTING.md](../CONTRIBUTING.md). If you find a case that sqlguard **accepts but shouldn't**, that's a vulnerability: report it privately per [SECURITY.md](../SECURITY.md).
+Adding cases is one of the best first contributions: see [CONTRIBUTING.md](../CONTRIBUTING.md). If you find a case that sqlguardllm **accepts but shouldn't**, that's a vulnerability: report it privately per [SECURITY.md](../SECURITY.md).

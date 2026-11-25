@@ -1,17 +1,17 @@
 <p align="center">
-  <img alt="sqlguard" src="https://raw.githubusercontent.com/jmmana/sqlguard/main/docs/assets/logo-light.svg" width="340">
+  <img alt="sqlguardllm" src="https://raw.githubusercontent.com/jmmana/sqlguardllm/main/docs/assets/logo-light.svg" width="340">
 </p>
 
-# sqlguard — the SQL firewall for LLM apps
+# sqlguardllm — the SQL firewall for LLM apps
 
-Your model writes SQL. **sqlguard** makes sure it can only read what it's allowed to read: one read-only statement, allowlisted tables and columns, row-level filters per user, and a row limit, in any dialect [sqlglot](https://github.com/tobymao/sqlglot) understands.
+Your model writes SQL. **sqlguardllm** makes sure it can only read what it's allowed to read: one read-only statement, allowlisted tables and columns, row-level filters per user, and a row limit, in any dialect [sqlglot](https://github.com/tobymao/sqlglot) understands.
 
 ```bash
 pip install sqlguardllm
 ```
 
 ```python
-from sqlguard import Guard, Policy
+from sqlguardllm import Guard, Policy
 
 guard = Guard(
     Policy(
@@ -44,8 +44,8 @@ Pure Python, one dependency (sqlglot), no network, no LLM. Status: **alpha** —
 
 ## Learn more
 
-- Source, design and attack gallery: <https://github.com/jmmana/sqlguard>
-- Threat model: <https://github.com/jmmana/sqlguard/blob/main/docs/THREAT_MODEL.md>
-- Report a bypass privately: <https://github.com/jmmana/sqlguard/security/advisories/new>
+- Source, design and attack gallery: <https://github.com/jmmana/sqlguardllm>
+- Threat model: <https://github.com/jmmana/sqlguardllm/blob/main/docs/THREAT_MODEL.md>
+- Report a bypass privately: <https://github.com/jmmana/sqlguardllm/security/advisories/new>
 
-The distribution is named `sqlguardllm` on PyPI; the import name is `sqlguard`. Licensed under Apache-2.0.
+Licensed under Apache-2.0.

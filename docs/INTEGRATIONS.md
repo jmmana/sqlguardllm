@@ -1,6 +1,6 @@
 # Integrations
 
-sqlguard doesn't depend on any LLM framework. It sits at the one place every text-to-SQL stack has: **the call that executes the SQL the model wrote.**
+sqlguardllm doesn't depend on any LLM framework. It sits at the one place every text-to-SQL stack has: **the call that executes the SQL the model wrote.**
 
 ```mermaid
 flowchart LR
@@ -13,7 +13,7 @@ flowchart LR
 ## The generic pattern
 
 ```python
-from sqlguard import Guard, Policy, GuardViolation
+from sqlguardllm import Guard, Policy, GuardViolation
 
 guard = Guard(Policy.from_file("policy.yaml"))
 
@@ -34,7 +34,7 @@ except GuardViolation as e:
 
 ## Recipes (planned for v0.3)
 
-Each recipe will live in `examples/` with a test, without adding the framework as a dependency of sqlguard.
+Each recipe will live in `examples/` with a test, without adding the framework as a dependency of sqlguardllm.
 
 | Stack | Integration point |
 |---|---|
@@ -43,6 +43,6 @@ Each recipe will live in `examples/` with a test, without adding the framework a
 | LlamaIndex | Same idea for its SQL database and query engines |
 | Vanna | Validate the generated SQL before Vanna executes it |
 | MCP database servers | Call `guard.enforce()` inside the `query` tool, with the context of the authenticated caller |
-| [ChatIApp](https://github.com/jmmana/ChatIApp) | Uses sqlguard as its SQL guard; policies come from its semantic model |
+| [ChatIApp](https://github.com/jmmana/ChatIApp) | Uses sqlguardllm as its SQL guard; policies come from its semantic model |
 
-Using sqlguard somewhere else? Open a PR to add your recipe.
+Using sqlguardllm somewhere else? Open a PR to add your recipe.

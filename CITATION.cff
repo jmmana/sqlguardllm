@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use sqlguard in research or in a publication, please cite it as below."
-title: "sqlguard: the SQL firewall for LLM apps"
+message: "If you use sqlguardllm in research or in a publication, please cite it as below."
+title: "sqlguardllm: the SQL firewall for LLM apps"
 abstract: >-
   A deterministic, offline guard that validates SQL written by large language models and
   rewrites it so it is read-only, limited to allowlisted tables and columns, filtered per user
@@ -9,7 +9,7 @@ type: software
 authors:
   - family-names: Castillo
     given-names: Juan
-repository-code: "https://github.com/jmmana/sqlguard"
+repository-code: "https://github.com/jmmana/sqlguardllm"
 license: Apache-2.0
 keywords:
   - sql

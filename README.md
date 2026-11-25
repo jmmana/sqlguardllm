@@ -5,26 +5,26 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-  <img alt="sqlguard" src="docs/assets/logo-light.svg" width="360">
+  <img alt="sqlguardllm" src="docs/assets/logo-light.svg" width="380">
 </picture>
 
 ### The SQL firewall for LLM apps.
 
-Your model writes SQL. **sqlguard** makes sure it can only read what it's allowed to read: one read-only statement, allowlisted tables and columns, row-level filters per user, and a row limit, in any of the 32 dialects [sqlglot](https://github.com/tobymao/sqlglot) speaks.
+Your model writes SQL. **sqlguardllm** makes sure it can only read what it's allowed to read: one read-only statement, allowlisted tables and columns, row-level filters per user, and a row limit, in any of the 32 dialects [sqlglot](https://github.com/tobymao/sqlglot) speaks.
 
 [![PyPI](https://img.shields.io/pypi/v/sqlguardllm?include_prereleases&label=pypi&color=10B981)](https://pypi.org/project/sqlguardllm/)
-[![CI](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml/badge.svg)](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml)
+[![CI](https://github.com/jmmana/sqlguardllm/actions/workflows/ci.yml/badge.svg)](https://github.com/jmmana/sqlguardllm/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-3B82F6)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](docs/DESIGN.md)
 [![Built on sqlglot](https://img.shields.io/badge/built%20on-sqlglot-10B981)](https://github.com/tobymao/sqlglot)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22C55E)](CONTRIBUTING.md)
 
-<img src="docs/assets/hero.svg" alt="sqlguard blocks a DELETE hidden inside a CTE and a query on a hidden column, and rewrites an allowed query with the user's row filter and a row limit" width="100%">
+<img src="docs/assets/hero.svg" alt="sqlguardllm blocks a DELETE hidden inside a CTE and a query on a hidden column, and rewrites an allowed query with the user's row filter and a row limit" width="100%">
 
 </div>
 
 > [!NOTE]
-> **Status: alpha.** `0.1.0a1` is on PyPI as [`sqlguardllm`](https://pypi.org/project/sqlguardllm/) (the import name is `sqlguard`), with the rules of [docs/DESIGN.md](docs/DESIGN.md) and a 64-case adversarial corpus. The API may still change before 1.0; violation codes are stable. ⭐ Star the repo to follow along, and tell us what you think in [Discussions](https://github.com/jmmana/sqlguard/discussions).
+> **Status: alpha.** `0.1.0a2` is on [PyPI](https://pypi.org/project/sqlguardllm/) (`pip install sqlguardllm`, `import sqlguardllm`), with the rules of [docs/DESIGN.md](docs/DESIGN.md) and a 64-case adversarial corpus. The API may still change before 1.0; violation codes are stable. ⭐ Star the repo to follow along, and tell us what you think in [Discussions](https://github.com/jmmana/sqlguardllm/discussions).
 
 ---
 
@@ -41,7 +41,7 @@ The usual defense is a keyword blocklist. It fails in **both** directions:
 | `SELECT * INTO backup FROM invoices` | ⚠️ Lets it through: it starts with `SELECT` | Creates a new table (SQL Server) |
 | `SELECT name, email FROM customers` | ⚠️ Lets it through | Reads personal data the model should never see |
 
-sqlguard parses the statement into a syntax tree with sqlglot and **decides on the tree, not on the text**. Then it rewrites the query so it can only see the rows the current user is allowed to see.
+sqlguardllm parses the statement into a syntax tree with sqlglot and **decides on the tree, not on the text**. Then it rewrites the query so it can only see the rows the current user is allowed to see.
 
 ## What it guarantees
 
@@ -62,7 +62,7 @@ pip install sqlguardllm          # Python 3.10+, one dependency: sqlglot
 ```
 
 ```python
-from sqlguard import Guard, Policy
+from sqlguardllm import Guard, Policy
 
 guard = Guard(Policy(
     dialect="postgres",
@@ -139,9 +139,9 @@ Same idea on SQL Server, where the limit becomes `TOP 500`, or Oracle, where it 
 
 ## Attack gallery
 
-What sqlglot 30.35 actually sees for each attempt, and what sqlguard does about it. Every row is a test case. The full list is in [docs/ATTACK_GALLERY.md](docs/ATTACK_GALLERY.md).
+What sqlglot 30.35 actually sees for each attempt, and what sqlguardllm does about it. Every row is a test case. The full list is in [docs/ATTACK_GALLERY.md](docs/ATTACK_GALLERY.md).
 
-| Dialect | Attempt | sqlglot sees | sqlguard |
+| Dialect | Attempt | sqlglot sees | sqlguardllm |
 |---|---|---|---|
 | postgres | `WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d` | `Select` root with a `Delete` inside | ❌ `write_operation` |
 | tsql | `SELECT 1; DROP TABLE invoices` | 2 statements | ❌ `multiple_statements` |
@@ -158,10 +158,10 @@ Found a way through? That's a vulnerability: please [report it privately](SECURI
 
 ## Where it fits
 
-sqlguard is **one layer**, not the only one. Keep the others:
+sqlguardllm is **one layer**, not the only one. Keep the others:
 
 1. **A read-only database user** with access to only the tables the app needs. Non-negotiable.
-2. **sqlguard** between the model and the database: shape, allowlists, row filters, limits.
+2. **sqlguardllm** between the model and the database: shape, allowlists, row filters, limits.
 3. **Statement timeouts** in the database, against expensive queries.
 4. **Audit logs** of every SQL that ran and for whom.
 
@@ -169,26 +169,26 @@ What it does not do, and why, is in the [threat model](docs/THREAT_MODEL.md).
 
 ## Works with your stack
 
-sqlguard sits wherever your app executes the SQL the model wrote. Recipes, planned for v0.3, will cover a generic `execute()` wrapper, LangChain and LlamaIndex SQL tools, Vanna, and MCP database servers. See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+sqlguardllm sits wherever your app executes the SQL the model wrote. Recipes, planned for v0.3, will cover a generic `execute()` wrapper, LangChain and LlamaIndex SQL tools, Vanna, and MCP database servers. See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 A command-line tool is planned too, handy in CI and for trying policies:
 
 ```bash
-sqlguard check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' \
+sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' \
   "SELECT * FROM invoices"
 ```
 
 ## Playground: try to break it
 
-A static playground (planned for v0.3) will run sqlguard **entirely in your browser** with Pyodide and a demo SQLite database: pick a role, type the nastiest SQL you can think of, and watch it get blocked or rewritten. No server, no sign-up.
+A static playground (planned for v0.3) will run sqlguardllm **entirely in your browser** with Pyodide and a demo SQLite database: pick a role, type the nastiest SQL you can think of, and watch it get blocked or rewritten. No server, no sign-up.
 
 ## Roadmap
 
 | Milestone | Scope |
 |---|---|
-| [**v0.1 · Core guard**](https://github.com/jmmana/sqlguard/milestone/1) | Statement and read-only checks, allowlists, hidden columns, denied functions, row limit, adversarial corpus |
-| [**v0.2 · Row-level security & CLI**](https://github.com/jmmana/sqlguard/milestone/2) | Row filters as derived tables, policy files, CLI, dialect test matrix, docs site, PyPI release |
-| [**v0.3 · Ecosystem & playground**](https://github.com/jmmana/sqlguard/milestone/3) | Integration recipes, browser playground, performance budget |
+| [**v0.1 · Core guard**](https://github.com/jmmana/sqlguardllm/milestone/1) | Statement and read-only checks, allowlists, hidden columns, denied functions, row limit, adversarial corpus |
+| [**v0.2 · Row-level security & CLI**](https://github.com/jmmana/sqlguardllm/milestone/2) | Row filters as derived tables, policy files, CLI, dialect test matrix, docs site, PyPI release |
+| [**v0.3 · Ecosystem & playground**](https://github.com/jmmana/sqlguardllm/milestone/3) | Integration recipes, browser playground, performance budget |
 
 Details in [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -199,14 +199,14 @@ Contributions are very welcome, and some of the most valuable ones need no deep 
 - **Add attack cases** to the adversarial corpus, especially for dialects you know well.
 - **Extend the denied-function lists** for your database.
 - **Translate violation messages.**
-- **Challenge the design** in [Discussions](https://github.com/jmmana/sqlguard/discussions) before v0.1 freezes the API.
+- **Challenge the design** in [Discussions](https://github.com/jmmana/sqlguardllm/discussions) before v0.1 freezes the API.
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [good first issues](https://github.com/jmmana/sqlguard/labels/good%20first%20issue). This project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [good first issues](https://github.com/jmmana/sqlguardllm/labels/good%20first%20issue). This project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Security
 
-A bypass of sqlguard is a security vulnerability. **Don't open a public issue:** report it privately as described in [SECURITY.md](SECURITY.md).
+A bypass of sqlguardllm is a security vulnerability. **Don't open a public issue:** report it privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-[Apache-2.0](LICENSE) © 2026 Juan Castillo. sqlguard was born inside [ChatIApp](https://github.com/jmmana/ChatIApp), an open-source chat that turns business questions into safe SQL.
+[Apache-2.0](LICENSE) © 2026 Juan Castillo. sqlguardllm was born inside [ChatIApp](https://github.com/jmmana/ChatIApp), an open-source chat that turns business questions into safe SQL.

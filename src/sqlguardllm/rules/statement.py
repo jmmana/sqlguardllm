@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from sqlglot import exp
 
-from sqlguard.messages import violation
-from sqlguard.result import Violation, ViolationCode
+from sqlguardllm.messages import violation
+from sqlguardllm.result import Violation, ViolationCode
 
 _WRITE_NODE_NAMES = (
     "Insert",

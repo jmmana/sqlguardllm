@@ -9,7 +9,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Literal
 
-from sqlguard.result import PolicyError
+from sqlguardllm.result import PolicyError
 
 FunctionPolicy = Literal["denylist", "allowlist"]
 
@@ -101,7 +101,7 @@ class Policy:
     def from_file(cls, path: str | Path) -> Policy:
         """Load a policy from a ``.json``, ``.yaml`` or ``.yml`` file.
 
-        YAML needs the optional extra: ``pip install "sqlguard[yaml]"``.
+        YAML needs the optional extra: ``pip install "sqlguardllm[yaml]"``.
         """
         file = Path(path)
         text = file.read_text(encoding="utf-8")
@@ -109,7 +109,7 @@ class Policy:
             try:
                 import yaml  # noqa: PLC0415
             except ImportError as exc:  # pragma: no cover - depends on the environment
-                raise PolicyError('YAML policies need: pip install "sqlguard[yaml]"') from exc
+                raise PolicyError('YAML policies need: pip install "sqlguardllm[yaml]"') from exc
             data = yaml.safe_load(text)
         else:
             data = json.loads(text)

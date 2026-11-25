@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-import sqlguard
+import sqlguardllm
 from conftest import CONTEXT, standard_policy
-from sqlguard import Guard, GuardViolation, PolicyError, ViolationCode
-from sqlguard.messages import _TEMPLATES
+from sqlguardllm import Guard, GuardViolation, PolicyError, ViolationCode
+from sqlguardllm.messages import _TEMPLATES
 
 
 def test_version_is_exposed() -> None:
-    assert sqlguard.__version__
+    assert sqlguardllm.__version__
 
 
 def test_enforce_returns_safe_sql(guard: Guard) -> None:

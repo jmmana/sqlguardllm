@@ -5,26 +5,26 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-  <img alt="sqlguard" src="docs/assets/logo-light.svg" width="360">
+  <img alt="sqlguardllm" src="docs/assets/logo-light.svg" width="380">
 </picture>
 
 ### El firewall de SQL para apps con IA.
 
-Tu modelo escribe SQL. **sqlguard** se asegura de que solo pueda leer lo permitido: una única consulta de solo lectura, tablas y columnas en lista blanca, filtros por fila según el usuario y un límite de filas, en cualquiera de los 32 dialectos que entiende [sqlglot](https://github.com/tobymao/sqlglot).
+Tu modelo escribe SQL. **sqlguardllm** se asegura de que solo pueda leer lo permitido: una única consulta de solo lectura, tablas y columnas en lista blanca, filtros por fila según el usuario y un límite de filas, en cualquiera de los 32 dialectos que entiende [sqlglot](https://github.com/tobymao/sqlglot).
 
 [![PyPI](https://img.shields.io/pypi/v/sqlguardllm?include_prereleases&label=pypi&color=10B981)](https://pypi.org/project/sqlguardllm/)
-[![CI](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml/badge.svg)](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml)
+[![CI](https://github.com/jmmana/sqlguardllm/actions/workflows/ci.yml/badge.svg)](https://github.com/jmmana/sqlguardllm/actions/workflows/ci.yml)
 [![Licencia](https://img.shields.io/badge/licencia-Apache--2.0-3B82F6)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](docs/DESIGN.md)
 [![Sobre sqlglot](https://img.shields.io/badge/sobre-sqlglot-10B981)](https://github.com/tobymao/sqlglot)
 [![PRs](https://img.shields.io/badge/PRs-bienvenidos-22C55E)](CONTRIBUTING.md)
 
-<img src="docs/assets/hero.es.svg" alt="sqlguard bloquea un DELETE escondido en un CTE y una consulta sobre una columna oculta, y reescribe una consulta permitida con el filtro del usuario y un límite de filas" width="100%">
+<img src="docs/assets/hero.es.svg" alt="sqlguardllm bloquea un DELETE escondido en un CTE y una consulta sobre una columna oculta, y reescribe una consulta permitida con el filtro del usuario y un límite de filas" width="100%">
 
 </div>
 
 > [!NOTE]
-> **Estado: alfa.** La versión `0.1.0a1` está en PyPI como [`sqlguardllm`](https://pypi.org/project/sqlguardllm/) (se importa como `sqlguard`), con las reglas de [docs/DESIGN.md](docs/DESIGN.md) y un corpus adversarial de 64 casos. La API puede cambiar antes de la 1.0; los códigos de violación son estables. Dale ⭐ para seguir el avance y opina en [Discussions](https://github.com/jmmana/sqlguard/discussions).
+> **Estado: alfa.** La versión `0.1.0a2` está en [PyPI](https://pypi.org/project/sqlguardllm/) (`pip install sqlguardllm`, `import sqlguardllm`), con las reglas de [docs/DESIGN.md](docs/DESIGN.md) y un corpus adversarial de 64 casos. La API puede cambiar antes de la 1.0; los códigos de violación son estables. Dale ⭐ para seguir el avance y opina en [Discussions](https://github.com/jmmana/sqlguardllm/discussions).
 >
 > La documentación técnica está en inglés para llegar a más desarrolladores. Los issues y PR en español son bienvenidos.
 
@@ -43,7 +43,7 @@ La defensa habitual es una lista de palabras prohibidas, y falla **en las dos di
 | `SELECT * INTO backup FROM invoices` | ⚠️ La deja pasar: empieza con `SELECT` | Crea una tabla nueva (SQL Server) |
 | `SELECT name, email FROM customers` | ⚠️ La deja pasar | Lee datos personales que el modelo nunca debería ver |
 
-sqlguard convierte la sentencia en un árbol sintáctico con sqlglot y **decide sobre el árbol, no sobre el texto**. Después reescribe la consulta para que solo vea las filas que el usuario actual puede ver.
+sqlguardllm convierte la sentencia en un árbol sintáctico con sqlglot y **decide sobre el árbol, no sobre el texto**. Después reescribe la consulta para que solo vea las filas que el usuario actual puede ver.
 
 ## Qué garantiza
 
@@ -64,7 +64,7 @@ pip install sqlguardllm          # Python 3.10+, una sola dependencia: sqlglot
 ```
 
 ```python
-from sqlguard import Guard, Policy
+from sqlguardllm import Guard, Policy
 
 guard = Guard(Policy(
     dialect="postgres",
@@ -141,9 +141,9 @@ Igual en SQL Server, donde el límite es `TOP 500`, o en Oracle, donde es `FETCH
 
 ## Galería de ataques
 
-Lo que sqlglot 30.35 realmente ve en cada intento y qué hace sqlguard. Cada fila es un caso de prueba; la lista completa está en [docs/ATTACK_GALLERY.md](docs/ATTACK_GALLERY.md).
+Lo que sqlglot 30.35 realmente ve en cada intento y qué hace sqlguardllm. Cada fila es un caso de prueba; la lista completa está en [docs/ATTACK_GALLERY.md](docs/ATTACK_GALLERY.md).
 
-| Dialecto | Intento | sqlglot ve | sqlguard |
+| Dialecto | Intento | sqlglot ve | sqlguardllm |
 |---|---|---|---|
 | postgres | `WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d` | raíz `Select` con un `Delete` dentro | ❌ `write_operation` |
 | tsql | `SELECT 1; DROP TABLE invoices` | 2 sentencias | ❌ `multiple_statements` |
@@ -160,10 +160,10 @@ Lo que sqlglot 30.35 realmente ve en cada intento y qué hace sqlguard. Cada fil
 
 ## Dónde encaja
 
-sqlguard es **una capa**, no la única. Mantén las demás:
+sqlguardllm es **una capa**, no la única. Mantén las demás:
 
 1. **Un usuario de base de datos de solo lectura** con acceso solo a las tablas que la app necesita. No es negociable.
-2. **sqlguard** entre el modelo y la base: forma, listas blancas, filtros por fila y límites.
+2. **sqlguardllm** entre el modelo y la base: forma, listas blancas, filtros por fila y límites.
 3. **Tiempos máximos** en la base, contra consultas costosas.
 4. **Auditoría** de cada SQL ejecutado y para quién.
 
@@ -171,26 +171,26 @@ Lo que no hace, y por qué, está en el [modelo de amenazas](docs/THREAT_MODEL.m
 
 ## Con tu stack
 
-sqlguard va donde tu app ejecuta el SQL que escribió el modelo. Las recetas planeadas para la v0.3 cubrirán un envoltorio genérico de `execute()`, las herramientas SQL de LangChain y LlamaIndex, Vanna y servidores MCP de bases de datos. Ver [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+sqlguardllm va donde tu app ejecuta el SQL que escribió el modelo. Las recetas planeadas para la v0.3 cubrirán un envoltorio genérico de `execute()`, las herramientas SQL de LangChain y LlamaIndex, Vanna y servidores MCP de bases de datos. Ver [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 También habrá una herramienta de línea de comandos, útil en CI y para probar políticas:
 
 ```bash
-sqlguard check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' \
+sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' \
   "SELECT * FROM invoices"
 ```
 
 ## Playground: intenta romperlo
 
-Un playground estático (planeado para la v0.3) correrá sqlguard **entero en tu navegador** con Pyodide y una base SQLite de demostración: elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro.
+Un playground estático (planeado para la v0.3) correrá sqlguardllm **entero en tu navegador** con Pyodide y una base SQLite de demostración: elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro.
 
 ## Roadmap
 
 | Hito | Alcance |
 |---|---|
-| [**v0.1 · Core guard**](https://github.com/jmmana/sqlguard/milestone/1) | Validación de sentencia y solo lectura, listas blancas, columnas ocultas, funciones prohibidas, límite de filas, corpus adversarial |
-| [**v0.2 · Row-level security & CLI**](https://github.com/jmmana/sqlguard/milestone/2) | Filtros por fila como tablas derivadas, archivos de política, CLI, matriz de dialectos, sitio de documentación, publicación en PyPI |
-| [**v0.3 · Ecosystem & playground**](https://github.com/jmmana/sqlguard/milestone/3) | Recetas de integración, playground en el navegador, presupuesto de rendimiento |
+| [**v0.1 · Core guard**](https://github.com/jmmana/sqlguardllm/milestone/1) | Validación de sentencia y solo lectura, listas blancas, columnas ocultas, funciones prohibidas, límite de filas, corpus adversarial |
+| [**v0.2 · Row-level security & CLI**](https://github.com/jmmana/sqlguardllm/milestone/2) | Filtros por fila como tablas derivadas, archivos de política, CLI, matriz de dialectos, sitio de documentación, publicación en PyPI |
+| [**v0.3 · Ecosystem & playground**](https://github.com/jmmana/sqlguardllm/milestone/3) | Recetas de integración, playground en el navegador, presupuesto de rendimiento |
 
 Detalle en [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -201,14 +201,14 @@ Las contribuciones son muy bienvenidas, y algunas de las más valiosas no requie
 - **Agregar casos de ataque** al corpus adversarial, sobre todo en los dialectos que conoces bien.
 - **Ampliar las listas de funciones prohibidas** de tu motor de base de datos.
 - **Traducir los mensajes** de las violaciones.
-- **Cuestionar el diseño** en [Discussions](https://github.com/jmmana/sqlguard/discussions) antes de que la v0.1 congele la API.
+- **Cuestionar el diseño** en [Discussions](https://github.com/jmmana/sqlguardllm/discussions) antes de que la v0.1 congele la API.
 
-Empieza por [CONTRIBUTING.md](CONTRIBUTING.md) y los [good first issues](https://github.com/jmmana/sqlguard/labels/good%20first%20issue). El proyecto sigue un [Código de conducta](CODE_OF_CONDUCT.md).
+Empieza por [CONTRIBUTING.md](CONTRIBUTING.md) y los [good first issues](https://github.com/jmmana/sqlguardllm/labels/good%20first%20issue). El proyecto sigue un [Código de conducta](CODE_OF_CONDUCT.md).
 
 ## Seguridad
 
-Saltarse sqlguard es una vulnerabilidad de seguridad. **No abras un issue público:** repórtala en privado como explica [SECURITY.md](SECURITY.md).
+Saltarse sqlguardllm es una vulnerabilidad de seguridad. **No abras un issue público:** repórtala en privado como explica [SECURITY.md](SECURITY.md).
 
 ## Licencia
 
-[Apache-2.0](LICENSE) © 2026 Juan Castillo. sqlguard nació dentro de [ChatIApp](https://github.com/jmmana/ChatIApp), un chat open source que convierte preguntas de negocio en SQL seguro.
+[Apache-2.0](LICENSE) © 2026 Juan Castillo. sqlguardllm nació dentro de [ChatIApp](https://github.com/jmmana/ChatIApp), un chat open source que convierte preguntas de negocio en SQL seguro.

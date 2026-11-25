@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 from conftest import CONTEXT, standard_policy
-from sqlguard import Guard, ViolationCode
+from sqlguardllm import Guard, ViolationCode
 
 CORPUS = Path(__file__).parent / "corpus"
 KEYS = {

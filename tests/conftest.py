@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from sqlguard import Guard, Policy
+from sqlguardllm import Guard, Policy
 
 TABLES = {"invoices", "invoice_lines", "branches", "customers", "products"}
 HIDDEN = {"customers.email", "customers.tax_id"}

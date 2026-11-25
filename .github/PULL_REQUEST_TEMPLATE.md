@@ -8,7 +8,7 @@ Closes #
 
 - [ ] Tests for the new behavior: at least one case that must be rejected and one that must keep working
 - [ ] `ruff`, `mypy` and `pytest` pass locally
-- [ ] [docs/DESIGN.md](https://github.com/jmmana/sqlguard/blob/main/docs/DESIGN.md) updated if behavior changed
+- [ ] [docs/DESIGN.md](https://github.com/jmmana/sqlguardllm/blob/main/docs/DESIGN.md) updated if behavior changed
 - [ ] Violation codes unchanged (or the change is discussed in the issue)
 - [ ] No real data, credentials or private SQL in tests
 

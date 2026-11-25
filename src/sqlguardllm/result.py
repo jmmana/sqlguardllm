@@ -1,4 +1,4 @@
-"""Results, violation codes and errors of sqlguard."""
+"""Results, violation codes and errors of sqlguardllm."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ class Violation:
 
 @dataclass(frozen=True)
 class CheckResult:
-    """Outcome of :meth:`sqlguard.Guard.check`.
+    """Outcome of :meth:`sqlguardllm.Guard.check`.
 
     Attributes:
         ok: True when the query may run.
@@ -67,11 +67,11 @@ class CheckResult:
 
 
 class PolicyError(ValueError):
-    """The policy itself is invalid. Raised when a :class:`~sqlguard.Guard` is created."""
+    """The policy itself is invalid. Raised when a :class:`~sqlguardllm.Guard` is created."""
 
 
 class GuardViolation(Exception):
-    """Raised by :meth:`sqlguard.Guard.enforce` when a query is rejected."""
+    """Raised by :meth:`sqlguardllm.Guard.enforce` when a query is rejected."""
 
     def __init__(self, violations: tuple[Violation, ...]) -> None:
         self.violations = violations

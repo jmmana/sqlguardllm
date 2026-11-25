@@ -14,12 +14,12 @@
 - Replacing database permissions. A read-only database user is still required (see [THREAT_MODEL.md](THREAT_MODEL.md)).
 - Judging whether the SQL answers the user's question correctly.
 - Estimating query cost. Use the database's statement timeout; cost heuristics may come later.
-- Detecting prompt injection in natural language. sqlguard makes a successful injection harmless for data access; it doesn't try to spot it.
+- Detecting prompt injection in natural language. sqlguardllm makes a successful injection harmless for data access; it doesn't try to spot it.
 
 ## Public API (v0.1)
 
 ```python
-from sqlguard import Guard, Policy, GuardViolation
+from sqlguardllm import Guard, Policy, GuardViolation
 
 policy = Policy(
     dialect="postgres",                       # any sqlglot dialect name
@@ -114,7 +114,7 @@ This is what catches `WITH d AS (DELETE … RETURNING *) SELECT * FROM d` (a `De
 ### 5. Columns
 
 - With table metadata (`Policy(schema={...})`, optional), columns are qualified with `sqlglot.optimizer.qualify` and checked exactly.
-- Without metadata, sqlguard is conservative: an **unqualified** column whose name matches a hidden column of any source in its scope is a violation. This can reject a legitimate query; it never lets a hidden column through.
+- Without metadata, sqlguardllm is conservative: an **unqualified** column whose name matches a hidden column of any source in its scope is a violation. This can reject a legitimate query; it never lets a hidden column through.
 - `*` and `t.*` over a source with hidden columns → `hidden_column`. The model has to name the columns it wants.
 - References in any clause count, not only the select list: filtering or sorting by a hidden column leaks it too.
 

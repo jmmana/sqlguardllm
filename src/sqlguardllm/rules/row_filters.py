@@ -13,12 +13,12 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
-from sqlguard._compiled import Compiled, RowFilter
-from sqlguard._names import TableName, find
-from sqlguard.messages import violation
-from sqlguard.result import PolicyError, Violation, ViolationCode
-from sqlguard.rules.sources import PhysicalRef
-from sqlguard.rules.statement import WRITE_NODES
+from sqlguardllm._compiled import Compiled, RowFilter
+from sqlguardllm._names import TableName, find
+from sqlguardllm.messages import violation
+from sqlguardllm.result import PolicyError, Violation, ViolationCode
+from sqlguardllm.rules.sources import PhysicalRef
+from sqlguardllm.rules.statement import WRITE_NODES
 
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\}")
 _SCALARS = (bool, int, float, Decimal, str, datetime.date, datetime.datetime)

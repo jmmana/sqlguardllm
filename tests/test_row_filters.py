@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from sqlguard import Guard, Policy, ViolationCode
+from sqlguardllm import Guard, Policy, ViolationCode
 
 
 @pytest.fixture
