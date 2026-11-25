@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect
 
-from sqlguard._names import TableName
+from sqlguardllm._names import TableName
 
 
 @dataclass(frozen=True)

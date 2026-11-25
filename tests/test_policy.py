@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from conftest import standard_policy
-from sqlguard import Guard, Policy, PolicyError
+from sqlguardllm import Guard, Policy, PolicyError
 
 EXAMPLE = Path(__file__).parents[1] / "examples" / "policy.yaml"
 

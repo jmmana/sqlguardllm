@@ -1,18 +1,18 @@
 name: Bug report
-description: sqlguard rejects a query it should accept, crashes, or behaves differently from the design.
+description: sqlguardllm rejects a query it should accept, crashes, or behaves differently from the design.
 title: "Bug: "
 labels: ["type:bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        ⚠️ If sqlguard **accepts** SQL that it should reject, that's a security vulnerability: please report it privately instead ([SECURITY.md](https://github.com/jmmana/sqlguard/blob/main/SECURITY.md)).
+        ⚠️ If sqlguardllm **accepts** SQL that it should reject, that's a security vulnerability: please report it privately instead ([SECURITY.md](https://github.com/jmmana/sqlguardllm/blob/main/SECURITY.md)).
   - type: input
     id: version
     attributes:
       label: Versions
-      description: sqlguard, sqlglot and Python versions.
-      placeholder: "sqlguard 0.1.0 · sqlglot 30.35.0 · Python 3.12"
+      description: sqlguardllm, sqlglot and Python versions.
+      placeholder: "sqlguardllm 0.1.0 · sqlglot 30.35.0 · Python 3.12"
     validations:
       required: true
   - type: input

@@ -1,7 +1,7 @@
 name: Release
 
 # Publishes to PyPI with Trusted Publishing (OIDC): no API token is stored anywhere.
-# PyPI trusts this exact workflow file, in jmmana/sqlguard, running in the "pypi" environment.
+# PyPI trusts this exact workflow file, in jmmana/sqlguardllm, running in the "pypi" environment.
 on:
   push:
     tags: ["v*"]
@@ -70,13 +70,13 @@ jobs:
         run: |
           for _ in 1 2 3 4 5 6 7 8; do
             if uv run --no-project --refresh --python 3.12 --with "sqlguardllm==$VERSION" python -c "
-          import sqlguard
-          from sqlguard import Guard, Policy
+          import sqlguardllm
+          from sqlguardllm import Guard, Policy
           guard = Guard(Policy(dialect='postgres', tables={'invoices'}))
-          assert sqlguard.__version__ == '$VERSION', sqlguard.__version__
+          assert sqlguardllm.__version__ == '$VERSION', sqlguardllm.__version__
           assert not guard.check('DELETE FROM invoices').ok
           assert guard.check('SELECT id FROM invoices').sql == 'SELECT id FROM invoices LIMIT 1000'
-          print('sqlguardllm', sqlguard.__version__, 'works')
+          print('sqlguardllm', sqlguardllm.__version__, 'works')
           "; then exit 0; fi
             echo "Not available yet, retrying in 20 s"; sleep 20
           done
@@ -102,4 +102,4 @@ jobs:
           awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on {print}' CHANGELOG.md > notes.md
           prerelease=""
           if echo "$VERSION" | grep -qE '(a|b|rc)[0-9]+$'; then prerelease="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" dist/* --title "sqlguard $VERSION" --notes-file notes.md $prerelease
+          gh release create "$GITHUB_REF_NAME" dist/* --title "sqlguardllm $VERSION" --notes-file notes.md $prerelease

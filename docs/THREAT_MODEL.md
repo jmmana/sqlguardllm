@@ -10,7 +10,7 @@ We assume the attacker **fully controls the SQL string**. That is the realistic 
 
 The attacker does **not** control the `Policy`, the `context` passed to `check()`, or the database credentials. Those come from the application.
 
-## What sqlguard guarantees
+## What sqlguardllm guarantees
 
 If `check()` returns `ok`, the returned SQL:
 
@@ -25,14 +25,14 @@ And if anything can't be understood, `check()` rejects it.
 
 | Risk | Why it's out of scope | What to do |
 |---|---|---|
-| **Missing database permissions** | sqlguard is a layer above the database, not a replacement | Always connect with a read-only user limited to the needed tables |
+| **Missing database permissions** | sqlguardllm is a layer above the database, not a replacement | Always connect with a read-only user limited to the needed tables |
 | **Expensive queries** | Cost depends on data and plans, not on syntax | Statement timeouts, a read replica, resource limits per user |
-| **Parser differentials** | sqlglot may understand a statement differently from the real engine | sqlguard regenerates the SQL from the validated tree, rejects unsupported syntax, and the corpus is run against real engines (v0.2). Report any differential as a vulnerability |
+| **Parser differentials** | sqlglot may understand a statement differently from the real engine | sqlguardllm regenerates the SQL from the validated tree, rejects unsupported syntax, and the corpus is run against real engines (v0.2). Report any differential as a vulnerability |
 | **Inference through allowed data** | Aggregates and filters over allowed columns can reveal facts about hidden ones if they are correlated | Hide correlated columns too, or expose a view without them |
 | **Side effects of allowed functions** | Any function may have side effects, especially user-defined ones | Use `function_policy="allowlist"` when your database has UDFs |
 | **Timing side channels** | Out of scope for a syntax-level guard | Timeouts, rate limits |
-| **A wrong policy** | sqlguard enforces the policy it is given | Review policies like code; test them with the CLI |
-| **Prompt injection itself** | sqlguard doesn't read natural language | It makes a successful injection harmless *for data access*; other effects (wrong answers) remain |
+| **A wrong policy** | sqlguardllm enforces the policy it is given | Review policies like code; test them with the CLI |
+| **Prompt injection itself** | sqlguardllm doesn't read natural language | It makes a successful injection harmless *for data access*; other effects (wrong answers) remain |
 
 ## Assumptions
 

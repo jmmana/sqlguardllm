@@ -6,7 +6,7 @@ already appear in the query or the policy.
 
 from __future__ import annotations
 
-from sqlguard.result import Violation, ViolationCode
+from sqlguardllm.result import Violation, ViolationCode
 
 LANGUAGES = ("en", "es")
 

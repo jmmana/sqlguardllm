@@ -5,7 +5,7 @@ labels: ["type:feature"]
 body:
   - type: markdown
     attributes:
-      value: For open-ended ideas, start in [Discussions](https://github.com/jmmana/sqlguard/discussions).
+      value: For open-ended ideas, start in [Discussions](https://github.com/jmmana/sqlguardllm/discussions).
   - type: textarea
     id: problem
     attributes:

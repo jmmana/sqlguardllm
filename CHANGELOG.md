@@ -1,12 +1,21 @@
 # Changelog
 
-All notable changes to sqlguard are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Violation codes are stable across minor versions.
+All notable changes to sqlguardllm are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Violation codes are stable across minor versions.
 
 ## [Unreleased]
 
+## [0.1.0a2] - 2026-11-25
+
+One name everywhere: the project is now **sqlguardllm**.
+
+### Changed
+
+- The import package is now `sqlguardllm` (`from sqlguardllm import Guard, Policy`), matching the PyPI name. `import sqlguard` from 0.1.0a1 no longer works.
+- The repository moved to [jmmana/sqlguardllm](https://github.com/jmmana/sqlguardllm); the old URL redirects.
+
 ## [0.1.0a1] - 2026-11-25
 
-First alpha. Install with `pip install sqlguardllm`; import with `import sqlguard`.
+First alpha. Installed with `pip install sqlguardllm` and imported as `import sqlguard`.
 
 ### Added
 
@@ -27,5 +36,6 @@ First alpha. Install with `pip install sqlguardllm`; import with `import sqlguar
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguard/compare/v0.1.0a1...HEAD
-[0.1.0a1]: https://github.com/jmmana/sqlguard/releases/tag/v0.1.0a1
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a2...HEAD
+[0.1.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a1...v0.1.0a2
+[0.1.0a1]: https://github.com/jmmana/sqlguardllm/releases/tag/v0.1.0a1

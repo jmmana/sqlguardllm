@@ -12,18 +12,18 @@ from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import SqlglotError
 from sqlglot.optimizer.scope import traverse_scope
 
-from sqlguard._compiled import Compiled, RowFilter
-from sqlguard._names import TableName, find, norm, parse_column_entry, parse_table_entry
-from sqlguard.data.denied_functions import default_denylist
-from sqlguard.messages import LANGUAGES, violation
-from sqlguard.policy import Policy
-from sqlguard.result import CheckResult, GuardViolation, PolicyError, Violation, ViolationCode
-from sqlguard.rules.columns import check_columns
-from sqlguard.rules.functions import check_functions
-from sqlguard.rules.limit import apply_limit
-from sqlguard.rules.row_filters import apply_filters, compile_filter
-from sqlguard.rules.sources import collect_sources
-from sqlguard.rules.statement import check_statements
+from sqlguardllm._compiled import Compiled, RowFilter
+from sqlguardllm._names import TableName, find, norm, parse_column_entry, parse_table_entry
+from sqlguardllm.data.denied_functions import default_denylist
+from sqlguardllm.messages import LANGUAGES, violation
+from sqlguardllm.policy import Policy
+from sqlguardllm.result import CheckResult, GuardViolation, PolicyError, Violation, ViolationCode
+from sqlguardllm.rules.columns import check_columns
+from sqlguardllm.rules.functions import check_functions
+from sqlguardllm.rules.limit import apply_limit
+from sqlguardllm.rules.row_filters import apply_filters, compile_filter
+from sqlguardllm.rules.sources import collect_sources
+from sqlguardllm.rules.statement import check_statements
 
 R = TypeVar("R")
 

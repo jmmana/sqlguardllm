@@ -5,10 +5,10 @@ from __future__ import annotations
 from sqlglot import exp
 from sqlglot.optimizer.scope import Scope
 
-from sqlguard._compiled import Compiled
-from sqlguard._names import TableName, find, norm, table_name
-from sqlguard.messages import violation
-from sqlguard.result import Violation, ViolationCode
+from sqlguardllm._compiled import Compiled
+from sqlguardllm._names import TableName, find, norm, table_name
+from sqlguardllm.messages import violation
+from sqlguardllm.result import Violation, ViolationCode
 
 
 def _visible_sources(scope: Scope) -> dict[str, exp.Expression | Scope]:

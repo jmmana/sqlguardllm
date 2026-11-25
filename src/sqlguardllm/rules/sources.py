@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from sqlglot import exp
 from sqlglot.optimizer.scope import Scope
 
-from sqlguard._compiled import Compiled
-from sqlguard._names import TableName, find, table_name
-from sqlguard.messages import violation
-from sqlguard.result import Violation, ViolationCode
+from sqlguardllm._compiled import Compiled
+from sqlguardllm._names import TableName, find, table_name
+from sqlguardllm.messages import violation
+from sqlguardllm.result import Violation, ViolationCode
 
 _DUAL_DIALECTS = frozenset({"oracle", "mysql"})
 

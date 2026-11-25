@@ -9,7 +9,7 @@ from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import SqlglotError
 
-from sqlguard.result import PolicyError
+from sqlguardllm.result import PolicyError
 
 
 @dataclass(frozen=True)

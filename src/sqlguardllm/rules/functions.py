@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from sqlglot import exp
 
-from sqlguard._compiled import Compiled
-from sqlguard.messages import violation
-from sqlguard.result import Violation, ViolationCode
+from sqlguardllm._compiled import Compiled
+from sqlguardllm.messages import violation
+from sqlguardllm.result import Violation, ViolationCode
 
 
 def function_names(node: exp.Func, dialect_name: str) -> set[str]:

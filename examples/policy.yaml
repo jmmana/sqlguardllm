@@ -1,4 +1,4 @@
-# Example sqlguard policy (format planned for v0.2: Policy.from_file / sqlguard check --policy).
+# Example sqlguardllm policy (format planned for v0.2: Policy.from_file / sqlguardllm check --policy).
 # A sales database where each branch manager may only see their branches.
 dialect: postgres
 

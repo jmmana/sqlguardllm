@@ -1,4 +1,4 @@
-# Contributing to sqlguard
+# Contributing to sqlguardllm
 
 Thanks for helping make LLM apps safer to connect to real databases. Contributions of every size are welcome, from a single attack case to a new dialect.
 
@@ -8,11 +8,11 @@ Thanks for helping make LLM apps safer to connect to real databases. Contributio
 
 | You want to… | Do this |
 |---|---|
-| Report a bug | Open a [bug report](https://github.com/jmmana/sqlguard/issues/new?template=bug_report.yml) |
+| Report a bug | Open a [bug report](https://github.com/jmmana/sqlguardllm/issues/new?template=bug_report.yml) |
 | Report a **bypass** (SQL that passes `check()` but shouldn't) | **Don't open a public issue.** Report it privately: [SECURITY.md](SECURITY.md) |
-| Add an attack case we already handle | Open an [attack case](https://github.com/jmmana/sqlguard/issues/new?template=attack_case.yml) or a PR to `tests/corpus/` |
-| Propose a feature or a change to the API | Start in [Discussions](https://github.com/jmmana/sqlguard/discussions), then a [feature request](https://github.com/jmmana/sqlguard/issues/new?template=feature_request.yml) |
-| Pick up work | Look at [good first issues](https://github.com/jmmana/sqlguard/labels/good%20first%20issue) and [help wanted](https://github.com/jmmana/sqlguard/labels/help%20wanted); comment that you're taking it |
+| Add an attack case we already handle | Open an [attack case](https://github.com/jmmana/sqlguardllm/issues/new?template=attack_case.yml) or a PR to `tests/corpus/` |
+| Propose a feature or a change to the API | Start in [Discussions](https://github.com/jmmana/sqlguardllm/discussions), then a [feature request](https://github.com/jmmana/sqlguardllm/issues/new?template=feature_request.yml) |
+| Pick up work | Look at [good first issues](https://github.com/jmmana/sqlguardllm/labels/good%20first%20issue) and [help wanted](https://github.com/jmmana/sqlguardllm/labels/help%20wanted); comment that you're taking it |
 
 ## Good first contributions
 
@@ -23,8 +23,8 @@ Thanks for helping make LLM apps safer to connect to real databases. Contributio
 ## Development setup
 
 ```bash
-git clone https://github.com/jmmana/sqlguard.git
-cd sqlguard
+git clone https://github.com/jmmana/sqlguardllm.git
+cd sqlguardllm
 uv sync                      # Python 3.10+, installs dev tools
 uv run pytest                # unit tests + adversarial corpus
 uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy
@@ -63,7 +63,7 @@ When in doubt, these decide:
 
 ## License of contributions
 
-sqlguard is licensed under [Apache-2.0](LICENSE). By submitting a contribution you agree that it is licensed under the same terms (Apache-2.0, section 5). No CLA is required.
+sqlguardllm is licensed under [Apache-2.0](LICENSE). By submitting a contribution you agree that it is licensed under the same terms (Apache-2.0, section 5). No CLA is required.
 
 ## Code of conduct
 
