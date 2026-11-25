@@ -12,7 +12,8 @@
 
 Tu modelo escribe SQL. **sqlguard** se asegura de que solo pueda leer lo permitido: una única consulta de solo lectura, tablas y columnas en lista blanca, filtros por fila según el usuario y un límite de filas, en cualquiera de los 32 dialectos que entiende [sqlglot](https://github.com/tobymao/sqlglot).
 
-[![Estado](https://img.shields.io/badge/estado-pre--lanzamiento-F59E0B)](https://github.com/jmmana/sqlguard/milestones)
+[![PyPI](https://img.shields.io/pypi/v/sqlguardllm?include_prereleases&label=pypi&color=10B981)](https://pypi.org/project/sqlguardllm/)
+[![CI](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml/badge.svg)](https://github.com/jmmana/sqlguard/actions/workflows/ci.yml)
 [![Licencia](https://img.shields.io/badge/licencia-Apache--2.0-3B82F6)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](docs/DESIGN.md)
 [![Sobre sqlglot](https://img.shields.io/badge/sobre-sqlglot-10B981)](https://github.com/tobymao/sqlglot)
@@ -23,7 +24,7 @@ Tu modelo escribe SQL. **sqlguard** se asegura de que solo pueda leer lo permiti
 </div>
 
 > [!NOTE]
-> **Estado: pre-lanzamiento, diseño abierto.** La API y las reglas de seguridad están especificadas en [docs/DESIGN.md](docs/DESIGN.md) y el trabajo avanza por [hitos](https://github.com/jmmana/sqlguard/milestones). Todavía no está en PyPI. Dale ⭐ o sigue el repo para enterarte cuando salga la v0.1, y opina sobre la API en [Discussions](https://github.com/jmmana/sqlguard/discussions).
+> **Estado: alfa.** La versión `0.1.0a1` está en PyPI como [`sqlguardllm`](https://pypi.org/project/sqlguardllm/) (se importa como `sqlguard`), con las reglas de [docs/DESIGN.md](docs/DESIGN.md) y un corpus adversarial de 64 casos. La API puede cambiar antes de la 1.0; los códigos de violación son estables. Dale ⭐ para seguir el avance y opina en [Discussions](https://github.com/jmmana/sqlguard/discussions).
 >
 > La documentación técnica está en inglés para llegar a más desarrolladores. Los issues y PR en español son bienvenidos.
 
@@ -58,7 +59,9 @@ sqlguard convierte la sentencia en un árbol sintáctico con sqlglot y **decide 
 
 ## Un vistazo
 
-> La API de abajo es la API [diseñada](docs/DESIGN.md) para la v0.1. Se aceptan opiniones antes de congelarla.
+```bash
+pip install sqlguardllm          # Python 3.10+, una sola dependencia: sqlglot
+```
 
 ```python
 from sqlguard import Guard, Policy

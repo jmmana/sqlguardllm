@@ -22,14 +22,12 @@ Thanks for helping make LLM apps safer to connect to real databases. Contributio
 
 ## Development setup
 
-> The package scaffold lands with the first v0.1 issue. Until then, the repository holds the design.
-
 ```bash
 git clone https://github.com/jmmana/sqlguard.git
 cd sqlguard
 uv sync                      # Python 3.10+, installs dev tools
 uv run pytest                # unit tests + adversarial corpus
-uv run ruff check . && uv run ruff format --check . && uv run mypy src
+uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy
 ```
 
 ## How work is described

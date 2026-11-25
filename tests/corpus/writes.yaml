@@ -1,0 +1,104 @@
+# Statement shape and read-only rules (gallery cases 1-15 and more).
+- id: pg-delete
+  dialect: postgres
+  sql: DELETE FROM invoices
+  expect: reject
+  codes: [not_a_query]
+- id: tsql-stacked-drop
+  dialect: tsql
+  sql: SELECT 1; DROP TABLE invoices
+  expect: reject
+  codes: [multiple_statements]
+- id: pg-stacked-mixed-case
+  dialect: postgres
+  sql: sElEcT * fRoM invoices; dElEtE fRoM invoices
+  expect: reject
+  codes: [multiple_statements]
+- id: tsql-select-into
+  dialect: tsql
+  sql: SELECT * INTO backup FROM invoices
+  expect: reject
+  codes: [write_operation]
+  note: Starts with SELECT but creates a table.
+- id: pg-cte-delete
+  dialect: postgres
+  sql: WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d
+  expect: reject
+  codes: [write_operation]
+  note: A write hidden in a CTE, invisible to keyword filters.
+- id: pg-copy
+  dialect: postgres
+  sql: COPY invoices TO '/tmp/x.csv'
+  expect: reject
+  codes: [not_a_query]
+- id: mysql-into-outfile
+  dialect: mysql
+  sql: SELECT * FROM invoices INTO OUTFILE '/tmp/x.csv'
+  expect: reject
+  codes: [parse_error]
+  note: sqlglot can't parse it, so it fails closed.
+- id: sqlite-attach
+  dialect: sqlite
+  sql: ATTACH DATABASE '/tmp/x.db' AS x
+  expect: reject
+  codes: [not_a_query]
+- id: sqlite-pragma
+  dialect: sqlite
+  sql: PRAGMA writable_schema = 1
+  expect: reject
+  codes: [not_a_query]
+- id: pg-lock-table
+  dialect: postgres
+  sql: LOCK TABLE invoices
+  expect: reject
+  codes: [not_a_query]
+- id: pg-set-role
+  dialect: postgres
+  sql: SET ROLE admin
+  expect: reject
+  codes: [not_a_query]
+- id: pg-call
+  dialect: postgres
+  sql: CALL refresh_totals()
+  expect: reject
+  codes: [not_a_query]
+- id: tsql-exec-xp-cmdshell
+  dialect: tsql
+  sql: EXEC xp_cmdshell 'dir'
+  expect: reject
+  codes: [not_a_query]
+- id: tsql-waitfor
+  dialect: tsql
+  sql: WAITFOR DELAY '00:00:10'
+  expect: reject
+  codes: [parse_error]
+- id: pg-for-update
+  dialect: postgres
+  sql: SELECT * FROM invoices FOR UPDATE
+  expect: reject
+  codes: [row_lock]
+- id: pg-insert-select
+  dialect: postgres
+  sql: INSERT INTO invoices SELECT * FROM invoices
+  expect: reject
+  codes: [not_a_query]
+- id: pg-update
+  dialect: postgres
+  sql: UPDATE invoices SET total = 0
+  expect: reject
+  codes: [not_a_query]
+- id: pg-drop
+  dialect: postgres
+  sql: DROP TABLE invoices
+  expect: reject
+  codes: [not_a_query]
+- id: pg-empty
+  dialect: postgres
+  sql: "   "
+  expect: reject
+  codes: [empty_statement]
+- id: pg-trailing-semicolon
+  dialect: postgres
+  sql: SELECT id FROM invoices;
+  expect: allow
+  contains: ["branch_id IN (1, 2)", "LIMIT 1000"]

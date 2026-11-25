@@ -1,6 +1,6 @@
 # Design
 
-> Status: **specification for v0.1–v0.2**. This document is the contract the implementation and its tests follow. Changes to it go through a pull request and, if they change behavior, a note in the changelog.
+> Status: **implemented in 0.1.0a1**, except `Policy(schema=...)` for exact column checks (step 5) and the CLI (v0.2). This document is the contract the implementation and its tests follow; changes to it go through a pull request and, if they change behavior, a note in the changelog.
 
 ## Goals
 

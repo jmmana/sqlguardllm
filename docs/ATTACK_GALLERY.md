@@ -1,6 +1,6 @@
 # Attack gallery
 
-Every row is a test case of the adversarial corpus. The column **sqlglot sees** was verified with **sqlglot 30.35.0** on 2026-11-25; the column **sqlguard** is the behavior specified in [DESIGN.md](DESIGN.md) that the implementation must reproduce.
+Every row is a test case of the adversarial corpus in [`tests/corpus/`](../tests/corpus/), which has 64 cases in 0.1.0a1 and runs on every pull request. The column **sqlglot sees** was verified with **sqlglot 30.35.0** on 2026-11-25; the column **sqlguard** is what 0.1.0a1 does, checked by that corpus.
 
 Policy used in the examples: tables `invoices`, `branches`, `customers`; hidden column `customers.email`; row filter on `invoices`.
 
@@ -56,7 +56,7 @@ False positives matter too: a guard that blocks legitimate queries gets switched
 
 ## Add a case
 
-Cases live as YAML in `tests/corpus/` (one file per category) once the corpus runner lands:
+Cases live as YAML in `tests/corpus/`, one file per category:
 
 ```yaml
 - id: pg-cte-delete

@@ -1,0 +1,85 @@
+# Denied functions and table functions (gallery cases 16-20 and more).
+- id: pg-sleep
+  dialect: postgres
+  sql: SELECT pg_sleep(10)
+  expect: reject
+  codes: [denied_function]
+- id: pg-read-file
+  dialect: postgres
+  sql: SELECT pg_read_file('/etc/passwd')
+  expect: reject
+  codes: [denied_function]
+- id: mysql-load-file
+  dialect: mysql
+  sql: SELECT LOAD_FILE('/etc/passwd')
+  expect: reject
+  codes: [denied_function]
+- id: tsql-openrowset-table
+  dialect: tsql
+  sql: SELECT * FROM OPENROWSET('SQLNCLI', 'Server=x;', 'SELECT 1')
+  expect: reject
+  codes: [table_not_allowed]
+- id: oracle-dbms-pipe
+  dialect: oracle
+  sql: SELECT DBMS_PIPE.RECEIVE_MESSAGE('a', 10) FROM dual
+  expect: reject
+  codes: [denied_function]
+  note: sqlglot gives a Dot plus an anonymous call; the guard rebuilds the qualified name.
+- id: oracle-sys-dbms-pipe
+  dialect: oracle
+  sql: SELECT SYS.DBMS_PIPE.RECEIVE_MESSAGE('a', 10) FROM dual
+  expect: reject
+  codes: [denied_function]
+- id: pg-query-to-xml
+  dialect: postgres
+  sql: SELECT query_to_xml('select * from secrets', true, true, '')
+  expect: reject
+  codes: [denied_function]
+  note: Runs SQL from a string, which would bypass the table allowlist.
+- id: pg-table-to-xml
+  dialect: postgres
+  sql: SELECT table_to_xml('secrets', true, true, '')
+  expect: reject
+  codes: [denied_function]
+- id: pg-set-config
+  dialect: postgres
+  sql: SELECT set_config('role', 'admin', false)
+  expect: reject
+  codes: [denied_function]
+- id: pg-nextval
+  dialect: postgres
+  sql: SELECT nextval('invoices_id_seq')
+  expect: reject
+  codes: [denied_function]
+  note: Looks like a read but advances a sequence.
+- id: mysql-sleep
+  dialect: mysql
+  sql: SELECT SLEEP(5)
+  expect: reject
+  codes: [denied_function]
+- id: mysql-benchmark
+  dialect: mysql
+  sql: SELECT BENCHMARK(100000000, MD5('x'))
+  expect: reject
+  codes: [denied_function]
+- id: sqlite-load-extension
+  dialect: sqlite
+  sql: SELECT load_extension('/tmp/evil.so')
+  expect: reject
+  codes: [denied_function]
+- id: duckdb-read-csv-table
+  dialect: duckdb
+  sql: SELECT * FROM read_csv('/etc/passwd')
+  expect: reject
+  codes: [table_not_allowed]
+- id: pg-generate-series-table
+  dialect: postgres
+  sql: SELECT * FROM generate_series(1, 10)
+  expect: reject
+  codes: [table_not_allowed]
+  note: Table functions are rejected in v0.1 (fail closed), even harmless ones.
+- id: pg-allowed-aggregates
+  dialect: postgres
+  sql: SELECT COUNT(*), SUM(total), MAX(issued_on) FROM invoices
+  expect: allow
+  contains: ["COUNT(*)", "branch_id IN (1, 2)"]

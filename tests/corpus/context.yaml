@@ -1,0 +1,26 @@
+# Row filters and the user context.
+- id: pg-missing-context
+  dialect: postgres
+  sql: SELECT id FROM invoices
+  context: {}
+  expect: reject
+  codes: [missing_context]
+  note: Without the user's branches nothing runs, never unfiltered.
+- id: pg-invalid-context-type
+  dialect: postgres
+  sql: SELECT id FROM invoices
+  context: {user: {branches: {"1": true}}}
+  expect: reject
+  codes: [invalid_context]
+- id: pg-empty-list-matches-nothing
+  dialect: postgres
+  sql: SELECT id FROM invoices
+  context: {user: {branches: []}}
+  expect: allow
+  contains: ["branch_id IN (NULL)"]
+- id: pg-no-filter-needed
+  dialect: postgres
+  sql: SELECT name FROM branches
+  context: {}
+  expect: allow
+  not_contains: ["branch_id"]
