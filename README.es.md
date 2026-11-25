@@ -1,0 +1,211 @@
+<div align="center">
+
+[![English](https://img.shields.io/badge/English-1F2937?style=for-the-badge)](README.md)
+[![Español](https://img.shields.io/badge/Espa%C3%B1ol-10B981?style=for-the-badge)](README.es.md)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+  <img alt="sqlguard" src="docs/assets/logo-light.svg" width="360">
+</picture>
+
+### El firewall de SQL para apps con IA.
+
+Tu modelo escribe SQL. **sqlguard** se asegura de que solo pueda leer lo permitido: una única consulta de solo lectura, tablas y columnas en lista blanca, filtros por fila según el usuario y un límite de filas, en cualquiera de los 32 dialectos que entiende [sqlglot](https://github.com/tobymao/sqlglot).
+
+[![Estado](https://img.shields.io/badge/estado-pre--lanzamiento-F59E0B)](https://github.com/jmmana/sqlguard/milestones)
+[![Licencia](https://img.shields.io/badge/licencia-Apache--2.0-3B82F6)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](docs/DESIGN.md)
+[![Sobre sqlglot](https://img.shields.io/badge/sobre-sqlglot-10B981)](https://github.com/tobymao/sqlglot)
+[![PRs](https://img.shields.io/badge/PRs-bienvenidos-22C55E)](CONTRIBUTING.md)
+
+<img src="docs/assets/hero.es.svg" alt="sqlguard bloquea un DELETE escondido en un CTE y una consulta sobre una columna oculta, y reescribe una consulta permitida con el filtro del usuario y un límite de filas" width="100%">
+
+</div>
+
+> [!NOTE]
+> **Estado: pre-lanzamiento, diseño abierto.** La API y las reglas de seguridad están especificadas en [docs/DESIGN.md](docs/DESIGN.md) y el trabajo avanza por [hitos](https://github.com/jmmana/sqlguard/milestones). Todavía no está en PyPI. Dale ⭐ o sigue el repo para enterarte cuando salga la v0.1, y opina sobre la API en [Discussions](https://github.com/jmmana/sqlguard/discussions).
+>
+> La documentación técnica está en inglés para llegar a más desarrolladores. Los issues y PR en español son bienvenidos.
+
+---
+
+## Por qué
+
+Las apps con IA que hablan con bases de datos (text-to-SQL, agentes de datos, herramientas MCP) comparten el mismo riesgo: **el modelo escribe SQL, y tarde o temprano alguien logrará que escriba el SQL equivocado.** Con una inyección de prompt, una fila maliciosa en tus propios datos o una simple alucinación.
+
+La defensa habitual es una lista de palabras prohibidas, y falla **en las dos direcciones**:
+
+| SQL | Filtro de palabras (`"DELETE" in sql`) | Lo que realmente es |
+|---|---|---|
+| `SELECT 'x; DROP TABLE invoices' AS note` | ❌ La bloquea | Una lectura inofensiva con un texto |
+| `WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d` | ✅ La bloquea, de suerte | Una escritura escondida en un CTE. Con un comentario o mayúsculas raras el filtro no la ve |
+| `SELECT * INTO backup FROM invoices` | ⚠️ La deja pasar: empieza con `SELECT` | Crea una tabla nueva (SQL Server) |
+| `SELECT name, email FROM customers` | ⚠️ La deja pasar | Lee datos personales que el modelo nunca debería ver |
+
+sqlguard convierte la sentencia en un árbol sintáctico con sqlglot y **decide sobre el árbol, no sobre el texto**. Después reescribe la consulta para que solo vea las filas que el usuario actual puede ver.
+
+## Qué garantiza
+
+| | Regla |
+|---|---|
+| 1️⃣ | **Una sola sentencia**, y que sea una consulta (`SELECT`, `UNION`, `WITH … SELECT`). Nada encadenado tras un `;` |
+| 2️⃣ | **Solo lectura en todo el árbol**: ni `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `SELECT … INTO`, DDL, `COPY`, `ATTACH`, `PRAGMA`, `EXEC` ni bloqueos de filas, a ninguna profundidad |
+| 3️⃣ | **Tablas en lista blanca y columnas ocultas**: entiende los CTE; `SELECT *` sobre una tabla con columnas ocultas se rechaza |
+| 4️⃣ | **Funciones prohibidas** por dialecto: lectura de archivos, esperas, shell, red (`pg_read_file`, `pg_sleep`, `LOAD_FILE`, `OPENROWSET`, `DBMS_PIPE.*`…) |
+| 5️⃣ | **Filtros por fila**: cada aparición de una tabla se vuelve una tabla derivada filtrada, con los valores del usuario como literales escapados |
+| 6️⃣ | **Límite de filas** aplicado o reducido, con la sintaxis de cada dialecto (`LIMIT`, `TOP`, `FETCH FIRST`) |
+| 🔒 | **Falla cerrado**: si el SQL no se puede analizar, o al contexto le falta un valor que exige un filtro, la respuesta es *no* |
+
+## Un vistazo
+
+> La API de abajo es la API [diseñada](docs/DESIGN.md) para la v0.1. Se aceptan opiniones antes de congelarla.
+
+```python
+from sqlguard import Guard, Policy
+
+guard = Guard(Policy(
+    dialect="postgres",
+    tables={"invoices", "branches", "customers"},
+    hidden_columns={"customers.email", "customers.tax_id"},
+    row_filters={"invoices": "branch_id IN ({user.branches})"},
+    max_rows=1000,
+))
+
+result = guard.check(sql_de_la_ia, context={"user": {"branches": [1, 2]}})
+
+if result.ok:
+    filas = db.execute(result.sql)     # solo lectura, filtrado por rol y con límite
+else:
+    for v in result.violations:
+        print(v.code, v.message)       # write_operation: DELETE dentro de un CTE…
+```
+
+No le importa qué modelo, framework de agentes u ORM produjo el SQL: **solo necesita el texto del SQL.**
+
+## Cómo funciona
+
+```mermaid
+flowchart LR
+    LLM["IA / agente<br/>escribe SQL"] --> P{"Analiza con<br/>sqlglot"}
+    P -- "no se entiende" --> X["❌ Rechazado<br/>con el motivo"]
+    P --> S{"¿Una consulta de<br/>solo lectura?"}
+    S -- no --> X
+    S --> A{"¿Tablas, columnas y<br/>funciones permitidas?"}
+    A -- no --> X
+    A --> R["Inyecta filtros por fila<br/>como tablas derivadas"]
+    R --> L["Aplica el<br/>límite de filas"]
+    L --> G["Genera el SQL<br/>en tu dialecto"]
+    G --> DB[("Tu base de datos<br/>usuario de solo lectura")]
+```
+
+Lo que se ejecuta es el SQL regenerado desde el árbol validado, nunca el texto original.
+
+## Seguridad por fila, reescrita
+
+Cada aparición de una tabla filtrada se reemplaza por una tabla derivada que conserva su alias, así el filtro se mantiene en joins, subconsultas y CTE. Salida real de sqlglot para un usuario que solo ve las sucursales 1 y 2:
+
+<table>
+<tr><th>Lo que escribió la IA</th><th>Lo que se ejecuta</th></tr>
+<tr>
+<td>
+
+```sql
+SELECT b.name, SUM(i.total)
+FROM invoices i
+JOIN branches b ON b.id = i.branch_id
+GROUP BY b.name
+```
+
+</td>
+<td>
+
+```sql
+SELECT b.name, SUM(i.total)
+FROM (
+  SELECT * FROM invoices
+  WHERE branch_id IN (1, 2)
+) AS i
+JOIN branches AS b ON b.id = i.branch_id
+GROUP BY b.name
+LIMIT 1000
+```
+
+</td>
+</tr>
+</table>
+
+Igual en SQL Server, donde el límite es `TOP 500`, o en Oracle, donde es `FETCH FIRST 100 ROWS ONLY`. Más ejemplos en [docs/DESIGN.md](docs/DESIGN.md#7-row-filters).
+
+## Galería de ataques
+
+Lo que sqlglot 30.35 realmente ve en cada intento y qué hace sqlguard. Cada fila es un caso de prueba; la lista completa está en [docs/ATTACK_GALLERY.md](docs/ATTACK_GALLERY.md).
+
+| Dialecto | Intento | sqlglot ve | sqlguard |
+|---|---|---|---|
+| postgres | `WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d` | raíz `Select` con un `Delete` dentro | ❌ `write_operation` |
+| tsql | `SELECT 1; DROP TABLE invoices` | 2 sentencias | ❌ `multiple_statements` |
+| tsql | `SELECT * INTO backup FROM invoices` | `Select` con un nodo `Into` | ❌ `write_operation` |
+| postgres | `SELECT * FROM invoices FOR UPDATE` | `Select` con un `Lock` | ❌ `row_lock` |
+| mysql | `SELECT * FROM invoices INTO OUTFILE '/tmp/x'` | error de análisis | ❌ `parse_error` (falla cerrado) |
+| sqlite | `ATTACH DATABASE '/tmp/x.db' AS x` | `Attach` | ❌ `not_a_query` |
+| postgres | `SELECT pg_read_file('/etc/passwd')` | función `pg_read_file` | ❌ `denied_function` |
+| oracle | `SELECT DBMS_PIPE.RECEIVE_MESSAGE('a', 10) FROM dual` | llamada calificada | ❌ `denied_function` |
+| postgres | `SELECT 'x; DROP TABLE invoices' AS note` | un `Select` con un texto | ✅ permitido |
+| postgres | `SELECT 1 /* ; DROP TABLE invoices */` | un `Select` con un comentario | ✅ permitido |
+
+¿Encontraste cómo saltártelo? Es una vulnerabilidad: [repórtala en privado](SECURITY.md).
+
+## Dónde encaja
+
+sqlguard es **una capa**, no la única. Mantén las demás:
+
+1. **Un usuario de base de datos de solo lectura** con acceso solo a las tablas que la app necesita. No es negociable.
+2. **sqlguard** entre el modelo y la base: forma, listas blancas, filtros por fila y límites.
+3. **Tiempos máximos** en la base, contra consultas costosas.
+4. **Auditoría** de cada SQL ejecutado y para quién.
+
+Lo que no hace, y por qué, está en el [modelo de amenazas](docs/THREAT_MODEL.md).
+
+## Con tu stack
+
+sqlguard va donde tu app ejecuta el SQL que escribió el modelo. Las recetas planeadas para la v0.3 cubrirán un envoltorio genérico de `execute()`, las herramientas SQL de LangChain y LlamaIndex, Vanna y servidores MCP de bases de datos. Ver [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+
+También habrá una herramienta de línea de comandos, útil en CI y para probar políticas:
+
+```bash
+sqlguard check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' \
+  "SELECT * FROM invoices"
+```
+
+## Playground: intenta romperlo
+
+Un playground estático (planeado para la v0.3) correrá sqlguard **entero en tu navegador** con Pyodide y una base SQLite de demostración: elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro.
+
+## Roadmap
+
+| Hito | Alcance |
+|---|---|
+| [**v0.1 · Core guard**](https://github.com/jmmana/sqlguard/milestone/1) | Validación de sentencia y solo lectura, listas blancas, columnas ocultas, funciones prohibidas, límite de filas, corpus adversarial |
+| [**v0.2 · Row-level security & CLI**](https://github.com/jmmana/sqlguard/milestone/2) | Filtros por fila como tablas derivadas, archivos de política, CLI, matriz de dialectos, sitio de documentación, publicación en PyPI |
+| [**v0.3 · Ecosystem & playground**](https://github.com/jmmana/sqlguard/milestone/3) | Recetas de integración, playground en el navegador, presupuesto de rendimiento |
+
+Detalle en [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Contribuir
+
+Las contribuciones son muy bienvenidas, y algunas de las más valiosas no requieren conocer el código a fondo:
+
+- **Agregar casos de ataque** al corpus adversarial, sobre todo en los dialectos que conoces bien.
+- **Ampliar las listas de funciones prohibidas** de tu motor de base de datos.
+- **Traducir los mensajes** de las violaciones.
+- **Cuestionar el diseño** en [Discussions](https://github.com/jmmana/sqlguard/discussions) antes de que la v0.1 congele la API.
+
+Empieza por [CONTRIBUTING.md](CONTRIBUTING.md) y los [good first issues](https://github.com/jmmana/sqlguard/labels/good%20first%20issue). El proyecto sigue un [Código de conducta](CODE_OF_CONDUCT.md).
+
+## Seguridad
+
+Saltarse sqlguard es una vulnerabilidad de seguridad. **No abras un issue público:** repórtala en privado como explica [SECURITY.md](SECURITY.md).
+
+## Licencia
+
+[Apache-2.0](LICENSE) © 2026 Juan Castillo. sqlguard nació dentro de [ChatIApp](https://github.com/jmmana/ChatIApp), un chat open source que convierte preguntas de negocio en SQL seguro.

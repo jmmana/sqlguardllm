@@ -1,0 +1,45 @@
+name: Attack case (already blocked)
+description: Propose a new case for the adversarial corpus that sqlguard should handle.
+title: "Corpus: "
+labels: ["type:corpus", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for cases that are **not** a bypass: new attack patterns to keep covered, or legitimate queries that must keep working.
+        If sqlguard currently **accepts** a dangerous query, report it privately instead ([SECURITY.md](https://github.com/jmmana/sqlguard/blob/main/SECURITY.md)).
+  - type: input
+    id: dialect
+    attributes:
+      label: Dialect
+      placeholder: tsql
+    validations:
+      required: true
+  - type: textarea
+    id: sql
+    attributes:
+      label: SQL
+      render: sql
+    validations:
+      required: true
+  - type: dropdown
+    id: expect
+    attributes:
+      label: Expected result
+      options:
+        - reject
+        - allow
+    validations:
+      required: true
+  - type: input
+    id: codes
+    attributes:
+      label: Expected violation code(s)
+      placeholder: write_operation
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this case matters
+      description: What makes it tricky (encoding, nesting, dialect feature…), with a link to the database docs if useful.
+    validations:
+      required: true

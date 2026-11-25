@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="96" viewBox="0 0 400 96" role="img" aria-label="sqlguard">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+<linearGradient id="gt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#06B6D4"/></linearGradient></defs>
+<path d="M40 14.099999999999998 L69.0 23.379999999999995 L69.0 46.0 C69.0 63.980000000000004 50.44 74.42 40 79.06 C29.560000000000002 74.42 11.0 63.980000000000004 11.0 46.0 L11.0 23.379999999999995 Z" fill="url(#g)"/><path d="M27.240000000000002 47.16 L37.1 57.019999999999996 L54.5 36.72" fill="none" stroke="#FFFFFF" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="86" y="60" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace" font-size="42" font-weight="700" letter-spacing="-1"><tspan fill="#64748B">sql</tspan><tspan fill="url(#gt)">guard</tspan></text>
+<text x="88" y="84" font-family="Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" letter-spacing="0.4" fill="#0F172A" fill-opacity="0.7">the SQL firewall for LLM apps</text>
+</svg>

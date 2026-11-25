@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a feature or a change to the API.
+title: "Feature: "
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: For open-ended ideas, start in [Discussions](https://github.com/jmmana/sqlguard/discussions).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't you do today? Start with the problem, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How would it work? Include the API you'd like to write.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security impact
+      description: Could this weaken any guarantee in the threat model? How is it kept fail-closed?
+    validations:
+      required: true

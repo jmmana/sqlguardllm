@@ -1,0 +1,25 @@
+# Example sqlguard policy (format planned for v0.2: Policy.from_file / sqlguard check --policy).
+# A sales database where each branch manager may only see their branches.
+dialect: postgres
+
+tables:
+  - invoices
+  - invoice_lines
+  - branches
+  - products
+  - customers
+
+hidden_columns:
+  - customers.email
+  - customers.tax_id
+  - customers.phone
+
+row_filters:
+  # {user.branches} comes from the authenticated user in the application, never from the model.
+  invoices: "branch_id IN ({user.branches})"
+  branches: "id IN ({user.branches})"
+
+max_rows: 1000
+
+extra_denied_functions:
+  - refresh_sales_cache   # a user-defined function with side effects
