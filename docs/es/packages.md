@@ -8,12 +8,12 @@ Usa el paquete de Python para ejecutar el guard en tu aplicación. Usa un client
 | --- | --- | --- |
 | [Python](guide-python.md) | `pip install --pre sqlguardllm` | Motor local en el mismo proceso o servidor HTTP. Python 3.10+ en Linux, macOS y Windows. |
 | [Node.js / TypeScript](guide-node.md) | `npm install sqlguardllm` | Remoto por HTTP. Node.js 18+ en Linux, macOS y Windows. |
-| [.NET](guide-dotnet.md) | `dotnet add package SqlGuardLlm --prerelease` cuando se publique | Remoto por HTTP. El cliente en el repositorio es compatible con .NET 8 y .NET 10 en Linux, macOS y Windows. |
+| [.NET](guide-dotnet.md) | `dotnet add package SqlGuardLlm --prerelease` | Remoto por HTTP. El cliente en el repositorio es compatible con .NET 8 y .NET 10 en Linux, macOS y Windows. |
 | Java | La publicación en Maven Central [está prevista](https://github.com/jmmana/sqlguardllm/issues/83). | El [primer cliente Java](https://github.com/jmmana/sqlguardllm/issues/80) está previsto para Java 17+ y usa HTTP. Las aplicaciones Java ya pueden usar la API HTTP. |
 
 **Paso a paso**, de la instalación a un programa que revisa una consulta permitida y una rechazada, con su salida exacta: [Python](guide-python.md), [Node.js / TypeScript](guide-node.md), [.NET](guide-dotnet.md).
 
-Los clientes de Node.js y .NET necesitan una [instancia de `sqlguardllm serve`](../SERVER.md) activa. Iníciala en un entorno de Python o en un contenedor. Hasta que el paquete esté disponible en NuGet, puedes agregar una referencia al [proyecto del cliente .NET](https://github.com/jmmana/sqlguardllm/tree/main/clients/dotnet) desde una copia local del repositorio. Los motores embebidos para [Node.js](https://github.com/jmmana/sqlguardllm/issues/73), [.NET](https://github.com/jmmana/sqlguardllm/issues/77) y [Java](https://github.com/jmmana/sqlguardllm/issues/81) están previstos.
+Los clientes de Node.js y .NET necesitan una [instancia de `sqlguardllm serve`](../SERVER.md) activa. Iníciala en un entorno de Python o en un contenedor. Los motores embebidos para [Node.js](https://github.com/jmmana/sqlguardllm/issues/73), [.NET](https://github.com/jmmana/sqlguardllm/issues/77) y [Java](https://github.com/jmmana/sqlguardllm/issues/81) están previstos.
 
 Para Python, consulta el [inicio rápido](quickstart.md). Instala `sqlguardllm[yaml]` para cargar políticas YAML, `sqlguardllm[serve]` para cargar YAML en el servidor HTTP o `sqlguardllm[mcp]` para ejecutar el [servidor MCP](../MCP.md). Durante la fase alfa, usa también la opción `--pre` al instalar un extra.
 

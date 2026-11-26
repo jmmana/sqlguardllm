@@ -59,7 +59,7 @@ cd GuardDemo
 dotnet add package SqlGuardLlm --prerelease
 ```
 
-`--prerelease` is needed while the package is in alpha. The package is on NuGet from 0.5.0-alpha.2; until nuget.org lists it, reference the [client source](../clients/dotnet/README.md) from a local checkout instead (`dotnet add reference <checkout>/clients/dotnet/src/SqlGuardLlm/SqlGuardLlm.csproj`).
+`--prerelease` is needed while the package is in alpha. The package is on [NuGet](https://www.nuget.org/packages/SqlGuardLlm) since 0.5.0-alpha.2.
 
 ## 4. Check one allowed and one rejected query
 
