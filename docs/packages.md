@@ -6,10 +6,12 @@ Use the Python package to run the guard in your application. Use an HTTP client 
 
 | Language | Install | Mode and runtime |
 | --- | --- | --- |
-| Python | `pip install --pre sqlguardllm` | Local in-process engine or HTTP server. Python 3.10+ on Linux, macOS and Windows. |
-| Node.js / TypeScript | `npm install sqlguardllm@alpha` | Remote over HTTP. Node.js 18+ on Linux, macOS and Windows. |
-| .NET | `dotnet add package SqlGuardLlm --prerelease` once published | Remote over HTTP. The source client targets .NET 8 and .NET 10 on Linux, macOS and Windows. |
+| [Python](guide-python.md) | `pip install --pre sqlguardllm` | Local in-process engine or HTTP server. Python 3.10+ on Linux, macOS and Windows. |
+| [Node.js / TypeScript](guide-node.md) | `npm install sqlguardllm@alpha` | Remote over HTTP. Node.js 18+ on Linux, macOS and Windows. |
+| [.NET](guide-dotnet.md) | `dotnet add package SqlGuardLlm --prerelease` once published | Remote over HTTP. The source client targets .NET 8 and .NET 10 on Linux, macOS and Windows. |
 | Java | Maven Central publication is [planned](https://github.com/jmmana/sqlguardllm/issues/83). | The [first Java client](https://github.com/jmmana/sqlguardllm/issues/80) targets Java 17+ and uses HTTP. Java applications can use the HTTP API today. |
+
+**Step by step**, from install to a program that checks one allowed and one rejected query, with its exact output: [Python](guide-python.md), [Node.js / TypeScript](guide-node.md), [.NET](guide-dotnet.md).
 
 The Node.js and .NET clients use a running [`sqlguardllm serve` instance](SERVER.md). Start it in a Python environment or a container. Until the NuGet package is available, use a project reference to the [.NET client source](https://github.com/jmmana/sqlguardllm/tree/main/clients/dotnet) in a local checkout. Embedded engines for [Node.js](https://github.com/jmmana/sqlguardllm/issues/73), [.NET](https://github.com/jmmana/sqlguardllm/issues/77) and [Java](https://github.com/jmmana/sqlguardllm/issues/81) are planned.
 

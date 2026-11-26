@@ -26,7 +26,11 @@ lines = [
 ]
 for name, spec in schema["properties"].items():
     desc = spec.get("description", "").replace("|", "\\|").replace("\n", " ")
-    lines.append(f"| `{name}` | `{type_of(spec)}` | {'yes' if name in required else 'no'} | {desc} |")
+    # The id lets other pages (the playground) link to one field: policy-reference/#max_rows
+    anchor = f'<a id="{name}"></a>'
+    lines.append(
+        f"| {anchor}`{name}` | `{type_of(spec)}` | {'yes' if name in required else 'no'} | {desc} |"
+    )
 lines += ["", "## Full schema", "", "```json", json.dumps(schema, indent=2), "```", ""]
 
 with mkdocs_gen_files.open("policy-reference.md", "w") as f:

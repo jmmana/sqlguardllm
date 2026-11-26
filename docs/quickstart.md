@@ -2,6 +2,8 @@
 
 [Leer en español](es/quickstart.md) · [Choose a package](packages.md)
 
+This page is for Python. For **Node.js / TypeScript** or **.NET**, follow the step-by-step guides for [Node.js](guide-node.md) and [.NET](guide-dotnet.md): they install the client, start `sqlguardllm serve` and check the same kind of queries. The [Python guide](guide-python.md) does the same with a policy file.
+
 ```bash
 pip install --pre sqlguardllm
 ```
