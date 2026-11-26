@@ -1,0 +1,4190 @@
+{
+ "groups": [
+  {
+   "cases": [
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "cartesian-explicit-cross-join",
+     "not_contains": [],
+     "sql": "SELECT b.name, p.name FROM branches b CROSS JOIN products p"
+    }
+   ],
+   "name": "g00-tsql",
+   "policy": {
+    "default_schema": "dbo",
+    "dialect": "tsql",
+    "forbid_cartesian": true,
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT TOP 1000 SUM(total) FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices"
+     },
+     "id": "joins-zero-allows-single-table",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM invoices"
+    }
+   ],
+   "name": "g01-tsql",
+   "policy": {
+    "default_schema": "dbo",
+    "dialect": "tsql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_joins": 0,
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT TOP 1000 b.name, SUM(i.total) FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i JOIN branches AS b ON b.id = i.branch_id WHERE i.issued_at >= '20261101' GROUP BY b.name"
+     },
+     "id": "required-qualified-with-alias",
+     "not_contains": [],
+     "sql": "SELECT b.name, SUM(i.total) FROM invoices i JOIN branches b ON b.id = i.branch_id WHERE i.issued_at >= '20261101' GROUP BY b.name"
+    }
+   ],
+   "name": "g02-tsql",
+   "policy": {
+    "default_schema": "dbo",
+    "dialect": "tsql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "required_filters": {
+     "invoices": [
+      "issued_at"
+     ]
+    },
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [
+      "TOP 1000",
+      "branch_id IN (1, 2)"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT TOP 1000 SUM(total) FROM (SELECT * FROM dbo.invoices WHERE branch_id IN (1, 2)) AS invoices"
+     },
+     "id": "tsql-default-schema-top",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM dbo.invoices"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "TOP 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT TOP 1000 id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices"
+     },
+     "id": "tsql-top-percent-is-capped",
+     "not_contains": [
+      "PERCENT"
+     ],
+     "sql": "SELECT TOP 50 PERCENT id FROM invoices"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "TOP 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT TOP 1000 id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices ORDER BY total"
+     },
+     "id": "tsql-top-with-ties-is-capped",
+     "not_contains": [
+      "TIES"
+     ],
+     "sql": "SELECT TOP 5 WITH TIES id FROM invoices ORDER BY total"
+    },
+    {
+     "codes": [
+      "table_not_allowed"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "tsql-openrowset-table",
+     "not_contains": [],
+     "sql": "SELECT * FROM OPENROWSET('SQLNCLI', 'Server=x;', 'SELECT 1')"
+    },
+    {
+     "codes": [
+      "multiple_statements"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "multiple_statements",
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "tsql-stacked-drop",
+     "not_contains": [],
+     "sql": "SELECT 1; DROP TABLE invoices"
+    },
+    {
+     "codes": [
+      "write_operation"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "write_operation"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "tsql-select-into",
+     "not_contains": [],
+     "sql": "SELECT * INTO backup FROM invoices"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "tsql-exec-xp-cmdshell",
+     "not_contains": [],
+     "sql": "EXEC xp_cmdshell 'dir'"
+    },
+    {
+     "codes": [
+      "parse_error"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "parse_error"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "tsql-waitfor",
+     "not_contains": [],
+     "sql": "WAITFOR DELAY '00:00:10'"
+    }
+   ],
+   "name": "g03-tsql",
+   "policy": {
+    "default_schema": "dbo",
+    "dialect": "tsql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "bigquery-external-query",
+     "not_contains": [],
+     "sql": "SELECT * FROM external_query('conn', 'SELECT 1')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "bigquery-load-data",
+     "not_contains": [],
+     "sql": "SELECT load_data(1)"
+    }
+   ],
+   "name": "g04-bigquery",
+   "policy": {
+    "dialect": "bigquery",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-azureblobstorage",
+     "not_contains": [],
+     "sql": "SELECT * FROM azureblobstorage('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-deltalake",
+     "not_contains": [],
+     "sql": "SELECT * FROM deltalake('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-executable",
+     "not_contains": [],
+     "sql": "SELECT * FROM executable('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-file",
+     "not_contains": [],
+     "sql": "SELECT * FROM file('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-filecluster",
+     "not_contains": [],
+     "sql": "SELECT * FROM filecluster('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-gcs",
+     "not_contains": [],
+     "sql": "SELECT * FROM gcs('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-hdfs",
+     "not_contains": [],
+     "sql": "SELECT * FROM hdfs('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-hdfscluster",
+     "not_contains": [],
+     "sql": "SELECT * FROM hdfscluster('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-iceberg",
+     "not_contains": [],
+     "sql": "SELECT * FROM iceberg('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-input",
+     "not_contains": [],
+     "sql": "SELECT * FROM input('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-jdbc",
+     "not_contains": [],
+     "sql": "SELECT * FROM jdbc('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-mongodb",
+     "not_contains": [],
+     "sql": "SELECT * FROM mongodb('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-mysql",
+     "not_contains": [],
+     "sql": "SELECT * FROM mysql('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-odbc",
+     "not_contains": [],
+     "sql": "SELECT * FROM odbc('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-postgresql",
+     "not_contains": [],
+     "sql": "SELECT * FROM postgresql('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-redis",
+     "not_contains": [],
+     "sql": "SELECT * FROM redis('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-remote",
+     "not_contains": [],
+     "sql": "SELECT * FROM remote('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-remotesecure",
+     "not_contains": [],
+     "sql": "SELECT * FROM remotesecure('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-s3",
+     "not_contains": [],
+     "sql": "SELECT * FROM s3('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-s3cluster",
+     "not_contains": [],
+     "sql": "SELECT * FROM s3cluster('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-sleepeachrow",
+     "not_contains": [],
+     "sql": "SELECT sleepEachRow(1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-sqlite",
+     "not_contains": [],
+     "sql": "SELECT * FROM sqlite('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-url",
+     "not_contains": [],
+     "sql": "SELECT * FROM url('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "clickhouse-urlcluster",
+     "not_contains": [],
+     "sql": "SELECT * FROM urlcluster('x')"
+    }
+   ],
+   "name": "g05-clickhouse",
+   "policy": {
+    "dialect": "clickhouse",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "table_not_allowed"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function",
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "duckdb-read-csv-table",
+     "not_contains": [],
+     "sql": "SELECT * FROM read_csv('/etc/passwd')"
+    }
+   ],
+   "name": "g06-duckdb",
+   "policy": {
+    "dialect": "duckdb",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "cartesian-join-without-on",
+     "not_contains": [],
+     "sql": "SELECT b.name FROM branches b JOIN products p"
+    }
+   ],
+   "name": "g07-mysql",
+   "policy": {
+    "dialect": "mysql",
+    "forbid_cartesian": true,
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "depth-nested-over-limit",
+     "not_contains": [],
+     "sql": "SELECT name FROM products WHERE id IN (SELECT product_id FROM invoice_lines WHERE invoice_id IN (SELECT id FROM invoices))"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT name FROM products WHERE id IN (SELECT product_id FROM invoice_lines) LIMIT 1000"
+     },
+     "id": "depth-within-limit",
+     "not_contains": [],
+     "sql": "SELECT name FROM products WHERE id IN (SELECT product_id FROM invoice_lines)"
+    }
+   ],
+   "name": "g08-mysql",
+   "policy": {
+    "dialect": "mysql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "max_subquery_depth": 1,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT SUM(total) FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices WHERE branch_id = 3 LIMIT 1000"
+     },
+     "id": "required-any-of-the-columns",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM invoices WHERE branch_id = 3"
+    }
+   ],
+   "name": "g09-mysql",
+   "policy": {
+    "dialect": "mysql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "required_filters": {
+     "invoices": [
+      "issued_at",
+      "branch_id"
+     ]
+    },
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "mysql-load-file",
+     "not_contains": [],
+     "sql": "SELECT LOAD_FILE('/etc/passwd')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "mysql-sleep",
+     "not_contains": [],
+     "sql": "SELECT SLEEP(5)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "mysql-benchmark",
+     "not_contains": [],
+     "sql": "SELECT BENCHMARK(100000000, MD5('x'))"
+    },
+    {
+     "codes": [
+      "parse_error"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "parse_error"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "mysql-into-outfile",
+     "not_contains": [],
+     "sql": "SELECT * FROM invoices INTO OUTFILE '/tmp/x.csv'"
+    }
+   ],
+   "name": "g10-mysql",
+   "policy": {
+    "dialect": "mysql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT l.quantity FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) i, invoice_lines l, products p WHERE l.invoice_id = i.id AND l.product_id = p.id FETCH FIRST 1000 ROWS ONLY"
+     },
+     "id": "cartesian-chain-linked-in-where",
+     "not_contains": [],
+     "sql": "SELECT l.quantity FROM invoices i, invoice_lines l, products p WHERE l.invoice_id = i.id AND l.product_id = p.id"
+    },
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "cartesian-one-table-left-out",
+     "not_contains": [],
+     "sql": "SELECT l.quantity FROM invoices i, invoice_lines l, products p WHERE l.invoice_id = i.id"
+    }
+   ],
+   "name": "g11-oracle",
+   "policy": {
+    "dialect": "oracle",
+    "forbid_cartesian": true,
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [
+      "FETCH FIRST 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT name FROM branches FETCH FIRST 1000 ROWS ONLY"
+     },
+     "id": "oracle-fetch-first",
+     "not_contains": [],
+     "sql": "SELECT name FROM branches"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "FETCH FIRST 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) invoices FETCH FIRST 1000 ROWS ONLY"
+     },
+     "id": "oracle-fetch-percent-is-capped",
+     "not_contains": [
+      "PERCENT"
+     ],
+     "sql": "SELECT id FROM invoices FETCH FIRST 50 PERCENT ROWS ONLY"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "oracle-dbms-pipe",
+     "not_contains": [],
+     "sql": "SELECT DBMS_PIPE.RECEIVE_MESSAGE('a', 10) FROM dual"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "oracle-sys-dbms-pipe",
+     "not_contains": [],
+     "sql": "SELECT SYS.DBMS_PIPE.RECEIVE_MESSAGE('a', 10) FROM dual"
+    }
+   ],
+   "name": "g12-oracle",
+   "policy": {
+    "dialect": "oracle",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "cartesian-comma-join",
+     "not_contains": [],
+     "sql": "SELECT * FROM invoices, branches"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT i.total, b.name FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i, branches AS b WHERE i.branch_id = b.id LIMIT 1000"
+     },
+     "id": "cartesian-comma-join-linked-in-where",
+     "not_contains": [],
+     "sql": "SELECT i.total, b.name FROM invoices i, branches b WHERE i.branch_id = b.id"
+    },
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "cartesian-link-under-or-does-not-count",
+     "not_contains": [],
+     "sql": "SELECT * FROM invoices i, branches b WHERE i.branch_id = b.id OR i.total > 0"
+    },
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "cartesian-in-subquery",
+     "not_contains": [],
+     "sql": "SELECT name FROM branches WHERE id IN (SELECT b.id FROM branches b, products p)"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT b.name FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i JOIN branches AS b ON b.id = i.branch_id JOIN invoice_lines AS l USING (id) LIMIT 1000"
+     },
+     "id": "cartesian-on-and-using-are-fine",
+     "not_contains": [],
+     "sql": "SELECT b.name FROM invoices i JOIN branches b ON b.id = i.branch_id JOIN invoice_lines l USING (id)"
+    }
+   ],
+   "name": "g13-postgres",
+   "policy": {
+    "dialect": "postgres",
+    "forbid_cartesian": true,
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "joins-over-limit",
+     "not_contains": [],
+     "sql": "SELECT b.name, SUM(l.quantity) FROM invoices i JOIN branches b ON b.id = i.branch_id JOIN invoice_lines l ON l.invoice_id = i.id GROUP BY b.name"
+    },
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "joins-counted-across-scopes",
+     "not_contains": [],
+     "sql": "WITH t AS (SELECT i.id FROM invoices i JOIN branches b ON b.id = i.branch_id) SELECT p.name FROM products p JOIN invoice_lines l ON l.product_id = p.id WHERE l.invoice_id IN (SELECT id FROM t)"
+    }
+   ],
+   "name": "g14-postgres",
+   "policy": {
+    "dialect": "postgres",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_joins": 1,
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT b.name, SUM(l.quantity) FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i JOIN branches AS b ON b.id = i.branch_id JOIN invoice_lines AS l ON l.invoice_id = i.id GROUP BY b.name LIMIT 1000"
+     },
+     "id": "joins-within-limit",
+     "not_contains": [],
+     "sql": "SELECT b.name, SUM(l.quantity) FROM invoices i JOIN branches b ON b.id = i.branch_id JOIN invoice_lines l ON l.invoice_id = i.id GROUP BY b.name"
+    }
+   ],
+   "name": "g15-postgres",
+   "policy": {
+    "dialect": "postgres",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_joins": 2,
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "depth-zero-rejects-subquery",
+     "not_contains": [],
+     "sql": "SELECT name FROM branches WHERE id IN (SELECT branch_id FROM invoices)"
+    },
+    {
+     "codes": [
+      "too_complex"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "too_complex"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "depth-counts-ctes",
+     "not_contains": [],
+     "sql": "WITH t AS (SELECT id FROM branches) SELECT id FROM t"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT * FROM (SELECT name FROM branches UNION ALL SELECT name FROM products) AS sqlguard_rows LIMIT 1000"
+     },
+     "id": "depth-union-is-not-nesting",
+     "not_contains": [],
+     "sql": "SELECT name FROM branches UNION ALL SELECT name FROM products"
+    }
+   ],
+   "name": "g16-postgres",
+   "policy": {
+    "dialect": "postgres",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "max_subquery_depth": 0,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "missing_required_filter"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "missing_required_filter"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "required-row-filter-does-not-satisfy-it",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM invoices"
+    }
+   ],
+   "name": "g17-postgres",
+   "policy": {
+    "dialect": "postgres",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "required_filters": {
+     "invoices": [
+      "branch_id"
+     ]
+    },
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "missing_required_filter"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "missing_required_filter"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "required-missing",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM invoices"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT SUM(total) FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices WHERE issued_at >= '2026-11-01' LIMIT 1000"
+     },
+     "id": "required-in-where",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM invoices WHERE issued_at >= '2026-11-01'"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT b.name, SUM(i.total) FROM branches AS b JOIN (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i ON i.branch_id = b.id AND i.issued_at >= '2026-11-01' GROUP BY b.name LIMIT 1000"
+     },
+     "id": "required-in-join-on",
+     "not_contains": [],
+     "sql": "SELECT b.name, SUM(i.total) FROM branches b JOIN invoices i ON i.branch_id = b.id AND i.issued_at >= '2026-11-01' GROUP BY b.name"
+    },
+    {
+     "codes": [
+      "missing_required_filter"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "missing_required_filter"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "required-column-of-another-table-does-not-count",
+     "not_contains": [],
+     "sql": "SELECT SUM(i.total) FROM invoices i JOIN branches b ON b.id = i.branch_id WHERE b.issued_at >= '2026-11-01'"
+    },
+    {
+     "codes": [
+      "missing_required_filter"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "missing_required_filter"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "required-inside-cte-missing",
+     "not_contains": [],
+     "sql": "WITH recent AS (SELECT * FROM invoices) SELECT SUM(total) FROM recent"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "WITH recent AS (SELECT * FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices WHERE issued_at >= '2026-11-01') SELECT SUM(total) FROM recent LIMIT 1000"
+     },
+     "id": "required-inside-cte-present",
+     "not_contains": [],
+     "sql": "WITH recent AS (SELECT * FROM invoices WHERE issued_at >= '2026-11-01') SELECT SUM(total) FROM recent"
+    },
+    {
+     "codes": [
+      "missing_required_filter"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "missing_required_filter"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "required-filter-in-nested-subquery-does-not-count",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM invoices WHERE id IN (SELECT invoice_id FROM invoice_lines WHERE issued_at >= '2026-11-01')"
+    },
+    {
+     "codes": [
+      "missing_required_filter"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "missing_required_filter"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "required-every-occurrence",
+     "not_contains": [],
+     "sql": "SELECT SUM(total) FROM invoices WHERE issued_at >= '2026-11-01' UNION ALL SELECT SUM(total) FROM invoices"
+    }
+   ],
+   "name": "g18-postgres",
+   "policy": {
+    "dialect": "postgres",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "required_filters": {
+     "invoices": [
+      "issued_at"
+     ]
+    },
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [
+      "'x; DROP TABLE invoices'"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT 'x; DROP TABLE invoices' AS note LIMIT 1000"
+     },
+     "id": "pg-drop-in-string",
+     "not_contains": [],
+     "sql": "SELECT 'x; DROP TABLE invoices' AS note"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT 1 /* ; DROP TABLE invoices */ LIMIT 1000"
+     },
+     "id": "pg-drop-in-comment",
+     "not_contains": [],
+     "sql": "SELECT 1 /* ; DROP TABLE invoices */"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "SELECT 1 AS id"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "WITH invoices AS (SELECT 1 AS id) SELECT * FROM invoices LIMIT 1000"
+     },
+     "id": "pg-cte-shadows-table",
+     "not_contains": [
+      "branch_id"
+     ],
+     "sql": "WITH invoices AS (SELECT 1 AS id) SELECT * FROM invoices"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "WHERE branch_id IN (1, 2)"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "WITH invoices AS (SELECT * FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices) SELECT * FROM invoices LIMIT 1000"
+     },
+     "id": "pg-cte-reads-real-table",
+     "not_contains": [],
+     "sql": "WITH invoices AS (SELECT * FROM invoices) SELECT * FROM invoices"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "sqlguard_rows",
+      "LIMIT 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT * FROM (SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION SELECT id FROM branches) AS sqlguard_rows LIMIT 1000"
+     },
+     "id": "pg-union-limited-as-a-whole",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices UNION SELECT id FROM branches"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "(SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT b.name, SUM(i.total) FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS i JOIN branches AS b ON b.id = i.branch_id GROUP BY b.name LIMIT 1000"
+     },
+     "id": "pg-join-filtered",
+     "not_contains": [],
+     "sql": "SELECT b.name, SUM(i.total) FROM invoices i JOIN branches b ON b.id = i.branch_id GROUP BY b.name"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT name FROM customers WHERE id IN (SELECT customer_id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices) LIMIT 1000"
+     },
+     "id": "pg-subquery-filtered",
+     "not_contains": [],
+     "sql": "SELECT name FROM customers WHERE id IN (SELECT customer_id FROM invoices)"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "LIMIT 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices LIMIT 1000"
+     },
+     "id": "pg-lower-limit",
+     "not_contains": [
+      "50000"
+     ],
+     "sql": "SELECT id FROM invoices LIMIT 50000"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "LIMIT 10"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices LIMIT 10"
+     },
+     "id": "pg-keep-smaller-limit",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices LIMIT 10"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "LIMIT 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices ORDER BY total LIMIT 1000"
+     },
+     "id": "pg-fetch-with-ties-is-capped",
+     "not_contains": [
+      "TIES"
+     ],
+     "sql": "SELECT id FROM invoices ORDER BY total FETCH FIRST 5 ROWS WITH TIES"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "LIMIT 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices LIMIT 1000"
+     },
+     "id": "pg-limit-all-is-capped",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices LIMIT ALL"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT b.name, p.name FROM branches AS b CROSS JOIN products AS p LIMIT 1000"
+     },
+     "id": "cartesian-off-by-default",
+     "not_contains": [],
+     "sql": "SELECT b.name, p.name FROM branches b CROSS JOIN products p"
+    },
+    {
+     "codes": [
+      "missing_context"
+     ],
+     "contains": [],
+     "context": {},
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "missing_context"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-missing-context",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices"
+    },
+    {
+     "codes": [
+      "invalid_context"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": {
+        "1": true
+       }
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "invalid_context"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-invalid-context-type",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "branch_id IN (NULL)"
+     ],
+     "context": {
+      "user": {
+       "branches": []
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (NULL)) AS invoices LIMIT 1000"
+     },
+     "id": "pg-empty-list-matches-nothing",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {},
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT name FROM branches LIMIT 1000"
+     },
+     "id": "pg-no-filter-needed",
+     "not_contains": [
+      "branch_id"
+     ],
+     "sql": "SELECT name FROM branches"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-sleep",
+     "not_contains": [],
+     "sql": "SELECT pg_sleep(10)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-read-file",
+     "not_contains": [],
+     "sql": "SELECT pg_read_file('/etc/passwd')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-query-to-xml",
+     "not_contains": [],
+     "sql": "SELECT query_to_xml('select * from secrets', true, true, '')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-table-to-xml",
+     "not_contains": [],
+     "sql": "SELECT table_to_xml('secrets', true, true, '')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-set-config",
+     "not_contains": [],
+     "sql": "SELECT set_config('role', 'admin', false)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-nextval",
+     "not_contains": [],
+     "sql": "SELECT nextval('invoices_id_seq')"
+    },
+    {
+     "codes": [
+      "table_not_allowed"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-generate-series-table",
+     "not_contains": [],
+     "sql": "SELECT * FROM generate_series(1, 10)"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "COUNT(*)",
+      "branch_id IN (1, 2)"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT COUNT(*), SUM(total), MAX(issued_on) FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices LIMIT 1000"
+     },
+     "id": "pg-allowed-aggregates",
+     "not_contains": [],
+     "sql": "SELECT COUNT(*), SUM(total), MAX(issued_on) FROM invoices"
+    },
+    {
+     "codes": [
+      "table_not_allowed"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-union-not-allowed-table",
+     "not_contains": [],
+     "sql": "SELECT * FROM invoices UNION ALL SELECT * FROM (SELECT * FROM users) u"
+    },
+    {
+     "codes": [
+      "table_not_allowed"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-other-schema",
+     "not_contains": [],
+     "sql": "SELECT * FROM other.invoices"
+    },
+    {
+     "codes": [
+      "table_not_allowed"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "table_not_allowed"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-subquery-in-where",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices WHERE customer_id IN (SELECT id FROM secrets)"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-column",
+     "not_contains": [],
+     "sql": "SELECT name, email FROM customers"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-star",
+     "not_contains": [],
+     "sql": "SELECT * FROM customers"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-qualified-star",
+     "not_contains": [],
+     "sql": "SELECT c.* FROM customers c"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-in-predicate",
+     "not_contains": [],
+     "sql": "SELECT name FROM customers WHERE email LIKE '%@acme.com'"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-in-order-by",
+     "not_contains": [],
+     "sql": "SELECT name FROM customers ORDER BY tax_id"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-whole-row",
+     "not_contains": [],
+     "sql": "SELECT c FROM customers c"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-correlated",
+     "not_contains": [],
+     "sql": "SELECT name FROM customers c WHERE EXISTS (SELECT 1 FROM branches b WHERE c.email LIKE 'a%')"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-using",
+     "not_contains": [],
+     "sql": "SELECT c.name FROM customers c JOIN invoices i USING (email)"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-alias-rename",
+     "not_contains": [],
+     "sql": "SELECT c.email AS contact FROM customers c"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "c.name",
+      "LIMIT 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT c.name, c.segment FROM customers AS c ORDER BY c.name LIMIT 1000"
+     },
+     "id": "pg-visible-columns",
+     "not_contains": [],
+     "sql": "SELECT c.name, c.segment FROM customers c ORDER BY c.name"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-in-having-unqualified",
+     "not_contains": [],
+     "sql": "SELECT COUNT(*) FROM customers HAVING MAX(email) > 'm'"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-in-having-with-group-by",
+     "not_contains": [],
+     "sql": "SELECT name FROM customers GROUP BY name HAVING MIN(tax_id) LIKE '9%'"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-in-having-of-a-subquery",
+     "not_contains": [],
+     "sql": "SELECT COUNT(*) FROM invoices WHERE customer_id IN (SELECT id FROM customers GROUP BY id HAVING MAX(email) LIKE 'a%')"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT branch_id, COUNT(*) AS n FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices GROUP BY branch_id HAVING COUNT(*) > 1 LIMIT 1000"
+     },
+     "id": "pg-having-on-an-alias-still-works",
+     "not_contains": [],
+     "sql": "SELECT branch_id, COUNT(*) AS n FROM invoices GROUP BY branch_id HAVING COUNT(*) > 1"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-in-order-expression-behind-an-alias",
+     "not_contains": [],
+     "sql": "SELECT name AS email FROM customers ORDER BY LOWER(email)"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-hidden-in-distinct-on-expression-behind-an-alias",
+     "not_contains": [],
+     "sql": "SELECT DISTINCT ON (LOWER(email)) name AS email FROM customers"
+    },
+    {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT name AS email FROM customers ORDER BY email LIMIT 1000"
+     },
+     "id": "pg-order-by-a-bare-alias-still-works",
+     "not_contains": [],
+     "sql": "SELECT name AS email FROM customers ORDER BY email"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-delete",
+     "not_contains": [],
+     "sql": "DELETE FROM invoices"
+    },
+    {
+     "codes": [
+      "multiple_statements"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "multiple_statements",
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-stacked-mixed-case",
+     "not_contains": [],
+     "sql": "sElEcT * fRoM invoices; dElEtE fRoM invoices"
+    },
+    {
+     "codes": [
+      "write_operation"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "write_operation"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-cte-delete",
+     "not_contains": [],
+     "sql": "WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-copy",
+     "not_contains": [],
+     "sql": "COPY invoices TO '/tmp/x.csv'"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-lock-table",
+     "not_contains": [],
+     "sql": "LOCK TABLE invoices"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-set-role",
+     "not_contains": [],
+     "sql": "SET ROLE admin"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-call",
+     "not_contains": [],
+     "sql": "CALL refresh_totals()"
+    },
+    {
+     "codes": [
+      "row_lock"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "row_lock"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-for-update",
+     "not_contains": [],
+     "sql": "SELECT * FROM invoices FOR UPDATE"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-insert-select",
+     "not_contains": [],
+     "sql": "INSERT INTO invoices SELECT * FROM invoices"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-update",
+     "not_contains": [],
+     "sql": "UPDATE invoices SET total = 0"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-drop",
+     "not_contains": [],
+     "sql": "DROP TABLE invoices"
+    },
+    {
+     "codes": [
+      "empty_statement"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "empty_statement"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "pg-empty",
+     "not_contains": [],
+     "sql": "   "
+    },
+    {
+     "codes": [],
+     "contains": [
+      "branch_id IN (1, 2)",
+      "LIMIT 1000"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices LIMIT 1000"
+     },
+     "id": "pg-trailing-semicolon",
+     "not_contains": [],
+     "sql": "SELECT id FROM invoices;"
+    }
+   ],
+   "name": "g19-postgres",
+   "policy": {
+    "dialect": "postgres",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-build-stage-file-url",
+     "not_contains": [],
+     "sql": "SELECT build_stage_file_url('@s', 'f', 1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-get-absolute-path",
+     "not_contains": [],
+     "sql": "SELECT get_absolute_path('@s', 'f', 1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-get-ddl",
+     "not_contains": [],
+     "sql": "SELECT get_ddl('@s', 'f', 1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-get-presigned-url",
+     "not_contains": [],
+     "sql": "SELECT get_presigned_url('@s', 'f', 1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-get-stage-location",
+     "not_contains": [],
+     "sql": "SELECT get_stage_location('@s', 'f', 1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-system-abort-session",
+     "not_contains": [],
+     "sql": "SELECT system$abort_session(1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-system-cancel-all-queries",
+     "not_contains": [],
+     "sql": "SELECT system$cancel_all_queries(1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-system-cancel-query",
+     "not_contains": [],
+     "sql": "SELECT system$cancel_query(1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-system-log",
+     "not_contains": [],
+     "sql": "SELECT system$log(1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-system-send-email",
+     "not_contains": [],
+     "sql": "SELECT system$send_email(1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-system-set-return-value",
+     "not_contains": [],
+     "sql": "SELECT system$set_return_value(1)"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-system-wait",
+     "not_contains": [],
+     "sql": "SELECT system$wait(1)"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "snowflake-hidden-in-qualify-unqualified",
+     "not_contains": [],
+     "sql": "SELECT name FROM customers QUALIFY ROW_NUMBER() OVER (ORDER BY id) = 1 AND MAX(email) OVER () > 'm'"
+    }
+   ],
+   "name": "g20-snowflake",
+   "policy": {
+    "dialect": "snowflake",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "sqlite-load-extension",
+     "not_contains": [],
+     "sql": "SELECT load_extension('/tmp/evil.so')"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "sqlite-attach",
+     "not_contains": [],
+     "sql": "ATTACH DATABASE '/tmp/x.db' AS x"
+    },
+    {
+     "codes": [
+      "not_a_query"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "not_a_query"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "sqlite-pragma",
+     "not_contains": [],
+     "sql": "PRAGMA writable_schema = 1"
+    }
+   ],
+   "name": "g21-sqlite",
+   "policy": {
+    "dialect": "sqlite",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "trino-system-query",
+     "not_contains": [],
+     "sql": "SELECT system.query('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "trino-system-runtime-queries",
+     "not_contains": [],
+     "sql": "SELECT system.runtime.queries('x')"
+    },
+    {
+     "codes": [
+      "denied_function"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "denied_function"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "trino-system-slow-query",
+     "not_contains": [],
+     "sql": "SELECT system.slow_query('x')"
+    }
+   ],
+   "name": "g22-trino",
+   "policy": {
+    "dialect": "trino",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  }
+ ]
+}
