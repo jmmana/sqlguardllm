@@ -4,6 +4,9 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+- `sqlguardllm test` checks declared policy cases and reports results as text or JUnit XML (#66).
+
 ## [0.5.0a2] - 2026-11-26
 
 First release on all three registries at once: PyPI, npm and, for the first time, NuGet.

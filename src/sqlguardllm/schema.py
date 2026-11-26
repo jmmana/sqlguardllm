@@ -11,6 +11,7 @@ from dataclasses import fields
 from typing import Any
 
 from sqlguardllm.policy import Policy
+from sqlguardllm.result import ViolationCode
 
 SCHEMA_ID = "https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy.schema.json"
 POLICY_SET_SCHEMA_ID = (
@@ -177,4 +178,44 @@ def policy_set_schema() -> dict[str, Any]:
             },
         },
         "$defs": {"policy": policy, "role": role},
+    }
+
+
+def policy_tests_schema() -> dict[str, Any]:
+    """The JSON Schema (draft 2020-12) of a policy test cases file."""
+    non_blank = {"type": "string", "pattern": r"\S"}
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-tests.schema.json",
+        "title": "sqlguardllm policy test cases",
+        "type": "object",
+        "required": ["cases"],
+        "additionalProperties": False,
+        "properties": {
+            "cases": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "required": ["sql", "expect"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "name": non_blank,
+                        "sql": non_blank,
+                        "role": {**non_blank, "description": "Required when testing a policy set."},
+                        "context": {"type": "object", "description": "Values for row filters."},
+                        "expect": {"enum": ["allow", "reject"]},
+                        "violation": {"enum": [code.value for code in ViolationCode]},
+                        "sql_contains": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "A literal, case-sensitive substring of rewritten SQL.",
+                        },
+                    },
+                    "if": {"properties": {"expect": {"const": "allow"}}},
+                    "then": {"not": {"required": ["violation"]}},
+                    "else": {"not": {"required": ["sql_contains"]}},
+                },
+            },
+        },
     }
