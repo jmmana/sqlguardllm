@@ -175,6 +175,161 @@
     {
      "codes": [],
      "contains": [
+      "ORDER BY 1 DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY",
+      "branch_id IN (1, 2)"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION SELECT id FROM branches ORDER BY 1 DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-union-ordered-position",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices UNION SELECT id FROM branches ORDER BY 1 DESC"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "UNION ALL",
+      "ORDER BY invoice_id OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id AS invoice_id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION ALL SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices ORDER BY invoice_id OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-union-all-ordered-name",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id AS invoice_id FROM invoices UNION ALL SELECT id FROM invoices ORDER BY invoice_id"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "INTERSECT",
+      "ORDER BY id DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices INTERSECT SELECT id FROM branches ORDER BY id DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-intersect-ordered-name",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices INTERSECT SELECT id FROM branches ORDER BY id DESC"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "EXCEPT",
+      "ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices EXCEPT SELECT id FROM branches ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-except-ordered-position",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices EXCEPT SELECT id FROM branches ORDER BY 1"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "ORDER BY 1 OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION SELECT id FROM branches ORDER BY 1 OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY"
+     },
+     "id": "tsql-ordered-union-keeps-smaller-fetch",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices UNION SELECT id FROM branches ORDER BY 1 OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "ORDER BY id OFFSET 5 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION SELECT id FROM branches ORDER BY id OFFSET 5 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-ordered-union-lowers-fetch",
+     "not_contains": [
+      "sqlguard_rows",
+      "50000"
+     ],
+     "sql": "SELECT id FROM invoices UNION SELECT id FROM branches ORDER BY id OFFSET 5 ROWS FETCH NEXT 50000 ROWS ONLY"
+    },
+    {
+     "codes": [],
+     "contains": [
       "TOP 1000"
      ],
      "context": {

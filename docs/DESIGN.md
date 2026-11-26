@@ -197,7 +197,7 @@ Why a derived table and not an extra `WHERE` condition: it doesn't need to under
 
 - No limit on the outermost query → add `max_rows`. A literal limit above `max_rows` → lowered. A non-literal limit (expression or parameter) → replaced by `max_rows`.
 - Rendered by sqlglot in the dialect's syntax: `LIMIT n`, `TOP n` (T-SQL), `FETCH FIRST n ROWS ONLY` (Oracle), verified with 30.35.
-- Set operations get the limit on the combined result.
+- Set operations get the limit on the combined result. When the output dialect is T-SQL and the set operation has an outer `ORDER BY`, use `OFFSET … FETCH` on the set operation itself. Preserve any existing offset and keep the smaller literal row count. An existing zero count renders as `TOP 0`.
 - `max_rows=None` disables this step (not recommended).
 
 ### 9. Generate

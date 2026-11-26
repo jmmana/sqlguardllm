@@ -96,6 +96,76 @@ def test_limit_per_dialect(dialect: str, sql: str, expected: str) -> None:
     assert result.sql == expected
 
 
+@pytest.mark.parametrize(
+    ("suffix", "expected", "limit"),
+    [
+        ("", "OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY", 2),
+        (" OFFSET 4 ROWS", "OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", 2),
+        (" OFFSET 4 ROWS FETCH FIRST (1) ROW ONLY", "OFFSET 4 ROWS FETCH NEXT 1 ROWS ONLY", 1),
+        (" OFFSET 4 ROWS FETCH NEXT 5 ROWS ONLY", "OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", 2),
+    ],
+)
+def test_tsql_ordered_set_limit(suffix: str, expected: str, limit: int) -> None:
+    base = "SELECT id FROM t UNION SELECT id FROM u ORDER BY 1 DESC"
+    guard = Guard(Policy(dialect="tsql", tables={"t", "u"}, max_rows=2))
+    result = guard.explain(base + suffix)
+    assert result.ok, result.violations
+    assert result.sql == f"{base} {expected}"
+    assert result.limit == limit
+
+
+def test_tsql_ordered_set_rejects_non_allowlisted_branch() -> None:
+    guard = Guard(Policy(dialect="tsql", tables={"invoices"}, max_rows=2))
+    result = guard.check("SELECT id FROM invoices UNION SELECT id FROM other_invoices ORDER BY 1")
+    assert result.sql is None
+    assert ViolationCode.TABLE_NOT_ALLOWED in result.codes
+
+
+def test_ordered_set_limit_follows_output_dialect() -> None:
+    guard = Guard(Policy(dialect="mysql", output_dialect="tsql", tables={"t", "u"}, max_rows=2))
+    base = "SELECT id FROM t UNION SELECT id FROM u ORDER BY id DESC"
+    result = guard.check(f"{base} LIMIT 1 OFFSET 4")
+    assert result.ok, result.messages
+    assert result.sql == f"{base} OFFSET 4 ROWS FETCH NEXT 1 ROWS ONLY"
+
+
+def test_ordered_set_zero_limit_to_tsql() -> None:
+    guard = Guard(Policy(dialect="mysql", output_dialect="tsql", tables={"t", "u"}, max_rows=2))
+    result = guard.explain("SELECT id FROM t UNION SELECT id FROM u ORDER BY id LIMIT 0 OFFSET 4")
+    assert result.ok, result.violations
+    assert result.sql is not None and result.sql.startswith("SELECT TOP 0 ")
+    assert "FETCH" not in result.sql
+    assert result.limit == 0
+
+
+@pytest.mark.parametrize(
+    ("dialect", "max_rows", "suffix", "expected"),
+    [
+        ("tsql", None, " ORDER BY 1", "SELECT id FROM t UNION SELECT id FROM u ORDER BY 1"),
+        (
+            "tsql",
+            2,
+            "",
+            "SELECT TOP 2 * FROM (SELECT id FROM t UNION SELECT id FROM u) AS sqlguard_rows",
+        ),
+        (
+            "postgres",
+            2,
+            " ORDER BY 1",
+            "SELECT * FROM (SELECT id FROM t UNION SELECT id FROM u ORDER BY 1)"
+            " AS sqlguard_rows LIMIT 2",
+        ),
+    ],
+)
+def test_set_limit_other_paths(
+    dialect: str, max_rows: int | None, suffix: str, expected: str
+) -> None:
+    guard = Guard(Policy(dialect=dialect, tables={"t", "u"}, max_rows=max_rows))
+    result = guard.check(f"SELECT id FROM t UNION SELECT id FROM u{suffix}")
+    assert result.ok, result.messages
+    assert result.sql == expected
+
+
 def test_no_limit_when_disabled() -> None:
     result = Guard(Policy(dialect="postgres", tables={"t"}, max_rows=None)).check(
         "SELECT id FROM t"
