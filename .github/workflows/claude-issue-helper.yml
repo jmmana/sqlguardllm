@@ -1,0 +1,59 @@
+name: Claude issue proposal
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Public sqlguardllm issue number
+        type: number
+        required: true
+      files:
+        description: Optional comma-separated public context paths
+        type: string
+        required: false
+      execute:
+        description: Authorize one Claude response within the USD 5 execution budget
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  proposal:
+    if: github.repository == 'jmmana/sqlguardllm' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Preview prompt
+        if: ${{ !inputs.execute }}
+        env:
+          ISSUE: ${{ inputs.issue }}
+          ISSUE_FILES: ${{ inputs.files }}
+        run: |
+          python3 scripts/claude_issue_helper.py --issue="$ISSUE" --files="$ISSUE_FILES" \
+            --commit="$GITHUB_SHA" --output-dir="$RUNNER_TEMP/claude-issue-output"
+      - name: Generate proposal
+        if: ${{ inputs.execute }}
+        env:
+          ISSUE: ${{ inputs.issue }}
+          ISSUE_FILES: ${{ inputs.files }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+        run: |
+          python3 scripts/claude_issue_helper.py --issue="$ISSUE" --files="$ISSUE_FILES" \
+            --commit="$GITHUB_SHA" --output-dir="$RUNNER_TEMP/claude-issue-output" --execute
+      - name: Upload review artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: claude-issue-proposal
+          path: |
+            ${{ runner.temp }}/claude-issue-output/manifest.json
+            ${{ runner.temp }}/claude-issue-output/prompt.json
+            ${{ runner.temp }}/claude-issue-output/proposal.md
+          retention-days: 7
