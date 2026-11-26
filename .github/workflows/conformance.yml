@@ -1,0 +1,34 @@
+name: Conformance
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    env:
+      SQLGUARD_REQUIRE_CONFORMANCE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: clients/node/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Python (in-process vs HTTP)
+        run: |
+          uv sync --extra serve
+          uv run pytest tests/conformance
+      - name: Node client
+        working-directory: clients/node
+        run: |
+          npm ci
+          npx vitest run test/conformance.test.ts
+      - name: .NET client
+        run: dotnet test clients/dotnet/tests/SqlGuardLlm.Tests --filter ConformanceTests
