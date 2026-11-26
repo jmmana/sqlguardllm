@@ -23,7 +23,7 @@ from sqlguardllm._compiled import Compiled
 from sqlguardllm._names import TableName, find, norm, table_name
 from sqlguardllm.messages import violation
 from sqlguardllm.result import Violation, ViolationCode
-from sqlguardllm.rules.columns import _visible_sources
+from sqlguardllm.rules.columns import _visible_sources, scope_columns
 
 _SENTINEL = "__sqlguardllm_masked__"
 
@@ -150,7 +150,7 @@ def plan_masks(scopes: list[Scope], compiled: Compiled) -> tuple[MaskPlan, list[
                 if str(join.args.get("method") or "").upper() == "NATURAL":
                     details.append("NATURAL JOIN over a table with masked columns")
 
-        for column in scope.columns:
+        for column in scope_columns(scope):
             if not isinstance(column.this, exp.Identifier):
                 continue
             name = norm(column.this, compiled.dialect)

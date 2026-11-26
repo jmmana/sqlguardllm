@@ -99,6 +99,8 @@ def test_star_without_schema_is_rejected(sql: str) -> None:
         "SELECT a.name FROM customers a NATURAL JOIN customers b",
         "SELECT name FROM customers WHERE id IN (SELECT id FROM customers WHERE tax_id = '1')",
         "SELECT c FROM customers c",
+        "SELECT name AS email FROM customers ORDER BY LOWER(email)",
+        "SELECT COUNT(*) FROM customers HAVING MIN(tax_id) LIKE '9%'",
     ],
 )
 def test_masked_columns_outside_the_select_list_are_rejected(sql: str) -> None:
