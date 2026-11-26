@@ -83,3 +83,211 @@
   sql: SELECT COUNT(*), SUM(total), MAX(issued_on) FROM invoices
   expect: allow
   contains: ["COUNT(*)", "branch_id IN (1, 2)"]
+
+# Snowflake, BigQuery, ClickHouse and Trino functions that read files, call the network,
+# sleep or change server state.
+- id: snowflake-build-stage-file-url
+  dialect: snowflake
+  sql: SELECT build_stage_file_url('@s', 'f', 1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-get-absolute-path
+  dialect: snowflake
+  sql: SELECT get_absolute_path('@s', 'f', 1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-get-ddl
+  dialect: snowflake
+  sql: SELECT get_ddl('@s', 'f', 1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-get-presigned-url
+  dialect: snowflake
+  sql: SELECT get_presigned_url('@s', 'f', 1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-get-stage-location
+  dialect: snowflake
+  sql: SELECT get_stage_location('@s', 'f', 1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-system-abort-session
+  dialect: snowflake
+  sql: SELECT system$abort_session(1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-system-cancel-all-queries
+  dialect: snowflake
+  sql: SELECT system$cancel_all_queries(1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-system-cancel-query
+  dialect: snowflake
+  sql: SELECT system$cancel_query(1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-system-log
+  dialect: snowflake
+  sql: SELECT system$log(1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-system-send-email
+  dialect: snowflake
+  sql: SELECT system$send_email(1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-system-set-return-value
+  dialect: snowflake
+  sql: SELECT system$set_return_value(1)
+  expect: reject
+  codes: [denied_function]
+- id: snowflake-system-wait
+  dialect: snowflake
+  sql: SELECT system$wait(1)
+  expect: reject
+  codes: [denied_function]
+- id: bigquery-external-query
+  dialect: bigquery
+  sql: SELECT * FROM external_query('conn', 'SELECT 1')
+  expect: reject
+  codes: [denied_function]
+- id: bigquery-load-data
+  dialect: bigquery
+  sql: SELECT load_data(1)
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-azureblobstorage
+  dialect: clickhouse
+  sql: SELECT * FROM azureblobstorage('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-deltalake
+  dialect: clickhouse
+  sql: SELECT * FROM deltalake('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-executable
+  dialect: clickhouse
+  sql: SELECT * FROM executable('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-file
+  dialect: clickhouse
+  sql: SELECT * FROM file('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-filecluster
+  dialect: clickhouse
+  sql: SELECT * FROM filecluster('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-gcs
+  dialect: clickhouse
+  sql: SELECT * FROM gcs('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-hdfs
+  dialect: clickhouse
+  sql: SELECT * FROM hdfs('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-hdfscluster
+  dialect: clickhouse
+  sql: SELECT * FROM hdfscluster('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-iceberg
+  dialect: clickhouse
+  sql: SELECT * FROM iceberg('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-input
+  dialect: clickhouse
+  sql: SELECT * FROM input('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-jdbc
+  dialect: clickhouse
+  sql: SELECT * FROM jdbc('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-mongodb
+  dialect: clickhouse
+  sql: SELECT * FROM mongodb('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-mysql
+  dialect: clickhouse
+  sql: SELECT * FROM mysql('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-odbc
+  dialect: clickhouse
+  sql: SELECT * FROM odbc('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-postgresql
+  dialect: clickhouse
+  sql: SELECT * FROM postgresql('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-redis
+  dialect: clickhouse
+  sql: SELECT * FROM redis('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-remote
+  dialect: clickhouse
+  sql: SELECT * FROM remote('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-remotesecure
+  dialect: clickhouse
+  sql: SELECT * FROM remotesecure('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-s3
+  dialect: clickhouse
+  sql: SELECT * FROM s3('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-s3cluster
+  dialect: clickhouse
+  sql: SELECT * FROM s3cluster('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-sleepeachrow
+  dialect: clickhouse
+  sql: SELECT sleepEachRow(1)
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-sqlite
+  dialect: clickhouse
+  sql: SELECT * FROM sqlite('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-url
+  dialect: clickhouse
+  sql: SELECT * FROM url('x')
+  expect: reject
+  codes: [denied_function]
+- id: clickhouse-urlcluster
+  dialect: clickhouse
+  sql: SELECT * FROM urlcluster('x')
+  expect: reject
+  codes: [denied_function]
+- id: trino-system-query
+  dialect: trino
+  sql: SELECT system.query('x')
+  expect: reject
+  codes: [denied_function]
+- id: trino-system-runtime-queries
+  dialect: trino
+  sql: SELECT system.runtime.queries('x')
+  expect: reject
+  codes: [denied_function]
+- id: trino-system-slow-query
+  dialect: trino
+  sql: SELECT system.slow_query('x')
+  expect: reject
+  codes: [denied_function]
