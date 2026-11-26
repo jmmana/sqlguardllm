@@ -44,6 +44,8 @@ The [Claude issue helper](docs/CLAUDE_ISSUE_HELPER.md) can prepare a proposal fo
 
 ## Pull requests
 
+Coding agents follow the [agent workflow](AGENTS.md): use Claude API assistance for each issue, keep one focused implementation branch per agent, and remove merged branches after integration.
+
 1. Fork, then branch from `main`: `feat/<short-name>`, `fix/<short-name>` or `corpus/<short-name>`.
 2. Keep PRs focused: one issue, one result.
 3. Add tests for new behavior. A new rule needs at least one case that must be rejected **and** one that must keep working.
