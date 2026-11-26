@@ -1,0 +1,72 @@
+name: Engines
+
+# The rewritten SQL runs on real PostgreSQL 16, MySQL 8 and SQL Server 2022 (plus DuckDB and
+# SQLite in-process) and returns only the rows the row filters allow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engines-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engines:
+    name: Real engines
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test-only
+          MYSQL_DATABASE: sg
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -ptest-only" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Test-only-1234"
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Test-only-1234 -Q 'SELECT 1'"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install ODBC driver for SQL Server
+        run: |
+          curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mssql.list
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+      - name: Dependencies
+        run: uv sync --locked --extra db
+      - name: Drivers
+        run: uv pip install "psycopg[binary]" pymysql pyodbc
+      - name: Engine tests
+        env:
+          SQLGUARD_REQUIRE_ENGINES: "1"
+          SQLGUARD_PG_URL: postgresql+psycopg://postgres:test-only@localhost:5432/postgres
+          SQLGUARD_MYSQL_URL: mysql+pymysql://root:test-only@127.0.0.1:3306/sg
+          SQLGUARD_MSSQL_URL: mssql+pyodbc://sa:Test-only-1234@localhost:1433/master?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+        run: uv run pytest tests/engines -v
