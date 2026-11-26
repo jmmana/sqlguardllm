@@ -234,7 +234,7 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 ### Richer policies
 
 - **`schema: {table: [columns]}`** enables exact column checks: columns are qualified with `sqlglot.optimizer.qualify`, unknown columns are rejected, and stars can be expanded (needed by masking).
-- **`Policy.from_database(url, include=[...])`** *(implemented, unreleased)* reads tables and columns with the SQLAlchemy inspector (optional extra `sqlguardllm[db]`) to build `schema` and `tables`.
+- **`Policy.from_database(url, include=[...])`** *(experimental)* reads tables and columns with the SQLAlchemy inspector (optional extra `sqlguardllm[db]`) to build `schema` and `tables`.
 - **`PolicySet`** *(implemented, unreleased)*: one file with a `base` policy and `roles` that override or extend it (`roles: {manager: {...}, analyst: {extends: manager, ...}}`), loaded once (`PolicySet.from_file`, `from_dict`) and asked for `policy_set.for_role("manager")`, which returns the `Policy`; `policy_set.guard("manager", language="es")` returns a `Guard` cached per role, language and `pretty`. Example: [`examples/roles.yaml`](../examples/roles.yaml). Merge rules, applied from `base` down the `extends` chain:
   - A policy key set in a role **replaces** the inherited value, for scalars, lists and mappings alike: what the role says is what it gets. `row_filters: {}` removes every inherited filter.
   - Keys under **`add:`** **extend** the inherited value: lists are joined (union) and mappings merged key by key, the role winning for a key in both. Adding to a scalar, to an inherited `null` (`tables: null`, `schema: null`) or to a key the role also sets is a `PolicyError`.

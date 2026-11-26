@@ -2,6 +2,7 @@
 
 The SQL firewall for LLM apps: validate SQL written by AI and rewrite it read-only, allowlisted, row-filtered and limited.
 
+- [Choose a package](packages.md) · [Elige un paquete](es/packages.md)
 - [Quickstart](quickstart.md) · [Inicio rápido](es/quickstart.md)
 - [Rules](DESIGN.md): what is checked and how queries are rewritten
 - [Policy reference](policy-reference.md), generated from the JSON Schema

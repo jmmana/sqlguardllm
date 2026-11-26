@@ -24,6 +24,7 @@ try:
 except PackageNotFoundError:  # pragma: no cover - running from a source tree without install
     __version__ = "0.0.0"
 
+# Public package exports. Keep the list in sync with docs/api.md.
 __all__ = [
     "CheckResult",
     "Explanation",

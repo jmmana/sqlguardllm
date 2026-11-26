@@ -43,7 +43,7 @@ sqlguardllm mcp --policy FILE [--role NAME] [--db URL] [--context JSON|@file]
 
 ### Cost guard
 
-With `--max-cost` or `--max-plan-rows` (or `max_cost=` / `max_plan_rows=` in `create_server`), a query the guard allowed is first sent to the engine as `EXPLAIN (FORMAT JSON)` on PostgreSQL (`Total Cost` and `Plan Rows` of the top node) or `EXPLAIN FORMAT=JSON` on MySQL 8 (`query_cost` and the largest `rows_examined_per_scan` / `rows_produced_per_join`), inside the same read-only transaction. It never uses `EXPLAIN ANALYZE`, which would run the query. If an estimate is above its threshold the query is not run and the model gets an error with the estimate, the limit and a hint to add a filter or select fewer columns. `explain_query` also returns the `estimate`.
+With `--max-cost` or `--max-plan-rows`, a query the guard allowed is first sent to the engine as `EXPLAIN (FORMAT JSON)` on PostgreSQL (`Total Cost` and `Plan Rows` of the top node) or `EXPLAIN FORMAT=JSON` on MySQL 8 (`query_cost` and the largest `rows_examined_per_scan` / `rows_produced_per_join`), inside the same read-only transaction. It never uses `EXPLAIN ANALYZE`, which would run the query. If an estimate is above its threshold the query is not run and the model gets an error with the estimate, the limit and a hint to add a filter or select fewer columns. `explain_query` also returns the `estimate`.
 
 - The units are the engine's own, so pick thresholds by trying typical queries. The cost is an estimate from table statistics (run `ANALYZE`).
 - It fails closed: if `EXPLAIN` fails or its output can't be read, the query is refused instead of run blind.
