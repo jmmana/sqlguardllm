@@ -71,11 +71,11 @@ This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Be kind; cr
 
 ## Releasing
 
-Maintainers only. Python and the Node.js client share one version.
+Maintainers only. Every release goes to PyPI, npm and NuGet together, with one version.
 
-1. Set the version in `pyproject.toml` (for example `0.6.0a1`) and the matching one in `clients/node/package.json` (`0.6.0-alpha.1`; `b1` is `-beta.1`, `rc1` is `-rc.1`), then run `uv lock` and `npm install --package-lock-only` in `clients/node`.
+1. Set the version in `pyproject.toml` (for example `0.6.0a1`) and the matching one in `clients/node/package.json` and `<Version>` of `clients/dotnet/src/SqlGuardLlm/SqlGuardLlm.csproj` (`0.6.0-alpha.1`; `b1` is `-beta.1`, `rc1` is `-rc.1`), then run `uv lock` and `npm install --package-lock-only` in `clients/node`.
 2. Move the `Unreleased` notes in `CHANGELOG.md` under `## [0.6.0a1] - YYYY-MM-DD`.
 3. Merge to `main`, then tag: `git tag -a v0.6.0a1 -m "sqlguardllm 0.6.0a1" && git push origin v0.6.0a1`.
 
-The `Release` workflow checks that tag, versions and changelog agree, runs the tests, and publishes to PyPI and npm with Trusted Publishing (no tokens). npm gets the dist-tag from the version: `alpha`, `beta`, `rc` or `latest`. If npm holds a release for approval (staged publishing), approve it at npmjs.com → Staged Packages.
+The `Release` workflow checks that tag, versions and changelog agree, runs the tests, and publishes to PyPI, npm and NuGet with Trusted Publishing (no tokens). npm gets the dist-tag from the version: `alpha`, `beta`, `rc` or `latest`. If npm holds a release for approval (staged publishing), approve it at npmjs.com → Staged Packages.
 

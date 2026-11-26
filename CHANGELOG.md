@@ -4,6 +4,9 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+- Every release now publishes to PyPI, npm and NuGet together with the same version, all with Trusted Publishing.
+
 ### Fixed
 - Node.js client: the package declared the MIT license by mistake; it is Apache-2.0 like the rest of the project, and the license file now ships in the package.
 

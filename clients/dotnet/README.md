@@ -2,6 +2,8 @@
 
 Official .NET client for [sqlguardllm](https://github.com/jmmana/sqlguardllm), the SQL firewall for LLM apps. It talks to `sqlguardllm serve` (the same engine, over HTTP) so .NET behaves exactly like Python. No runtime dependencies beyond `HttpClient` and `System.Text.Json`. Targets `net8.0` and `net10.0`.
 
+> **Today this package needs a running `sqlguardllm serve`.** An embedded engine, so that the package works with no Python and no server, is planned in [#86](https://github.com/jmmana/sqlguardllm/issues/86).
+
 ```
 dotnet add package SqlGuardLlm
 ```

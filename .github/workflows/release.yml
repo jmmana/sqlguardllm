@@ -1,8 +1,8 @@
 name: Release
 
-# Publishes to PyPI and npm with Trusted Publishing (OIDC): no API token is stored anywhere.
-# PyPI trusts this exact workflow file, in jmmana/sqlguardllm, running in the "pypi" environment;
-# npm trusts it running in the "npm" environment.
+# Publishes every release to PyPI, npm and NuGet, same version, with Trusted Publishing (OIDC):
+# no API token is stored anywhere. Each registry trusts this exact workflow file, in
+# jmmana/sqlguardllm, running in its environment: "pypi", "npm" and "nuget".
 on:
   push:
     tags: ["v*"]
@@ -39,6 +39,10 @@ jobs:
           node_version=$(python3 -c "import json;print(json.load(open('clients/node/package.json'))['version'])")
           if [ "$npm_version" != "$node_version" ]; then
             echo "clients/node/package.json has $node_version, expected $npm_version"; exit 1
+          fi
+          dotnet_version=$(sed -nE 's#.*<Version>(.*)</Version>.*#\1#p' clients/dotnet/src/SqlGuardLlm/SqlGuardLlm.csproj)
+          if [ "$npm_version" != "$dotnet_version" ]; then
+            echo "SqlGuardLlm.csproj has $dotnet_version, expected $npm_version"; exit 1
           fi
           case "$npm_version" in
             *-alpha.*) npm_tag=alpha ;; *-beta.*) npm_tag=beta ;; *-rc.*) npm_tag=rc ;; *) npm_tag=latest ;;
@@ -102,6 +106,42 @@ jobs:
             echo "sqlguardllm@$VERSION is already on npm; nothing to do"; exit 0
           fi
           npm publish --tag "$TAG"
+
+  nuget:
+    name: Publish the .NET client to NuGet
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/SqlGuardLlm
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: clients/dotnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - run: dotnet build -c Release
+      - run: dotnet test -c Release --no-build
+      - run: dotnet pack src/SqlGuardLlm -c Release --no-build -o out
+      # Exchanges the job's OIDC token for an API key that lives one hour.
+      - name: NuGet login (Trusted Publishing)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Push (the .snupkg symbols go with it)
+        run: >-
+          dotnet nuget push "out/*.nupkg"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
 
   smoke:
     name: Install from PyPI and run

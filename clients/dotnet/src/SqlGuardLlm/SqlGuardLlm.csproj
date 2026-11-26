@@ -8,7 +8,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>SqlGuardLlm</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.5.0-alpha.1</Version>
     <Authors>jmmana</Authors>
     <Description>Official .NET client for sqlguardllm, a SQL firewall for LLM apps. Talks to `sqlguardllm serve` over HTTP and fails closed.</Description>
     <PackageTags>sql;llm;security;firewall;text-to-sql;sqlguardllm</PackageTags>
@@ -17,6 +17,11 @@
     <PackageProjectUrl>https://github.com/jmmana/sqlguardllm</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jmmana/sqlguardllm</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
