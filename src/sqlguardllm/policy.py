@@ -182,16 +182,21 @@ class Policy:
 
         YAML needs the optional extra: ``pip install "sqlguardllm[yaml]"``.
         """
-        file = Path(path)
-        text = file.read_text(encoding="utf-8")
-        if file.suffix.lower() in (".yaml", ".yml"):
-            try:
-                import yaml  # noqa: PLC0415
-            except ImportError as exc:  # pragma: no cover - depends on the environment
-                raise PolicyError('YAML policies need: pip install "sqlguardllm[yaml]"') from exc
-            data = yaml.safe_load(text)
-        else:
-            data = json.loads(text)
-        if not isinstance(data, Mapping):
-            raise PolicyError(f"{file} must contain a mapping at the top level")
-        return cls.from_dict(data)
+        return cls.from_dict(read_mapping(path))
+
+
+def read_mapping(path: str | Path) -> Mapping[str, Any]:
+    """Read a ``.json``, ``.yaml`` or ``.yml`` file whose top level is a mapping."""
+    file = Path(path)
+    text = file.read_text(encoding="utf-8")
+    if file.suffix.lower() in (".yaml", ".yml"):
+        try:
+            import yaml  # noqa: PLC0415
+        except ImportError as exc:  # pragma: no cover - depends on the environment
+            raise PolicyError('YAML policies need: pip install "sqlguardllm[yaml]"') from exc
+        data = yaml.safe_load(text)
+    else:
+        data = json.loads(text)
+    if not isinstance(data, Mapping):
+        raise PolicyError(f"{file} must contain a mapping at the top level")
+    return data

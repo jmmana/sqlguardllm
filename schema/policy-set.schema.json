@@ -1,0 +1,461 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-set.schema.json",
+  "title": "sqlguardllm policy set",
+  "description": "A base policy and roles that change it. See https://github.com/jmmana/sqlguardllm/blob/main/docs/DESIGN.md",
+  "type": "object",
+  "required": [
+    "base"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "base": {
+      "$ref": "#/$defs/policy",
+      "description": "The policy every role starts from."
+    },
+    "roles": {
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/role"
+      },
+      "description": "Role name → changes to its parent policy."
+    }
+  },
+  "$defs": {
+    "policy": {
+      "title": "sqlguardllm policy",
+      "description": "What SQL written by an untrusted source may do. See https://github.com/jmmana/sqlguardllm/blob/main/docs/DESIGN.md",
+      "type": "object",
+      "required": [
+        "dialect"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "dialect": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Dialect of the SQL to check: postgres, mysql, tsql, oracle, sqlite…"
+        },
+        "tables": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Allowlisted tables, optionally qualified (sales.customers). null disables the allowlist, which is not recommended."
+        },
+        "hidden_columns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Columns that may never be referenced, as table.column."
+        },
+        "row_filters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Table → boolean SQL condition with {context.path} placeholders."
+        },
+        "max_rows": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Maximum rows a query may return. null disables the limit."
+        },
+        "default_schema": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Schema assumed for unqualified table references."
+        },
+        "denied_functions": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Replaces the built-in denylist for the dialect when given."
+        },
+        "extra_denied_functions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Added to the denylist."
+        },
+        "function_policy": {
+          "enum": [
+            "denylist",
+            "allowlist"
+          ],
+          "description": "denylist (default) or allowlist."
+        },
+        "allowed_functions": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Functions allowed when function_policy is \"allowlist\"."
+        },
+        "max_joins": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Maximum joins in the whole query."
+        },
+        "max_subquery_depth": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Maximum nesting of subqueries, derived tables and CTEs."
+        },
+        "forbid_cartesian": {
+          "type": "boolean",
+          "description": "Reject CROSS JOIN and comma joins with no linking equality in WHERE."
+        },
+        "required_filters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "description": "Table → columns; every read of the table must filter on one of them."
+        },
+        "output_dialect": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Generate the rewritten SQL in this dialect instead of dialect."
+        },
+        "masked_columns": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "null",
+              "redact",
+              "hash",
+              "partial"
+            ]
+          },
+          "description": "table.column → mask. Selectable but masked; never usable in filters, joins, grouping or ordering."
+        },
+        "aggregate_only": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "description": "Table → minimum group size k: only aggregates, groups of at least k rows."
+        },
+        "schema": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "description": "Table → columns. Lets * over a table with masked columns be expanded."
+        }
+      }
+    },
+    "role": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Changes to the parent policy: a key set here replaces the inherited value; keys under add extend inherited lists and mappings.",
+      "additionalProperties": false,
+      "properties": {
+        "extends": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Role to start from. Without it, the role starts from base."
+        },
+        "add": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Added to the inherited tables."
+            },
+            "hidden_columns": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Added to the inherited hidden_columns."
+            },
+            "row_filters": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Added to the inherited row_filters."
+            },
+            "denied_functions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Added to the inherited denied_functions."
+            },
+            "extra_denied_functions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Added to the inherited extra_denied_functions."
+            },
+            "allowed_functions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Added to the inherited allowed_functions."
+            },
+            "required_filters": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "description": "Added to the inherited required_filters."
+            },
+            "masked_columns": {
+              "type": "object",
+              "additionalProperties": {
+                "enum": [
+                  "null",
+                  "redact",
+                  "hash",
+                  "partial"
+                ]
+              },
+              "description": "Added to the inherited masked_columns."
+            },
+            "aggregate_only": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "description": "Added to the inherited aggregate_only."
+            },
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "description": "Added to the inherited schema."
+            }
+          },
+          "description": "Joined to inherited lists, merged into inherited mappings."
+        },
+        "dialect": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Dialect of the SQL to check: postgres, mysql, tsql, oracle, sqlite…"
+        },
+        "tables": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Allowlisted tables, optionally qualified (sales.customers). null disables the allowlist, which is not recommended."
+        },
+        "hidden_columns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Columns that may never be referenced, as table.column."
+        },
+        "row_filters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Table → boolean SQL condition with {context.path} placeholders."
+        },
+        "max_rows": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Maximum rows a query may return. null disables the limit."
+        },
+        "default_schema": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Schema assumed for unqualified table references."
+        },
+        "denied_functions": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Replaces the built-in denylist for the dialect when given."
+        },
+        "extra_denied_functions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Added to the denylist."
+        },
+        "function_policy": {
+          "enum": [
+            "denylist",
+            "allowlist"
+          ],
+          "description": "denylist (default) or allowlist."
+        },
+        "allowed_functions": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Functions allowed when function_policy is \"allowlist\"."
+        },
+        "max_joins": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Maximum joins in the whole query."
+        },
+        "max_subquery_depth": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Maximum nesting of subqueries, derived tables and CTEs."
+        },
+        "forbid_cartesian": {
+          "type": "boolean",
+          "description": "Reject CROSS JOIN and comma joins with no linking equality in WHERE."
+        },
+        "required_filters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "description": "Table → columns; every read of the table must filter on one of them."
+        },
+        "output_dialect": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Generate the rewritten SQL in this dialect instead of dialect."
+        },
+        "masked_columns": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "null",
+              "redact",
+              "hash",
+              "partial"
+            ]
+          },
+          "description": "table.column → mask. Selectable but masked; never usable in filters, joins, grouping or ordering."
+        },
+        "aggregate_only": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "description": "Table → minimum group size k: only aggregates, groups of at least k rows."
+        },
+        "schema": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "description": "Table → columns. Lets * over a table with masked columns be expanded."
+        }
+      }
+    }
+  }
+}

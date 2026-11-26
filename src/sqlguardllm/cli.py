@@ -3,6 +3,7 @@
     sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' "SELECT …"
     echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json -
     sqlguardllm schema > schema/policy.schema.json
+    sqlguardllm schema --policy-set > schema/policy-set.schema.json
 
 Exit codes: 0 allowed, 1 rejected, 2 usage or policy error.
 """
@@ -22,7 +23,7 @@ from sqlguardllm.guard import Guard
 from sqlguardllm.messages import LANGUAGES
 from sqlguardllm.policy import Policy
 from sqlguardllm.result import CheckResult, PolicyError
-from sqlguardllm.schema import policy_schema
+from sqlguardllm.schema import policy_schema, policy_set_schema
 
 EXIT_OK = 0
 EXIT_REJECTED = 1
@@ -59,7 +60,12 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--format", choices=("text", "json"), default="text", help="output format")
     check.add_argument("--pretty", action="store_true", help="pretty-print the rewritten SQL")
 
-    commands.add_parser("schema", help="print the JSON Schema of policy files")
+    schema = commands.add_parser("schema", help="print the JSON Schema of policy files")
+    schema.add_argument(
+        "--policy-set",
+        action="store_true",
+        help="print the schema of policy-set files (base and roles) instead",
+    )
     return parser
 
 
@@ -146,7 +152,8 @@ def main(
         return exc.code if isinstance(exc.code, int) else EXIT_ERROR
     try:
         if args.command == "schema":
-            print(json.dumps(policy_schema(), indent=2, ensure_ascii=False), file=stdout)
+            schema = policy_set_schema() if args.policy_set else policy_schema()
+            print(json.dumps(schema, indent=2, ensure_ascii=False), file=stdout)
             return EXIT_OK
         return _check(args, stdin, stdout)
     except _UsageError as exc:

@@ -113,8 +113,11 @@ def bind(row_filter: RowFilter, context: Any) -> exp.Expression:
 
 def apply_filters(
     refs: list[PhysicalRef], compiled: Compiled, context: Any
-) -> tuple[list[str], list[Violation]]:
-    """Replace each filtered table occurrence with a filtered derived table."""
+) -> tuple[list[tuple[str, str]], list[Violation]]:
+    """Replace each filtered table occurrence with a filtered derived table.
+
+    Returns one ``(table, bound condition)`` pair per filtered occurrence, or the violations.
+    """
     if not compiled.filters:
         return [], []
     lang = compiled.language
@@ -142,7 +145,7 @@ def apply_filters(
     if problems:
         return [], list({(v.code, v.detail): v for v in problems}.values())
 
-    applied: list[str] = []
+    applied: list[tuple[str, str]] = []
     for ref, entry in targets:
         table = ref.table
         condition = bound[entry].copy()
@@ -158,5 +161,5 @@ def apply_filters(
         if table.args.get("pivots"):
             derived.set("pivots", [p.copy() for p in table.args["pivots"]])
         table.replace(derived)
-        applied.append(f"{ref.name}: {condition.sql(dialect=compiled.dialect_name)}")
+        applied.append((str(ref.name), condition.sql(dialect=compiled.dialect_name)))
     return applied, []

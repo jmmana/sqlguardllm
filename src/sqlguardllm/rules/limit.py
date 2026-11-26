@@ -38,3 +38,19 @@ def apply_limit(root: exp.Expression, max_rows: int | None) -> exp.Expression:
     # Anything else (percent limits, unknown forms): replace with a plain limit.
     root.set("limit", None)
     return root.limit(max_rows, copy=False)
+
+
+def current_limit(root: exp.Expression) -> int | None:
+    """The literal row limit of the outermost query, or ``None`` when it has none.
+
+    A percentage (``TOP 50 PERCENT``) is not a row count, so it is reported as ``None``.
+    """
+    current = root.args.get("limit")
+    options = current.args.get("limit_options") if isinstance(current, exp.Expression) else None
+    if isinstance(options, exp.Expression) and options.args.get("percent"):
+        return None
+    if isinstance(current, exp.Limit):
+        return _literal_int(current.expression)
+    if isinstance(current, exp.Fetch) and not current.args.get("percent"):
+        return _literal_int(current.args.get("count"))
+    return None

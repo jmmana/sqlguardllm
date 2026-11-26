@@ -8,6 +8,8 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 - `masked_columns`: a column can be selected but comes back masked (`null`, `redact`, `hash` as SHA-256 hex per dialect, `partial`), even inside functions or `CASE`; using it anywhere outside the select list is `hidden_column`. With the new `schema` option, `*` over such a table is expanded with the masks (#29).
 - `aggregate_only: {table: k}`: the table can only be read through aggregates and `GROUP BY` (new code `aggregate_required`), and the guard adds `HAVING COUNT(*) >= k` so no group smaller than k rows comes back (#30).
+- `PolicySet`: a `base` policy and `roles` in one file (`PolicySet.from_file`), with `extends` between roles, `for_role()` and a cached `guard()` per role and language. A key set in a role replaces the inherited value; keys under `add` extend lists and mappings. Cycles and unknown roles are `PolicyError`. Example in `examples/roles.yaml`; JSON Schema in `schema/policy-set.schema.json`, printed by `sqlguardllm schema --policy-set` (#26).
+- `Guard.explain(sql, context)`: an `Explanation` with the tables and columns a query reads, the masks, group sizes, row filters and limit it gets, its violations, and a sentence in English or Spanish for UIs and audit logs. Shares one pass with `check()` (#27).
 
 ## [0.2.0a2] - 2026-11-25
 
