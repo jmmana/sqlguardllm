@@ -59,6 +59,10 @@ _TEMPLATES: dict[ViolationCode, dict[str, str]] = {
         "en": "The query is too complex for the policy: {detail}",
         "es": "La consulta es demasiado compleja para la política: {detail}",
     },
+    ViolationCode.AGGREGATE_REQUIRED: {
+        "en": "{detail} can only be read through aggregates (SUM, COUNT, AVG…) and GROUP BY",
+        "es": "{detail} solo se puede leer con agregados (SUM, COUNT, AVG…) y GROUP BY",
+    },
     ViolationCode.MISSING_REQUIRED_FILTER: {
         "en": "Reading {detail} requires a filter on one of those columns",
         "es": "Leer {detail} exige un filtro sobre una de esas columnas",

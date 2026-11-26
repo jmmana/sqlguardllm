@@ -18,10 +18,12 @@ from sqlguardllm.data.denied_functions import default_denylist
 from sqlguardllm.messages import LANGUAGES, violation
 from sqlguardllm.policy import Policy
 from sqlguardllm.result import CheckResult, GuardViolation, PolicyError, Violation, ViolationCode
+from sqlguardllm.rules.aggregate_only import apply_aggregate_only, check_aggregate_only
 from sqlguardllm.rules.columns import check_columns
 from sqlguardllm.rules.complexity import check_complexity
 from sqlguardllm.rules.functions import check_functions
 from sqlguardllm.rules.limit import apply_limit
+from sqlguardllm.rules.masking import HASH_TEMPLATES, apply_masks, plan_masks
 from sqlguardllm.rules.required_filters import check_required_filters
 from sqlguardllm.rules.row_filters import apply_filters, compile_filter
 from sqlguardllm.rules.sources import collect_sources
@@ -75,6 +77,32 @@ def _compile(policy: Policy, language: str) -> Compiled:
             raise PolicyError(f"required filter for {key!r}, which is not in the allowed tables")
         required[table] = frozenset(norm(column, dialect) for column in columns)
 
+    masked: dict[TableName, dict[str, str]] = {}
+    for entry, strategy in sorted(policy.masked_columns.items()):
+        table, column = parse_column_entry(entry, dialect, dialect_name)
+        if tables is not None and find(tables, table, default_schema) is None:
+            raise PolicyError(f"masked column {entry!r} is on a table outside the allowed tables")
+        if table in hidden and column in hidden[table]:
+            raise PolicyError(f"a column can't be both hidden and masked: {entry!r}")
+        if strategy == "hash" and output_name not in HASH_TEMPLATES:
+            raise PolicyError(
+                f"the hash mask is not available for {output_name}; use null, redact or partial"
+            )
+        masked.setdefault(table, {})[column] = strategy
+
+    aggregate_only: dict[TableName, int] = {}
+    for key, k in sorted(policy.aggregate_only.items()):
+        table = parse_table_entry(key, dialect, dialect_name)
+        if tables is not None and find(tables, table, default_schema) is None:
+            raise PolicyError(f"aggregate_only for {key!r}, which is not in the allowed tables")
+        aggregate_only[table] = k
+
+    schema: dict[TableName, tuple[str, ...]] = {}
+    for key, columns in sorted((policy.schema or {}).items()):
+        schema[parse_table_entry(key, dialect, dialect_name)] = tuple(
+            norm(column, dialect) for column in columns
+        )
+
     base = (
         policy.denied_functions
         if policy.denied_functions is not None
@@ -102,6 +130,9 @@ def _compile(policy: Policy, language: str) -> Compiled:
         max_subquery_depth=policy.max_subquery_depth,
         forbid_cartesian=policy.forbid_cartesian,
         required=required,
+        masked=masked,
+        aggregate_only=aggregate_only,
+        schema=schema,
     )
 
 
@@ -158,8 +189,14 @@ class Guard:
         problems += check_functions(root, compiled)
         problems += check_complexity(root, scopes, compiled)
         problems += check_required_filters(refs, compiled)
+        masks, mask_problems = plan_masks(scopes, compiled)
+        problems += mask_problems
+        aggregates, aggregate_problems = check_aggregate_only(refs, compiled)
+        problems += aggregate_problems
         if problems:
             return self._rejected(problems)
+        apply_masks(masks, compiled)
+        apply_aggregate_only(aggregates)
 
         applied, problems = apply_filters(refs, compiled, context if context is not None else {})
         if problems:

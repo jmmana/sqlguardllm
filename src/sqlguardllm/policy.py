@@ -12,6 +12,8 @@ from typing import Any, Literal
 from sqlguardllm.result import PolicyError
 
 FunctionPolicy = Literal["denylist", "allowlist"]
+MaskStrategy = Literal["null", "redact", "hash", "partial"]
+MASK_STRATEGIES: tuple[str, ...] = ("null", "redact", "hash", "partial")
 
 
 def _frozen(value: Collection[str] | None, name: str) -> frozenset[str] | None:
@@ -50,6 +52,13 @@ class Policy:
             one of them in its own ``WHERE`` or ``JOIN … ON``, such as a date range on a large
             fact table.
         output_dialect: Generate the rewritten SQL in this dialect instead of ``dialect``.
+        masked_columns: ``"table.column"`` → ``null``, ``redact``, ``hash`` or ``partial``. The
+            column may be selected but comes back masked; using it to filter, join, group or
+            sort is ``hidden_column``.
+        aggregate_only: Table → minimum group size ``k``. The table can only be read through
+            aggregates, and groups smaller than ``k`` never come back.
+        schema: Table → its columns. Lets ``*`` over a table with masked columns be expanded
+            with the masks instead of rejected.
     """
 
     dialect: str
@@ -67,6 +76,9 @@ class Policy:
     forbid_cartesian: bool = False
     required_filters: Mapping[str, Collection[str]] = field(default_factory=dict)
     output_dialect: str | None = None
+    masked_columns: Mapping[str, str] = field(default_factory=dict)
+    aggregate_only: Mapping[str, int] = field(default_factory=dict)
+    schema: Mapping[str, Collection[str]] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.dialect, str) or not self.dialect.strip():
@@ -122,6 +134,36 @@ class Policy:
             not isinstance(self.output_dialect, str) or not self.output_dialect.strip()
         ):
             raise PolicyError("output_dialect must be a non-empty string or None")
+        if not isinstance(self.masked_columns, Mapping) or not all(
+            isinstance(k, str) and v in MASK_STRATEGIES for k, v in self.masked_columns.items()
+        ):
+            raise PolicyError(
+                f"masked_columns must map table.column to one of {', '.join(MASK_STRATEGIES)}"
+            )
+        object.__setattr__(self, "masked_columns", MappingProxyType(dict(self.masked_columns)))
+        overlap = sorted(set(self.masked_columns) & set(self.hidden_columns))
+        if overlap:
+            raise PolicyError(f"a column can't be both hidden and masked: {', '.join(overlap)}")
+        if not isinstance(self.aggregate_only, Mapping) or not all(
+            isinstance(k, str) and isinstance(v, int) and not isinstance(v, bool) and v >= 2
+            for k, v in self.aggregate_only.items()
+        ):
+            raise PolicyError("aggregate_only must map table names to a minimum group size >= 2")
+        object.__setattr__(self, "aggregate_only", MappingProxyType(dict(self.aggregate_only)))
+        if self.schema is not None:
+            if not isinstance(self.schema, Mapping):
+                raise PolicyError("schema must map table names to lists of columns")
+            frozen_schema: dict[str, tuple[str, ...]] = {}
+            for table, columns in self.schema.items():
+                if not isinstance(table, str) or not table.strip():
+                    raise PolicyError("schema keys must be non-empty table names")
+                if isinstance(columns, str) or not columns:
+                    raise PolicyError(f"schema[{table!r}] must be a non-empty list of columns")
+                items = tuple(columns)
+                if not all(isinstance(c, str) and c.strip() for c in items):
+                    raise PolicyError(f"schema[{table!r}] must contain non-empty strings")
+                frozen_schema[table] = items
+            object.__setattr__(self, "schema", MappingProxyType(frozen_schema))
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Policy:
