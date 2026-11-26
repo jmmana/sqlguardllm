@@ -79,5 +79,5 @@ Maintainers only. Every release goes to PyPI, npm and NuGet together, with one v
 2. Move the `Unreleased` notes in `CHANGELOG.md` under `## [0.6.0a1] - YYYY-MM-DD`.
 3. Merge to `main`, then tag: `git tag -a v0.6.0a1 -m "sqlguardllm 0.6.0a1" && git push origin v0.6.0a1`.
 
-The `Release` workflow checks that tag, versions and changelog agree, runs the tests, and publishes to PyPI, npm and NuGet with Trusted Publishing (no tokens). npm gets the dist-tag from the version: `alpha`, `beta`, `rc` or `latest`. If npm holds a release for approval (staged publishing), approve it at npmjs.com → Staged Packages.
+The `Release` workflow checks that tag, versions and changelog agree, runs the tests, and publishes to PyPI, npm and NuGet with Trusted Publishing (no tokens). npm gets the dist-tag from the version: before 1.0 every release is `latest`; from 1.0 on, prereleases get `alpha`, `beta` or `rc` and final releases `latest`. If npm holds a release for approval (staged publishing), approve it at npmjs.com → Staged Packages.
 

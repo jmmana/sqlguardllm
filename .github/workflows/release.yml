@@ -44,7 +44,10 @@ jobs:
           if [ "$npm_version" != "$dotnet_version" ]; then
             echo "SqlGuardLlm.csproj has $dotnet_version, expected $npm_version"; exit 1
           fi
+          # Before 1.0 every release is a prerelease, so `latest` (what `npm install sqlguardllm`
+          # and the npm page use) follows the newest one. From 1.0 on, prereleases get their own tag.
           case "$npm_version" in
+            0.*) npm_tag=latest ;;
             *-alpha.*) npm_tag=alpha ;; *-beta.*) npm_tag=beta ;; *-rc.*) npm_tag=rc ;; *) npm_tag=latest ;;
           esac
           echo "npm_version=$npm_version" >> "$GITHUB_OUTPUT"
