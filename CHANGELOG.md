@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 
+- Official .NET client `SqlGuardLlm` (`clients/dotnet/`, NuGet): `CheckAsync`, `EnforceAsync`, `ExplainAsync` and `HealthAsync` against `sqlguardllm serve`, multi-targeting net8.0 and net10.0, with no dependencies and fail-closed errors. Not published yet (#36).
 - `Policy.from_database(url, include=…, exclude=…, schemas=…, **options)`: fills `tables` and `schema` by reading a live database with the SQLAlchemy inspector (new optional extra `sqlguardllm[db]`). Only names are read, never rows; errors never include the URL (#28).
 
 ### Added
