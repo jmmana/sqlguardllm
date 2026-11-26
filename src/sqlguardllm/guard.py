@@ -4,27 +4,30 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, TypeVar, cast
 
 import sqlglot
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import SqlglotError
-from sqlglot.optimizer.scope import traverse_scope
+from sqlglot.optimizer.scope import Scope, traverse_scope
 
 from sqlguardllm._compiled import Compiled, RowFilter
 from sqlguardllm._names import TableName, find, norm, parse_column_entry, parse_table_entry
 from sqlguardllm.data.denied_functions import default_denylist
+from sqlguardllm.explain import Explanation, read_columns
 from sqlguardllm.messages import LANGUAGES, violation
 from sqlguardllm.policy import Policy
 from sqlguardllm.result import CheckResult, GuardViolation, PolicyError, Violation, ViolationCode
 from sqlguardllm.rules.columns import check_columns
 from sqlguardllm.rules.complexity import check_complexity
 from sqlguardllm.rules.functions import check_functions
-from sqlguardllm.rules.limit import apply_limit
+from sqlguardllm.rules.limit import apply_limit, current_limit
 from sqlguardllm.rules.required_filters import check_required_filters
 from sqlguardllm.rules.row_filters import apply_filters, compile_filter
-from sqlguardllm.rules.sources import collect_sources
+from sqlguardllm.rules.sources import PhysicalRef, collect_sources
 from sqlguardllm.rules.statement import check_statements
 
 R = TypeVar("R")
@@ -105,6 +108,18 @@ def _compile(policy: Policy, language: str) -> Compiled:
     )
 
 
+@dataclass
+class _State:
+    """One pass of the pipeline over a query, shared by ``check()`` and ``explain()``."""
+
+    violations: list[Violation]
+    root: exp.Expression | None = None
+    scopes: list[Scope] = field(default_factory=list)
+    refs: list[PhysicalRef] = field(default_factory=list)
+    filters: list[tuple[str, str]] = field(default_factory=list)  # (table, bound condition)
+    sql: str | None = None
+
+
 class Guard:
     """Validates and rewrites SQL written by an untrusted source, following a :class:`Policy`.
 
@@ -131,46 +146,36 @@ class Guard:
                 from the model's output. ``{"user": {"branches": [1, 2]}}`` fills
                 ``{user.branches}``.
         """
-        if not isinstance(sql, str):
-            raise TypeError("sql must be a string")
-        compiled = self._compiled
-        lang = compiled.language
+        state = self._analyze(sql)
+        self._rewrite(state, context)
+        return self._result(state)
 
-        try:
-            parsed = sqlglot.parse(sql, read=compiled.dialect_name)
-        except SqlglotError as exc:
-            return self._rejected([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
-        statements = [
-            cast(exp.Expression, statement) for statement in parsed if statement is not None
-        ]
+    def explain(self, sql: str, context: Mapping[str, Any] | None = None) -> Explanation:
+        """Describe what ``sql`` reads and what the guard does to it, allowed or not.
 
-        root, violations = check_statements(statements, lang)
-        if root is None:
-            return self._rejected(violations)
+        Runs the same pass as :meth:`check` and adds the columns read per table. The
+        explanation's text is in the Guard's language and includes the bound row filters,
+        so it is meant for users, UIs and audit logs.
 
-        try:
-            scopes = traverse_scope(root)
-        except SqlglotError as exc:
-            return self._rejected([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
-
-        refs, problems = collect_sources(root, scopes, compiled)
-        problems += check_columns(scopes, compiled)
-        problems += check_functions(root, compiled)
-        problems += check_complexity(root, scopes, compiled)
-        problems += check_required_filters(refs, compiled)
-        if problems:
-            return self._rejected(problems)
-
-        applied, problems = apply_filters(refs, compiled, context if context is not None else {})
-        if problems:
-            return self._rejected(problems)
-
-        root = apply_limit(root, compiled.max_rows)
-        return CheckResult(
-            ok=True,
-            sql=root.sql(dialect=compiled.output_dialect_name, pretty=self._pretty),
-            tables=frozenset(str(ref.name) for ref in refs),
-            applied_filters=tuple(applied),
+        Args:
+            sql: The SQL written by the model, agent or user.
+            context: Values for row-filter placeholders, as in :meth:`check`.
+        """
+        state = self._analyze(sql)
+        # Read the columns before the rewrite replaces filtered tables with derived tables.
+        reads = read_columns(state.scopes, state.refs, self._compiled)
+        self._rewrite(state, context)
+        result = self._result(state)
+        return Explanation(
+            ok=result.ok,
+            sql=result.sql,
+            tables=frozenset(str(ref.name) for ref in state.refs),
+            columns=reads.columns,
+            unresolved_columns=reads.unresolved,
+            row_filters=MappingProxyType(dict(state.filters)),
+            limit=current_limit(state.root) if result.ok and state.root is not None else None,
+            violations=result.violations,
+            language=self._compiled.language,
         )
 
     def enforce(self, sql: str, context: Mapping[str, Any] | None = None) -> str:
@@ -197,7 +202,60 @@ class Guard:
 
         return guarded
 
+    def _analyze(self, sql: str) -> _State:
+        """Steps 1-6: parse the query and collect every violation; nothing is rewritten."""
+        if not isinstance(sql, str):
+            raise TypeError("sql must be a string")
+        compiled = self._compiled
+        lang = compiled.language
+
+        try:
+            parsed = sqlglot.parse(sql, read=compiled.dialect_name)
+        except SqlglotError as exc:
+            return _State([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
+        statements = [
+            cast(exp.Expression, statement) for statement in parsed if statement is not None
+        ]
+
+        root, violations = check_statements(statements, lang)
+        if root is None:
+            return _State(violations)
+
+        try:
+            scopes = traverse_scope(root)
+        except SqlglotError as exc:
+            return _State([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
+
+        refs, problems = collect_sources(root, scopes, compiled)
+        problems += check_columns(scopes, compiled)
+        problems += check_functions(root, compiled)
+        problems += check_complexity(root, scopes, compiled)
+        problems += check_required_filters(refs, compiled)
+        return _State(problems, root=root, scopes=scopes, refs=refs)
+
+    def _rewrite(self, state: _State, context: Mapping[str, Any] | None) -> None:
+        """Steps 7-9, only for a query without violations: row filters, limit, generate."""
+        if state.violations or state.root is None:
+            return
+        compiled = self._compiled
+        applied, problems = apply_filters(
+            state.refs, compiled, context if context is not None else {}
+        )
+        if problems:
+            state.violations = problems
+            return
+        state.filters = applied
+        state.root = apply_limit(state.root, compiled.max_rows)
+        state.sql = state.root.sql(dialect=compiled.output_dialect_name, pretty=self._pretty)
+
     @staticmethod
-    def _rejected(violations: list[Violation]) -> CheckResult:
-        unique = tuple({(v.code, v.detail): v for v in violations}.values())
-        return CheckResult(ok=False, violations=unique)
+    def _result(state: _State) -> CheckResult:
+        if state.violations or state.sql is None:
+            unique = tuple({(v.code, v.detail): v for v in state.violations}.values())
+            return CheckResult(ok=False, violations=unique)
+        return CheckResult(
+            ok=True,
+            sql=state.sql,
+            tables=frozenset(str(ref.name) for ref in state.refs),
+            applied_filters=tuple(f"{table}: {condition}" for table, condition in state.filters),
+        )

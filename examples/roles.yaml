@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-set.schema.json
+# Example sqlguardllm policy set: every role of a sales database in one reviewed file.
+#   roles = PolicySet.from_file("examples/roles.yaml")
+#   guard = roles.guard("analyst")          # or roles.for_role("analyst") for the Policy
+# A key set in a role replaces the inherited value; keys under `add` extend inherited lists
+# and mappings. A role starts from `base`, or from the role it `extends`.
+base:
+  dialect: postgres
+  tables:
+    - invoices
+    - invoice_lines
+    - branches
+    - products
+  hidden_columns:
+    - invoices.internal_notes
+  row_filters:
+    # {user.branches} comes from the authenticated user in the application, never from the model.
+    invoices: "branch_id IN ({user.branches})"
+    branches: "id IN ({user.branches})"
+  max_rows: 1000
+
+roles:
+  # Branch managers: the base plus customers, without their contact data.
+  manager:
+    add:
+      tables: [customers]
+      hidden_columns: [customers.email, customers.phone, customers.tax_id]
+
+  # Analysts: what managers see, without customer names, fewer rows and a date range on invoices.
+  analyst:
+    extends: manager
+    max_rows: 200
+    add:
+      hidden_columns: [customers.name]
+      required_filters:
+        invoices: [issued_on]
+
+  # Auditors: what managers see, in every branch (no row filters), with simpler queries.
+  auditor:
+    extends: manager
+    row_filters: {}
+    max_joins: 3

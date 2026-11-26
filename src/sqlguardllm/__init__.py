@@ -13,8 +13,10 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
+from sqlguardllm.explain import Explanation
 from sqlguardllm.guard import Guard
 from sqlguardllm.policy import FunctionPolicy, Policy
+from sqlguardllm.policy_set import PolicySet
 from sqlguardllm.result import CheckResult, GuardViolation, PolicyError, Violation, ViolationCode
 
 try:
@@ -24,11 +26,13 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree wi
 
 __all__ = [
     "CheckResult",
+    "Explanation",
     "FunctionPolicy",
     "Guard",
     "GuardViolation",
     "Policy",
     "PolicyError",
+    "PolicySet",
     "Violation",
     "ViolationCode",
     "__version__",
