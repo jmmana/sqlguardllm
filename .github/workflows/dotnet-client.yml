@@ -1,0 +1,28 @@
+name: dotnet-client
+
+on:
+  push:
+    branches: [main]
+    paths: ["clients/dotnet/**", ".github/workflows/dotnet-client.yml"]
+  pull_request:
+    paths: ["clients/dotnet/**", ".github/workflows/dotnet-client.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/dotnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - run: dotnet build -c Release
+      - run: dotnet test -c Release --no-build
+      - run: dotnet pack src/SqlGuardLlm -c Release -o out

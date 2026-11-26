@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>SqlGuardLlm</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>jmmana</Authors>
+    <Description>Official .NET client for sqlguardllm, a SQL firewall for LLM apps. Talks to `sqlguardllm serve` over HTTP and fails closed.</Description>
+    <PackageTags>sql;llm;security;firewall;text-to-sql;sqlguardllm</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/jmmana/sqlguardllm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jmmana/sqlguardllm</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
