@@ -66,3 +66,47 @@
   sql: SELECT c.name, c.segment FROM customers c ORDER BY c.name
   expect: allow
   contains: ["c.name", "LIMIT 1000"]
+- id: pg-hidden-in-having-unqualified
+  dialect: postgres
+  sql: SELECT COUNT(*) FROM customers HAVING MAX(email) > 'm'
+  expect: reject
+  codes: [hidden_column]
+  note: >-
+    sqlglot leaves unqualified HAVING columns out of scope.columns (they could be aliases).
+    Repeating this comparison leaks the column by binary search. Fixed in 0.2.0a2.
+- id: pg-hidden-in-having-with-group-by
+  dialect: postgres
+  sql: SELECT name FROM customers GROUP BY name HAVING MIN(tax_id) LIKE '9%'
+  expect: reject
+  codes: [hidden_column]
+- id: pg-hidden-in-having-of-a-subquery
+  dialect: postgres
+  sql: >-
+    SELECT COUNT(*) FROM invoices
+    WHERE customer_id IN (SELECT id FROM customers GROUP BY id HAVING MAX(email) LIKE 'a%')
+  expect: reject
+  codes: [hidden_column]
+- id: snowflake-hidden-in-qualify-unqualified
+  dialect: snowflake
+  sql: SELECT name FROM customers QUALIFY ROW_NUMBER() OVER (ORDER BY id) = 1 AND MAX(email) OVER () > 'm'
+  expect: reject
+  codes: [hidden_column]
+- id: pg-having-on-an-alias-still-works
+  dialect: postgres
+  sql: SELECT branch_id, COUNT(*) AS n FROM invoices GROUP BY branch_id HAVING COUNT(*) > 1
+  expect: allow
+- id: pg-hidden-in-order-expression-behind-an-alias
+  dialect: postgres
+  sql: SELECT name AS email FROM customers ORDER BY LOWER(email)
+  expect: reject
+  codes: [hidden_column]
+  note: Inside an expression, PostgreSQL resolves ORDER BY names to source columns, not aliases.
+- id: pg-hidden-in-distinct-on-expression-behind-an-alias
+  dialect: postgres
+  sql: SELECT DISTINCT ON (LOWER(email)) name AS email FROM customers
+  expect: reject
+  codes: [hidden_column]
+- id: pg-order-by-a-bare-alias-still-works
+  dialect: postgres
+  sql: SELECT name AS email FROM customers ORDER BY email
+  expect: allow
