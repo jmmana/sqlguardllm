@@ -13,6 +13,8 @@ from sqlguardllm.result import PolicyError
 
 FunctionPolicy = Literal["denylist", "allowlist"]
 MaskStrategy = Literal["null", "redact", "hash", "partial"]
+# SQLAlchemy dialect name -> sqlglot dialect name, where they differ.
+_DIALECTS = {"mssql": "tsql"}
 MASK_STRATEGIES: tuple[str, ...] = ("null", "redact", "hash", "partial")
 
 
@@ -164,6 +166,37 @@ class Policy:
                     raise PolicyError(f"schema[{table!r}] must contain non-empty strings")
                 frozen_schema[table] = items
             object.__setattr__(self, "schema", MappingProxyType(frozen_schema))
+
+    @classmethod
+    def from_database(
+        cls,
+        url: str,
+        *,
+        include: Collection[str] | None = None,
+        exclude: Collection[str] | None = None,
+        schemas: Collection[str] | None = None,
+        **options: Any,
+    ) -> Policy:
+        """Build a policy whose ``tables`` and ``schema`` are read from a live database.
+
+        Needs ``pip install "sqlguardllm[db]"`` and your database driver. Only names are read.
+        ``include``/``exclude`` are glob patterns over table names (``"invoice*"``,
+        ``"audit_*"``); ``schemas`` limits which schemas are read. ``dialect`` is taken from the
+        URL unless you pass it. Every other option (``hidden_columns``, ``row_filters``…) is
+        passed through. Check the result: reading a database is a starting point, not a review.
+
+        >>> Policy.from_database("postgresql+psycopg://reader@host/db", exclude=["audit_*"])
+        """
+        from sqlguardllm.introspect import read_database  # noqa: PLC0415
+
+        found, dialect = read_database(url, include=include, exclude=exclude, schemas=schemas)
+        if not found:
+            raise PolicyError("no table matched: check the schemas and the include/exclude filters")
+        values: dict[str, Any] = {"dialect": _DIALECTS.get(dialect, dialect)}
+        values.update(options)
+        values["tables"] = sorted(found)
+        values["schema"] = found
+        return cls(**values)
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Policy:

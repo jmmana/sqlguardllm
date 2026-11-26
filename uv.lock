@@ -1672,6 +1672,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+db = [
+    { name = "sqlalchemy", version = "2.0.58", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "sqlalchemy", version = "2.1.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
 mcp = [
     { name = "mcp" },
     { name = "pyyaml" },
@@ -1701,10 +1705,11 @@ requires-dist = [
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.0.1,<3" },
     { name = "pyyaml", marker = "extra == 'mcp'", specifier = ">=6.0" },
     { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0" },
+    { name = "sqlalchemy", marker = "extra == 'db'", specifier = ">=2.0,<3" },
     { name = "sqlalchemy", marker = "extra == 'mcp'", specifier = ">=2.0,<3" },
     { name = "sqlglot", specifier = ">=30.0,<31" },
 ]
-provides-extras = ["yaml", "mcp"]
+provides-extras = ["yaml", "db", "mcp"]
 
 [package.metadata.requires-dev]
 dev = [
