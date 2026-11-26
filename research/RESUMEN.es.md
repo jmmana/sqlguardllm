@@ -2,9 +2,9 @@
 
 El manuscrito revisado está en `paper/main.pdf`. Es un borrador para revisión
 del autor; no se ha enviado a arXiv ni tiene un DOI de Zenodo asignado.
-Incluye el nombre completo, correo de contacto, afiliación WarlockCode S.A.S.
-y el ORCID facilitado por el autor: https://orcid.org/0009-0002-5751-0709 .
-La afiliación puede ajustarse antes de la publicación externa.
+Incluye el nombre completo, correo de contacto y el ORCID facilitado por el
+autor: https://orcid.org/0009-0002-5751-0709 . La afiliación institucional se
+ha omitido por indicación del autor.
 
 La contribución defendible es una evaluación reproducible que separa admitir
 SQL de devolver el resultado autorizado. El oráculo ejecuta la consulta en una

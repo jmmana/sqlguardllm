@@ -15,8 +15,8 @@
   "research/paper/fuzz-table.tex": "393d0085a4ef9ffc6103ec7751d33f0deae1d491ff49676149c0de45bc3551e8",
   "research/paper/heatmap.pdf": "5ccd9d4f49407a41e16d8abbbfce0ff4b96ac9f24d9be2b670d5bfabed420567",
   "research/paper/latency.pdf": "cd5fac1c7c309ebd7989ae5e609c8c7a42104824a27728f01ca2b2e159127b13",
-  "research/paper/main.pdf": "b837d003ff4db8367d7196d0d09c95dbd3c422f6fd3cf8874e651175926bd331",
-  "research/paper/main.tex": "24227674e3becc5f783d3803b8e050ecc409046c39c2b1512fe8ca4e0a699bba",
+  "research/paper/main.pdf": "122ea4d2b62082fb958066e429a13abe39748dfae8f9d0e07c856d5ca74e7f00",
+  "research/paper/main.tex": "0496f6cf7f34b441931b7d633b12f7c29815b7591f7ba04804a7730f88cf875b",
   "research/paper/measurements.tex": "a26559f4e7c028bd72e220cfc8b42e51ddb3b154ece5f2c949fca56e956247de",
   "research/paper/mutation-table.tex": "43f8a1f06df941d5ef51cd7d45dcf31507e48f260d64aacc98f296074c8fbe1e",
   "research/paper/outcomes.pdf": "98a4fc3bcdd770d5fe19c70f86e02c21ff5f018c17641c6e34cc6d86860b89d9",
@@ -52,5 +52,5 @@
   "research/results/regression.json": "851952359554aa892aa692299b01c3e9dc0ee70947a7bbc7d921b69a25391251",
   "research/results/summary.json": "6a8b2c7588197636efbd3520f70f41eeada69dbadb05490faa46a46fc2109653",
   "research/results/workload.json": "ab85f31bc5dee25bb1da2ab04dd0a74530a54c46a6ccfc1df5283a710df7c7fa",
-  "research/sqlguardllm-arxiv-source.zip": "f52cfee4dc37843d8832243d1ce2c1515ec6b78f3fce7829412d201ecf9e4f64"
+  "research/sqlguardllm-arxiv-source.zip": "32dfcbcae00b00b63662a5494b79df5ee93d1b110be8d9dc57433b9a5a91ec93"
 }

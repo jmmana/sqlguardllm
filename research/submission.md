@@ -22,9 +22,7 @@ ACM `sigconf,nonacm` formatting does not claim an ACM venue or acceptance.
 - Author: Juan Manuel Castillo Pinto.
 - ORCID: https://orcid.org/0009-0002-5751-0709 .
 - Email: jmmana@gmail.com .
-- Affiliation used for review: WarlockCode S.A.S., Medellín, Colombia.
-  The author can change this before external submission; no university endorsement
-  or research appointment is inferred from being enrolled in a degree.
+- Institutional affiliation: omitted at the author's request.
 - Category candidate: cs.DB; final classification is subject to arXiv moderation.
 - Keywords: SQL authorization, text-to-SQL, row-level security, query rewriting,
   reproducible evaluation.
