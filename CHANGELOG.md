@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.4.0a1] - 2026-11-26
+
+An MCP server: any MCP client (Claude Desktop, Cursor, VS Code, agents) gets a database tool that can't do harm. Install it with `pip install "sqlguardllm[mcp]"`.
+
 ### Added
 
 - MCP server: `sqlguardllm mcp --policy FILE [--role NAME] [--db URL] [--context JSON|@file] [--language es] [--timeout SECONDS]` (optional extra `sqlguardllm[mcp]`) gives any MCP client the tools `list_tables`, `describe_table`, `explain_query` and `query`. Queries go through `Guard.enforce()` and run in a read-only transaction with a timeout, always rolled back, returning at most `max_rows` rows; violations come back as tool errors the model can act on. The context and the database URL never appear in tool output or logs. Setup for Claude Desktop, Cursor and VS Code, and a demo database, in `docs/MCP.md` and `examples/mcp/` (#31, #32).
@@ -77,7 +81,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.3.0a1...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.4.0a1...HEAD
+[0.4.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.3.0a1...v0.4.0a1
 [0.3.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a2...v0.3.0a1
 [0.2.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a1...v0.2.0a2
 [0.2.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a2...v0.2.0a1
