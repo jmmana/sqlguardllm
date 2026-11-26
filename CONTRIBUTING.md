@@ -40,6 +40,8 @@ Issues that describe work follow the same shape, so anyone can pick them up with
 - **Size**: S (half a day), M (1–2 days), L (3–5 days).
 - **Notes**: dependencies (`Depends on #N`) and links to the design.
 
+The [Claude issue helper](docs/CLAUDE_ISSUE_HELPER.md) can prepare a proposal for maintainers to review.
+
 ## Pull requests
 
 1. Fork, then branch from `main`: `feat/<short-name>`, `fix/<short-name>` or `corpus/<short-name>`.
