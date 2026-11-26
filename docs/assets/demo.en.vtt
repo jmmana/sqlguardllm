@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:07.000
+Read only your own invoices
+The guard injects tenant_id = 7 and LIMIT 100.
+
+00:00:07.000 --> 00:00:14.000
+A write hidden inside a CTE
+The syntax tree contains DELETE. The guard rejects it.
+
+00:00:14.000 --> 00:00:21.000
+A SELECT can expose private columns
+customers.email is hidden by the application's policy.
+
+00:00:21.000 --> 00:00:28.000
+OR 1 = 1 stays inside the tenant boundary
+Both returned invoices still belong to tenant 7.
+
+00:00:28.000 --> 00:00:35.000
+A dangerous word can be harmless text
+A string literal is data, not a DROP statement.
+
+00:00:35.000 --> 00:00:42.000
+Missing user context fails closed
+A required row-filter value was not provided.

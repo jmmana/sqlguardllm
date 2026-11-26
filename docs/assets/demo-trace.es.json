@@ -1,0 +1,124 @@
+{
+  "language": "es",
+  "validation_dialect": "postgres",
+  "execution_engine": "sqlite",
+  "synthetic_data": true,
+  "tenant_id": 7,
+  "max_rows": 100,
+  "cases": [
+    {
+      "id": "allowed",
+      "input": "SELECT id, total FROM invoices ORDER BY id",
+      "ok": true,
+      "sql": "SELECT id, total FROM (SELECT * FROM invoices WHERE tenant_id = 7) AS invoices ORDER BY id LIMIT 100",
+      "tables": [
+        "invoices"
+      ],
+      "applied_filters": [
+        "invoices: tenant_id = 7"
+      ],
+      "violations": [],
+      "executed": true,
+      "rows": [
+        [
+          1,
+          250
+        ],
+        [
+          3,
+          120
+        ]
+      ]
+    },
+    {
+      "id": "write",
+      "input": "WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d",
+      "ok": false,
+      "sql": null,
+      "tables": [],
+      "applied_filters": [],
+      "violations": [
+        {
+          "code": "write_operation",
+          "message": "La consulta intenta modificar datos o estructura (DELETE)",
+          "detail": "DELETE"
+        }
+      ],
+      "executed": false,
+      "rows": []
+    },
+    {
+      "id": "private_column",
+      "input": "SELECT email FROM customers",
+      "ok": false,
+      "sql": null,
+      "tables": [],
+      "applied_filters": [],
+      "violations": [
+        {
+          "code": "hidden_column",
+          "message": "customers.email es una columna oculta",
+          "detail": "customers.email"
+        }
+      ],
+      "executed": false,
+      "rows": []
+    },
+    {
+      "id": "cross_tenant",
+      "input": "SELECT id, total FROM invoices WHERE tenant_id = 999 OR 1 = 1 ORDER BY id",
+      "ok": true,
+      "sql": "SELECT id, total FROM (SELECT * FROM invoices WHERE tenant_id = 7) AS invoices WHERE tenant_id = 999 OR 1 = 1 ORDER BY id LIMIT 100",
+      "tables": [
+        "invoices"
+      ],
+      "applied_filters": [
+        "invoices: tenant_id = 7"
+      ],
+      "violations": [],
+      "executed": true,
+      "rows": [
+        [
+          1,
+          250
+        ],
+        [
+          3,
+          120
+        ]
+      ]
+    },
+    {
+      "id": "harmless_literal",
+      "input": "SELECT 'DROP TABLE invoices' AS note",
+      "ok": true,
+      "sql": "SELECT 'DROP TABLE invoices' AS note LIMIT 100",
+      "tables": [],
+      "applied_filters": [],
+      "violations": [],
+      "executed": true,
+      "rows": [
+        [
+          "DROP TABLE invoices"
+        ]
+      ]
+    },
+    {
+      "id": "missing_context",
+      "input": "SELECT id, total FROM invoices",
+      "ok": false,
+      "sql": null,
+      "tables": [],
+      "applied_filters": [],
+      "violations": [
+        {
+          "code": "missing_context",
+          "message": "Un filtro por fila necesita {user.tenant_id}, que no se recibió, así que no se ejecutó nada",
+          "detail": "{user.tenant_id}"
+        }
+      ],
+      "executed": false,
+      "rows": []
+    }
+  ]
+}

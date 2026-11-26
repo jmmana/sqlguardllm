@@ -1,0 +1,25 @@
+{
+  "timestamp_utc": "2026-11-26T13:23:36.679857+00:00",
+  "base_commit": "d73ad788434ea4e9f2601e2cc4fe41dd6877c38a",
+  "engine_source_sha256": "00d85cacd114322c96be7203e746224fafaf608dbd725fcb6ec90860501c07b9",
+  "workload_sha256": "b3b2a042fc16d3f206740d4b48f45475453b86a899d1851715eabcea8162a4b0",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "processor": "",
+  "engines": {
+    "sqlite": "3.53.1",
+    "duckdb": "2.0.1",
+    "postgres_pglite": "PostgreSQL 19.0 (PGlite 0.6.0) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.13 (e13ee988ce3d87a738dd8f3661d02223308c412a), 32-bit"
+  },
+  "packages": {
+    "sqlguardllm": "0.4.0a1",
+    "sqlglot": "30.35.0",
+    "duckdb": "2.0.1",
+    "PyYAML": "6.0.4"
+  },
+  "rounds": 50,
+  "warmup": 5,
+  "row_cap": 8,
+  "workload_scope": "48 authored SQL templates x 2 tenant contexts; not an independently held-out benchmark",
+  "timing_scope": "warm Python validation only; excludes DB, process startup, network, policy compilation"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "sqlguardllm-research-runtime",
+  "private": true,
+  "type": "module",
+  "description": "PostgreSQL/WASM execution oracle for the sqlguardllm systems paper",
+  "dependencies": {
+    "@electric-sql/pglite": "0.6.0"
+  }
+}

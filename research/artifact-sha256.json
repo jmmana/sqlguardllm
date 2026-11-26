@@ -1,0 +1,22 @@
+{
+  "docs/assets/demo-trace.en.json": "3b289648bb65994a1f730d10b3c11b9d983a54abdc2dc4663a4753813bee1b00",
+  "docs/assets/demo-trace.es.json": "87b065a77d57fc79efca3e6ae79010f477e870cf708db497cf192ccc43412332",
+  "docs/assets/demo.en.gif": "6c78364e79b6aeab9f097e014abfeca9f9fe94c57f254bb7c05e2ab588780a07",
+  "docs/assets/demo.en.mp4": "2d022c3e5c759fddad4c41b81154efa14ea86c50d9fe02f0a7602c26ec9f92d6",
+  "docs/assets/demo.es.gif": "f9d79f5773f72ce1acb956d2b4d0b49c76a0d871f62eb81379157b833135762b",
+  "docs/assets/demo.es.mp4": "f8e9b5cd59360e16e521a87b065b0d016fb952684adb2dae8f7f0f9f054556d6",
+  "research/paper/latency.pdf": "8ae500d265bae820c25282480c816853a36c95a8a2a65fead6a03bd0f5ffad30",
+  "research/paper/main.pdf": "0bcc2f5f573463e4ef059bc3b50ef3747b494d2d3a180a02ee17a5e1d8514867",
+  "research/paper/main.tex": "e35656bff7f46029339a9f83d79785f1d334478b47391b8ffae8018173cfca49",
+  "research/paper/measurements.tex": "a9b038f0ae892da9ff588a5a023904487a392f767be501f1299b1d29a378ee60",
+  "research/paper/outcomes.pdf": "1261293b04919b43ac30d4abccbcc2826e37e95c5c3306c061e9db40a7a26225",
+  "research/paper/references.bib": "db859bc740f03df25373fdab9835d35fef679965affc0da60a7b7467e568dacc",
+  "research/paper/results-table.tex": "e021efbe8ad48e5acf75ee0fb7c68df08b3ec6050665ebfba4310bcd80576c4e",
+  "research/results/execution.json": "12f4c4b948a702866c7fe3ba582202713bc3b694778cc9b279c60ffa0ce68761",
+  "research/results/latency.json": "caaad4000a83b25b6d07079a1c81902f2c20af423916b36d1d19d4d638a5d58b",
+  "research/results/metadata.json": "f9e39e33f442f1ab8ceedf9b6e78698143aa5af472782eb997e3c10fdfe733ab",
+  "research/results/regression.json": "851952359554aa892aa692299b01c3e9dc0ee70947a7bbc7d921b69a25391251",
+  "research/results/summary.json": "6a8b2c7588197636efbd3520f70f41eeada69dbadb05490faa46a46fc2109653",
+  "research/results/workload.json": "ab85f31bc5dee25bb1da2ab04dd0a74530a54c46a6ccfc1df5283a710df7c7fa",
+  "research/sqlguardllm-arxiv-source.zip": "251748b562ee46831be1520bc4327f3230539da5c9d8f55863d2e0373be62412"
+}

@@ -19,16 +19,87 @@ Tu modelo escribe SQL. **sqlguardllm** se asegura de que solo pueda leer lo perm
 [![Sobre sqlglot](https://img.shields.io/badge/sobre-sqlglot-10B981)](https://github.com/tobymao/sqlglot)
 [![PRs](https://img.shields.io/badge/PRs-bienvenidos-22C55E)](CONTRIBUTING.md)
 
-<img src="docs/assets/hero.es.svg" alt="sqlguardllm bloquea un DELETE escondido en un CTE y una consulta sobre una columna oculta, y reescribe una consulta permitida con el filtro del usuario y un límite de filas" width="100%">
+<img src="docs/assets/demo.es.gif" alt="sqlguardllm bloquea un DELETE escondido en un CTE y una consulta sobre una columna oculta, y reescribe una consulta permitida con el filtro del usuario y un límite de filas" width="100%">
 
 </div>
 
 > [!NOTE]
-> **Estado: alfa.** La versión `0.4.0a1` está en [PyPI](https://pypi.org/project/sqlguardllm/) (`pip install sqlguardllm`, `import sqlguardllm`), con las reglas de [docs/DESIGN.md](docs/DESIGN.md), límites opcionales de complejidad y un corpus adversarial de 107 casos. La API puede cambiar antes de la 1.0; los códigos de violación son estables. Dale ⭐ para seguir el avance y opina en [Discussions](https://github.com/jmmana/sqlguardllm/discussions).
+> **Estado: alfa.** La versión `0.4.0a1` está en [PyPI](https://pypi.org/project/sqlguardllm/) (`pip install sqlguardllm`, `import sqlguardllm`), con las reglas de [docs/DESIGN.md](docs/DESIGN.md), límites opcionales de complejidad y un corpus de desarrollo de 148 casos. La API puede cambiar antes de la 1.0; los códigos de violación son estables. Dale ⭐ para seguir el avance y opina en [Discussions](https://github.com/jmmana/sqlguardllm/discussions).
 >
 > La documentación técnica está en inglés para llegar a más desarrolladores. Los issues y PR en español son bienvenidos.
 
 ---
+
+## Pruébalo: entrada, decisión y SQL devuelto
+
+[Ver el video de 42 segundos](docs/assets/demo.es.mp4) · [Ejecutar el ejemplo](examples/readme_demo.py) · [Cómo se hicieron las demos](docs/DEMOS.md)
+
+El GIF de arriba y los resultados siguientes salen de ejecuciones reales. `check()` devuelve un objeto Python `CheckResult`; aquí mostramos sus campos principales como JSON. La librería valida y reescribe el SQL; tu aplicación ejecuta el SQL devuelto cuando `ok` es verdadero.
+
+```bash
+pip install sqlguardllm
+```
+
+```python
+from sqlguardllm import Guard, Policy
+
+guard = Guard(Policy(
+    dialect="postgres",
+    tables={"invoices", "customers"},
+    hidden_columns={"customers.email"},
+    row_filters={"invoices": "tenant_id = {user.tenant_id}"},
+    max_rows=100,
+), language="es")
+
+context = {"user": {"tenant_id": 7}}
+result = guard.check("SELECT id, total FROM invoices ORDER BY id", context)
+```
+
+**Entrada permitida:** `SELECT id, total FROM invoices ORDER BY id`
+
+```json
+{
+  "ok": true,
+  "sql": "SELECT id, total FROM (SELECT * FROM invoices WHERE tenant_id = 7) AS invoices ORDER BY id LIMIT 100",
+  "applied_filters": [
+    "invoices: tenant_id = 7"
+  ],
+  "violations": []
+}
+```
+
+**Borrado rechazado, escondido dentro de un CTE:**
+
+```sql
+WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d
+```
+
+```json
+{
+  "ok": false,
+  "sql": null,
+  "violations": [
+    {
+      "code": "write_operation",
+      "message": "La consulta intenta modificar datos o estructura (DELETE)",
+      "detail": "DELETE"
+    }
+  ]
+}
+```
+
+La lectura permitida se ejecuta sobre los datos ficticios de la demo y devuelve `[(1, 250), (3, 120)]`. La factura de otra empresa `(2, 999, 900)` queda fuera. La sentencia rechazada nunca llega al ejecutor.
+
+| Otra entrada | Resultado real con la política anterior |
+|---|---|
+| `SELECT email FROM customers` | `ok=false`, `sql=null`, `hidden_column` |
+| `SELECT id, total FROM invoices WHERE tenant_id = 999 OR 1 = 1 ORDER BY id` | Se reescribe con `tenant_id = 7`; devuelve las mismas dos facturas autorizadas |
+| `SELECT 'DROP TABLE invoices' AS note` | Se permite: el texto es un literal |
+| Consultar `invoices` sin el contexto del usuario | `ok=false`, `sql=null`, `missing_context` |
+
+Ejecuta **`result.sql`**, con una cuenta de base de datos de solo lectura, después de comprobar `result.ok`. El contexto debe venir de la sesión autenticada. `Guard.enforce()` ofrece la alternativa que lanza una excepción al rechazar; `Guard.explain()` añade una explicación de las políticas aplicadas.
+
+Para ver las respuestas completas, ejecuta `python examples/readme_demo.py --language es`. Las validaciones usan el dialecto PostgreSQL; las lecturas portables permitidas se ejecutan en datos ficticios SQLite. El [estudio y su cobertura medida](research/README.md) incluye ejecuciones en SQLite, DuckDB y PostgreSQL/WebAssembly, con sus límites documentados.
 
 ## Por qué
 
@@ -36,10 +107,10 @@ Las apps con IA que hablan con bases de datos (text-to-SQL, agentes de datos, he
 
 La defensa habitual es una lista de palabras prohibidas, y falla **en las dos direcciones**:
 
-| SQL | Filtro de palabras (`"DELETE" in sql`) | Lo que realmente es |
+| SQL | Lista de palabras (`DELETE`, `DROP`, ...) | Lo que realmente es |
 |---|---|---|
 | `SELECT 'x; DROP TABLE invoices' AS note` | ❌ La bloquea | Una lectura inofensiva con un texto |
-| `WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d` | ✅ La bloquea, de suerte | Una escritura escondida en un CTE. Con un comentario o mayúsculas raras el filtro no la ve |
+| `WITH d AS (DELETE FROM invoices RETURNING *) SELECT * FROM d` | ✅ La bloquea, de suerte | Una escritura escondida en un CTE. Buscar palabras no establece la semántica de solo lectura |
 | `SELECT * INTO backup FROM invoices` | ⚠️ La deja pasar: empieza con `SELECT` | Crea una tabla nueva (SQL Server) |
 | `SELECT name, email FROM customers` | ⚠️ La deja pasar | Lee datos personales que el modelo nunca debería ver |
 
@@ -70,34 +141,6 @@ Apagados por defecto; activa los que necesites. Frenan consultas mucho más cost
 | `output_dialect="tsql"` | El modelo escribe PostgreSQL y el SQL reescrito sale para SQL Server, Oracle o cualquier dialecto de sqlglot | — |
 | `masked_columns={"customers.email": "partial"}` | La columna se puede seleccionar pero vuelve enmascarada: `null`, `redact` (`***`), `hash` (SHA-256) o `partial` (`ju***`). Filtrar, unir, agrupar u ordenar por ella se rechaza | `hidden_column` |
 | `aggregate_only={"salaries": 5}` | La tabla solo se puede leer con agregados, y los grupos de menos de 5 filas nunca vuelven (`HAVING COUNT(*) >= 5`) | `aggregate_required` |
-
-## Un vistazo
-
-```bash
-pip install sqlguardllm          # Python 3.10+, una sola dependencia: sqlglot
-```
-
-```python
-from sqlguardllm import Guard, Policy
-
-guard = Guard(Policy(
-    dialect="postgres",
-    tables={"invoices", "branches", "customers"},
-    hidden_columns={"customers.email", "customers.tax_id"},
-    row_filters={"invoices": "branch_id IN ({user.branches})"},
-    max_rows=1000,
-))
-
-result = guard.check(sql_de_la_ia, context={"user": {"branches": [1, 2]}})
-
-if result.ok:
-    filas = db.execute(result.sql)     # solo lectura, filtrado por rol y con límite
-else:
-    for v in result.violations:
-        print(v.code, v.message)       # write_operation: DELETE dentro de un CTE…
-```
-
-No le importa qué modelo, framework de agentes u ORM produjo el SQL: **solo necesita el texto del SQL.**
 
 ## Cómo funciona
 
@@ -187,6 +230,8 @@ Lo que no hace, y por qué, está en el [modelo de amenazas](docs/THREAT_MODEL.m
 
 sqlguardllm va donde tu app ejecuta el SQL que escribió el modelo. **[Recetas](docs/RECIPES.md)** con código ejecutable y probado (en inglés): un envoltorio genérico de `execute()` (DB-API y SQLAlchemy), LangChain, LlamaIndex, Vanna y MCP. Ver también [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
+Para los ejemplos con `policy.yaml`, instala `pip install "sqlguardllm[yaml]"`.
+
 La herramienta de línea de comandos sirve en CI y para probar políticas. Sale con 0 si la consulta se permite (e imprime el SQL reescrito), 1 si se rechaza (e imprime las violaciones) y 2 ante un error de uso o de la política:
 
 ```bash
@@ -203,15 +248,15 @@ Los archivos de política tienen un [JSON Schema](schema/policy.schema.json) par
 
 ## Otros lenguajes
 
-Node.js/TypeScript: hay un cliente oficial en [`clients/node`](clients/node) (sin dependencias, habla con `sqlguardllm serve`; aún no está en npm).
+Node.js/TypeScript: el código del cliente oficial está en [`clients/node`](clients/node) (sin dependencias; apunta a la API HTTP planeada; aún no está en npm).
 
-Hoy sqlguardllm es una librería de Python: su motor es [sqlglot](https://github.com/tobymao/sqlglot), que solo existe en Python, y tres motores en tres lenguajes podrían comportarse distinto, que en una librería de seguridad es lo mismo que un hueco. **Node.js y .NET están planeados** como un motor con varios clientes: `sqlguardllm serve` (un servicio HTTP al lado de tu app, con imagen Docker) y clientes oficiales para npm y NuGet, con el corpus de ataques como prueba de conformidad para que todos los lenguajes se comporten igual. Síguelo en [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6) y en el [diseño](docs/DESIGN.md#other-languages). Mientras tanto, cualquier lenguaje puede usar el servidor MCP (v0.4) o la CLI (v0.2).
+Hoy sqlguardllm es una librería de Python: su motor es [sqlglot](https://github.com/tobymao/sqlglot), que solo existe en Python, y tres motores en tres lenguajes podrían comportarse distinto, que en una librería de seguridad es lo mismo que un hueco. **El servicio HTTP, la distribución en npm y el cliente .NET están planeados** como un motor con varios clientes: `sqlguardllm serve` (un servicio HTTP al lado de tu app, con imagen Docker) y clientes oficiales para npm y NuGet, con el corpus de ataques como prueba de conformidad para que todos los lenguajes se comporten igual. Síguelo en [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6) y en el [diseño](docs/DESIGN.md#other-languages). Mientras tanto, cualquier lenguaje puede usar el servidor MCP (v0.4) o la CLI (v0.2).
 
 **Cliente .NET:** [`clients/dotnet`](clients/dotnet/README.md) (`SqlGuardLlm`, para NuGet) habla con `sqlguardllm serve` y falla cerrado.
 
 ## Playground: intenta romperlo
 
-Un playground estático (planeado para la v0.3) correrá sqlguardllm **entero en tu navegador** con Pyodide y una base SQLite de demostración: elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro.
+Un playground estático (planeado para la v0.5) correrá sqlguardllm **entero en tu navegador** con Pyodide y una base SQLite de demostración: elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro.
 
 ## Roadmap
 

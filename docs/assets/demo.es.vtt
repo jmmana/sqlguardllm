@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:07.000
+Consulta solo las facturas de tu empresa
+El guard añade tenant_id = 7 y LIMIT 100.
+
+00:00:07.000 --> 00:00:14.000
+Un borrado escondido dentro de un CTE
+El árbol contiene DELETE. El guard lo rechaza.
+
+00:00:14.000 --> 00:00:21.000
+Un SELECT puede exponer columnas privadas
+La política de la aplicación oculta customers.email.
+
+00:00:21.000 --> 00:00:28.000
+OR 1 = 1 sigue dentro de tu empresa
+Las dos facturas devueltas siguen siendo de la empresa 7.
+
+00:00:28.000 --> 00:00:35.000
+Una palabra peligrosa puede ser solo texto
+Un literal de texto es un dato, no una sentencia DROP.
+
+00:00:35.000 --> 00:00:42.000
+Sin contexto del usuario, se rechaza
+Falta un valor que necesita el filtro por usuario.

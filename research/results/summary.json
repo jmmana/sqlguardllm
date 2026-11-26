@@ -1,0 +1,125 @@
+[
+  {
+    "engine": "duckdb",
+    "method": "keyword_filter",
+    "n": 96,
+    "authorized_match": 7,
+    "over_rejected": 6,
+    "policy_violation": 83,
+    "validation_p50_ms": 0.001633,
+    "validation_p95_ms": 0.003585
+  },
+  {
+    "engine": "duckdb",
+    "method": "no_row_filters",
+    "n": 96,
+    "authorized_match": 13,
+    "policy_violation": 59,
+    "blocked": 24,
+    "validation_p50_ms": 0.334383,
+    "validation_p95_ms": 0.820455
+  },
+  {
+    "engine": "duckdb",
+    "method": "read_only_shape",
+    "n": 96,
+    "authorized_match": 13,
+    "policy_violation": 83,
+    "validation_p50_ms": 0.377298,
+    "validation_p95_ms": 0.767155
+  },
+  {
+    "engine": "duckdb",
+    "method": "sqlguardllm",
+    "n": 96,
+    "authorized_match": 72,
+    "blocked": 24,
+    "validation_p50_ms": 0.5152255,
+    "validation_p95_ms": 1.211674
+  },
+  {
+    "engine": "postgres_pglite",
+    "method": "keyword_filter",
+    "n": 96,
+    "authorized_match": 7,
+    "over_rejected": 6,
+    "policy_violation": 83,
+    "validation_p50_ms": 0.001683,
+    "validation_p95_ms": 0.003585
+  },
+  {
+    "engine": "postgres_pglite",
+    "method": "native_rls_columns",
+    "n": 96,
+    "authorized_match": 72,
+    "blocked": 24,
+    "validation_p50_ms": null,
+    "validation_p95_ms": null
+  },
+  {
+    "engine": "postgres_pglite",
+    "method": "no_row_filters",
+    "n": 96,
+    "authorized_match": 13,
+    "policy_violation": 59,
+    "blocked": 24,
+    "validation_p50_ms": 0.3452045,
+    "validation_p95_ms": 0.842488
+  },
+  {
+    "engine": "postgres_pglite",
+    "method": "read_only_shape",
+    "n": 96,
+    "authorized_match": 13,
+    "policy_violation": 83,
+    "validation_p50_ms": 0.393983,
+    "validation_p95_ms": 0.793134
+  },
+  {
+    "engine": "postgres_pglite",
+    "method": "sqlguardllm",
+    "n": 96,
+    "authorized_match": 72,
+    "blocked": 24,
+    "validation_p50_ms": 0.537534,
+    "validation_p95_ms": 1.244845
+  },
+  {
+    "engine": "sqlite",
+    "method": "keyword_filter",
+    "n": 96,
+    "authorized_match": 7,
+    "over_rejected": 6,
+    "policy_violation": 83,
+    "validation_p50_ms": 0.001642,
+    "validation_p95_ms": 0.003585
+  },
+  {
+    "engine": "sqlite",
+    "method": "no_row_filters",
+    "n": 96,
+    "authorized_match": 13,
+    "policy_violation": 59,
+    "blocked": 24,
+    "validation_p50_ms": 0.3261265,
+    "validation_p95_ms": 0.795017
+  },
+  {
+    "engine": "sqlite",
+    "method": "read_only_shape",
+    "n": 96,
+    "authorized_match": 13,
+    "policy_violation": 83,
+    "validation_p50_ms": 0.364048,
+    "validation_p95_ms": 0.741186
+  },
+  {
+    "engine": "sqlite",
+    "method": "sqlguardllm",
+    "n": 96,
+    "authorized_match": 72,
+    "blocked": 24,
+    "validation_p50_ms": 0.504454,
+    "validation_p95_ms": 1.179655
+  }
+]
