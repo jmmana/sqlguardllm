@@ -18,9 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The budget is 2 ms on a laptop. Shared runners are slower; see the design document before
-  # changing this.
-  BUDGET_MS: "2"
+  # The budget is 2 ms on a laptop. ubuntu-latest (AMD EPYC 7763) runs check() about 2.3 times
+  # slower than an Apple M4 Pro, and five joins take 3.2-3.4 ms there, so the runner gets 4 ms.
+  # See docs/DESIGN.md#performance-budget before changing it.
+  BUDGET_MS: "4"
 
 jobs:
   budget:
