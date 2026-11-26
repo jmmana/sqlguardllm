@@ -4,8 +4,11 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
-### Added
+## [0.5.0a1] - 2026-11-26
 
+Everything that was planned for other languages and tooling: an HTTP server, official Node.js and .NET clients checked against the same 148-case corpus, a documentation site and a browser playground, plus `Policy.from_database`, a cost guard for the MCP server and the rest of the warehouse denylists.
+
+### Added
 - In-browser playground "Try to break it" in `playground/` (static site, Pyodide, demo SQLite, gallery presets, two roles, editable policy, shareable URL-fragment links, English/Spanish) with a Playwright test and CI workflow. Not deployed yet (#18).
 - Documentation site (mkdocs-material, https://jmmana.github.io/sqlguardllm/): quickstart in English and Spanish, rules, a policy reference generated from `schema/policy.schema.json`, an API reference from docstrings, threat model, attack gallery and integrations; built with `--strict` and link-checked on every pull request, deployed to GitHub Pages from main (#14).
 - Optional cost guard for `sqlguardllm mcp` (`--max-cost`, `--max-plan-rows`; `max_cost` / `max_plan_rows` in `create_server`): runs `EXPLAIN` (JSON, never `ANALYZE`) on PostgreSQL and MySQL before a query and refuses plans over the threshold, failing closed if the estimate can't be read; ignored with a warning on other engines. `explain_query` reports the estimate (#33).
@@ -14,9 +17,6 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 - Official .NET client `SqlGuardLlm` (`clients/dotnet/`, NuGet): `CheckAsync`, `EnforceAsync`, `ExplainAsync` and `HealthAsync` against `sqlguardllm serve`, multi-targeting net8.0 and net10.0, with no dependencies and fail-closed errors. Not published yet (#36).
 - Official Node.js/TypeScript client in `clients/node` (`sqlguardllm` on npm, not yet published): `SqlGuard` with `check`, `enforce`, `explain`, `health` and `wrap` for the `sqlguardllm serve` HTTP API; zero runtime dependencies, ESM + CJS, fails closed on network errors, timeouts and malformed responses (#35).
 - `Policy.from_database(url, include=…, exclude=…, schemas=…, **options)`: fills `tables` and `schema` by reading a live database with the SQLAlchemy inspector (new optional extra `sqlguardllm[db]`). Only names are read, never rows; errors never include the URL (#28).
-
-### Added
-
 - Denied functions for Snowflake, BigQuery, ClickHouse and Trino, each list linked to the vendor documentation, with a corpus case for every entry (#16). Contributed by @shiwng in #42.
 - Integration recipes in `docs/RECIPES.md` with runnable code in `examples/`: a generic DB-API wrapper, SQLAlchemy, LangChain (`create_agent` tool and langchain-community's toolkit), LlamaIndex, Vanna 2.0 and a pointer to the MCP server. Each is tested with fake model output on SQLite; a Recipes workflow runs them against the framework versions they target. No framework is a dependency (#17).
 - Performance budget: `benchmarks/bench_check.py` times `Guard.check()` on 21 representative queries (median and p95), and a Benchmark workflow fails when a typical query's median is over budget (2 ms on a laptop, 4 ms on GitHub's slower shared runner, where five joins take 3.2–3.4 ms) or a pull request makes a query more than 25 % slower than its base branch (#19).
@@ -98,7 +98,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.4.0a1...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...HEAD
+[0.5.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.4.0a1...v0.5.0a1
 [0.4.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.3.0a1...v0.4.0a1
 [0.3.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a2...v0.3.0a1
 [0.2.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a1...v0.2.0a2
