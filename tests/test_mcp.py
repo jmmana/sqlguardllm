@@ -358,19 +358,18 @@ def test_connection_is_read_only_even_without_the_guard(url: str) -> None:
 # explain_query -------------------------------------------------------------------------------
 
 
-def test_explain_query_shows_the_sql_that_would_run(server: MCPServer[Any]) -> None:
+def test_explain_query_shows_what_would_run(server: MCPServer[Any]) -> None:
     sql = "SELECT i.id, c.name, c.phone FROM invoices i JOIN customers c ON c.id = i.customer_id"
     data = call(server, "explain_query", {"sql": sql})
     assert data["ok"] is True
-    assert "branch_id IN (1)" in data["sql"]
-    assert data["sql"].endswith("LIMIT 100")
+    assert "sql" not in data  # the rewritten SQL carries the user's context values
     assert data["tables"] == ["customers", "invoices"]
     assert data["columns"] == {
         "customers": ["id", "name", "phone"],
         "invoices": ["customer_id", "id"],
     }
     assert data["masked_columns"] == {"customers.phone": "redact"}
-    assert data["row_filters"] == {"invoices": "branch_id IN (1)"}
+    assert data["row_filters"] == {"invoices": "branch_id IN ({user.branches})"}
     assert data["limit"] == 100
     assert data["violations"] == []
     assert "text" not in data
@@ -381,13 +380,11 @@ def test_explain_query_shows_minimum_group_sizes(server: MCPServer[Any]) -> None
     data = call(server, "explain_query", {"sql": sql})
     assert data["ok"] is True
     assert data["aggregate_only"] == {"salaries": 2}
-    assert "HAVING COUNT(*) >= 2" in data["sql"]
 
 
 def test_explain_query_reports_violations_without_failing(server: MCPServer[Any]) -> None:
     data = call(server, "explain_query", {"sql": "DELETE FROM invoices"})
     assert data["ok"] is False
-    assert data["sql"] is None
     assert [item["code"] for item in data["violations"]] == ["not_a_query"]
     data = call(server, "explain_query", {"sql": "SELECT email FROM customers"})
     assert data["ok"] is False

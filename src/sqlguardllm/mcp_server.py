@@ -421,10 +421,12 @@ class _Tools:
     def explain_query(self, sql: _SqlArg) -> dict[str, Any]:
         """Check a query against the policy without running it."""
         explanation = self.guard.explain(sql, self._context)
-        # Not explanation.text: it is meant for people and audit logs, not for the model.
+        # Not explanation.text (meant for people and audit logs), and not explanation.sql: the
+        # rewritten SQL has the user's context values bound into the row filters. The model gets
+        # each filter as written in the policy, with its {user.…} placeholders.
+        templates = self.guard.policy.row_filters
         return {
             "ok": explanation.ok,
-            "sql": explanation.sql,
             "tables": sorted(explanation.tables),
             "columns": {
                 table: sorted(columns) for table, columns in sorted(explanation.columns.items())
@@ -432,7 +434,10 @@ class _Tools:
             "unresolved_columns": sorted(explanation.unresolved_columns),
             "masked_columns": dict(explanation.masked_columns),
             "aggregate_only": dict(explanation.aggregate_only),
-            "row_filters": dict(explanation.row_filters),
+            "row_filters": {
+                table: templates.get(table, "(filtered for this user)")
+                for table in sorted(explanation.row_filters)
+            },
             "limit": explanation.limit,
             "violations": [
                 {"code": item.code.value, "message": item.message, "detail": item.detail}
