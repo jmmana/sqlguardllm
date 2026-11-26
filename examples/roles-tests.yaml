@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-tests.schema.json
+# What each role of the demo policy set (roles.yaml) must be allowed and denied. CI runs:
+#   sqlguardllm test examples/roles-tests.yaml --policy examples/roles.yaml
+cases:
+  - name: managers read their branches' invoices
+    role: manager
+    sql: SELECT id, total FROM invoices
+    context: {user: {branches: [1, 2]}}
+    expect: allow
+    sql_contains: branch_id IN (1, 2)
+  - name: managers never see customer emails
+    role: manager
+    sql: SELECT name, email FROM customers
+    expect: reject
+    violation: hidden_column
+  - name: analysts don't see customer names
+    role: analyst
+    sql: SELECT name FROM customers
+    expect: reject
+    violation: hidden_column
+  - name: analysts must filter invoices by date
+    role: analyst
+    sql: SELECT id FROM invoices
+    context: {user: {branches: [1]}}
+    expect: reject
+    violation: missing_required_filter
+  - name: analysts get at most 200 rows
+    role: analyst
+    sql: SELECT id FROM invoices WHERE issued_on >= DATE '2026-01-01'
+    context: {user: {branches: [1]}}
+    expect: allow
+    sql_contains: LIMIT 200
+  - name: auditors read every branch without a context
+    role: auditor
+    sql: SELECT branch_id, SUM(total) FROM invoices GROUP BY branch_id
+    expect: allow
+  - name: auditors' queries stay simple
+    role: auditor
+    sql: >-
+      SELECT i.id FROM invoices i
+      JOIN invoice_lines l ON l.invoice_id = i.id
+      JOIN products p ON p.id = l.product_id
+      JOIN branches b ON b.id = i.branch_id
+      JOIN customers c ON c.id = i.customer_id
+    expect: reject
+    violation: too_complex
+  - name: internal notes stay hidden from every role
+    role: auditor
+    sql: SELECT internal_notes FROM invoices
+    expect: reject
+    violation: hidden_column

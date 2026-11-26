@@ -4,10 +4,13 @@
     echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json -
     sqlguardllm schema > schema/policy.schema.json
     sqlguardllm schema --policy-set > schema/policy-set.schema.json
+    sqlguardllm test examples/policy-tests.yaml --policy examples/policy.yaml
+    sqlguardllm lint --policy examples/roles.yaml --strict
     sqlguardllm serve --policy policy.yaml --port 8787
     sqlguardllm mcp --policy policy.yaml --db sqlite:///demo.db --context @context.json
 
-Exit codes: 0 allowed, 1 rejected, 2 usage or policy error.
+Exit codes: 0 allowed, 1 rejected, 2 usage or policy error. ``test`` returns 1 when a case
+fails and ``lint --strict`` when there are warnings.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from typing import Any, TextIO
 
 from sqlguardllm import __version__
 from sqlguardllm.guard import Guard
+from sqlguardllm.lint import DEFAULT_MAX_ROWS_THRESHOLD, format_report, lint_file
 from sqlguardllm.messages import LANGUAGES
 from sqlguardllm.policy import Policy
 from sqlguardllm.policy_set import PolicySet
@@ -144,6 +148,27 @@ def _parser() -> argparse.ArgumentParser:
     test.add_argument("cases", type=Path, help="case file (.yaml or .json)")
     test.add_argument("--policy", required=True, type=Path, help="policy or policy-set file")
     test.add_argument("--format", choices=("text", "junit"), default="text", help="output format")
+
+    lint = commands.add_parser(
+        "lint",
+        help="warn about policies that are valid but probably unsafe",
+        description="Exit code 0 even with warnings, 1 with warnings under --strict, 2 on usage "
+        "or policy errors. Silence a reviewed warning with lint_suppress: {code: reason} in the "
+        "policy file.",
+    )
+    lint.add_argument(
+        "--policy", required=True, type=Path, help="policy or policy-set file (.yaml or .json)"
+    )
+    lint.add_argument("--format", choices=("text", "json"), default="text", help="output format")
+    lint.add_argument("--language", choices=LANGUAGES, default="en", help="message language")
+    lint.add_argument("--strict", action="store_true", help="exit 1 when there are warnings")
+    lint.add_argument(
+        "--max-rows-threshold",
+        type=int,
+        default=DEFAULT_MAX_ROWS_THRESHOLD,
+        metavar="N",
+        help=f"warn when max_rows is above N (default {DEFAULT_MAX_ROWS_THRESHOLD})",
+    )
     return parser
 
 
@@ -199,6 +224,21 @@ def _test(args: argparse.Namespace, stdout: TextIO) -> int:
         raise _UsageError(str(exc)) from exc
     print(format_outcomes(outcomes, junit=args.format == "junit"), file=stdout)
     return EXIT_REJECTED if any(outcome.failure is not None for outcome in outcomes) else EXIT_OK
+
+
+def _lint(args: argparse.Namespace, stdout: TextIO) -> int:
+    if args.max_rows_threshold <= 0:
+        raise _UsageError("--max-rows-threshold must be a positive number of rows")
+    try:
+        report = lint_file(
+            args.policy, language=args.language, max_rows_threshold=args.max_rows_threshold
+        )
+    except OSError as exc:
+        raise _UsageError(f"cannot read the policy: {exc}") from exc
+    except (PolicyError, ValueError) as exc:
+        raise _UsageError(f"invalid policy {args.policy}: {exc}") from exc
+    print(format_report(report, as_json=args.format == "json"), file=stdout)
+    return EXIT_REJECTED if args.strict and report.warnings else EXIT_OK
 
 
 def _as_json(result: CheckResult) -> str:
@@ -329,6 +369,8 @@ def main(
             return EXIT_OK
         if args.command == "test":
             return _test(args, stdout)
+        if args.command == "lint":
+            return _lint(args, stdout)
         if args.command == "mcp":
             return _mcp(args)
         if args.command == "serve":

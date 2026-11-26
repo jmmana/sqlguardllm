@@ -19,6 +19,7 @@ ROOT = Path(__file__).parents[1]
 POLICY = ROOT / "examples" / "policy.yaml"
 ROLES = ROOT / "examples" / "roles.yaml"
 DEMO = ROOT / "examples" / "policy-tests.yaml"
+ROLES_DEMO = ROOT / "examples" / "roles-tests.yaml"
 PUBLISHED_SCHEMA = ROOT / "schema" / "policy-tests.schema.json"
 
 
@@ -34,16 +35,24 @@ def cases_file(tmp_path: Path, *cases: dict[str, Any]) -> Path:
     return path
 
 
-def test_demo_policy_cases_in_ci() -> None:
+@pytest.mark.parametrize(
+    ("cases", "policy", "first", "count"),
+    [
+        (DEMO, POLICY, "branch manager can read invoices", 5),
+        (ROLES_DEMO, ROLES, "managers read their branches' invoices", 8),
+    ],
+    ids=["policy", "roles"],
+)
+def test_demo_policy_cases_in_ci(cases: Path, policy: Path, first: str, count: int) -> None:
     result = subprocess.run(
-        [sys.executable, "-m", "sqlguardllm", "test", str(DEMO), "--policy", str(POLICY)],
+        [sys.executable, "-m", "sqlguardllm", "test", str(cases), "--policy", str(policy)],
         capture_output=True,
         text=True,
         check=False,
     )
-    assert result.returncode == 0, result.stderr
-    assert "PASS branch manager can read invoices" in result.stdout
-    assert result.stdout.endswith("3 passed, 0 failed\n")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.startswith(f"PASS {first}\n")
+    assert result.stdout.endswith(f"{count} passed, 0 failed\n")
 
 
 def test_cases_schema_command_matches_published_schema() -> None:
@@ -52,7 +61,8 @@ def test_cases_schema_command_matches_published_schema() -> None:
     schema = json.loads(output)
     assert schema == json.loads(PUBLISHED_SCHEMA.read_text(encoding="utf-8"))
     jsonschema.Draft202012Validator.check_schema(schema)
-    jsonschema.validate(yaml.safe_load(DEMO.read_text(encoding="utf-8")), schema)
+    for demo in (DEMO, ROLES_DEMO):
+        jsonschema.validate(yaml.safe_load(demo.read_text(encoding="utf-8")), schema)
 
 
 def test_cases_schema_flag_conflicts_with_policy_set(capsys: pytest.CaptureFixture[str]) -> None:

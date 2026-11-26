@@ -6,6 +6,9 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 - `sqlguardllm test` checks declared policy cases and reports results as text or JUnit XML (#66).
+- `examples/roles-tests.yaml` tests every role of the demo policy set, next to `examples/policy-tests.yaml` for the demo policy. CI runs both and lints the demo policies with `--strict` (#66, #67).
+- `sqlguardllm lint` warns about policies that are valid but probably unsafe, with stable codes: `no-table-allowlist`, `tenant-without-row-filter`, `sensitive-column-exposed`, `max-rows-disabled`, `max-rows-high` (above 10000 or `--max-rows-threshold`), `aggregate-k-low` (k below 5) and `denied-function-allowed`. Each warning has an explanation, a fix and a link to its field in the policy reference, in English or Spanish (`--language`), as text or JSON (`--format`). Policy sets are linted role by role. The column checks read the policy's `schema` and are reported as skipped without it. `--strict` exits 1 on warnings (#67).
+- Policy key `lint_suppress: {code: reason}` silences a reviewed lint warning, and the report shows the reason. It is in the policy and policy-set JSON Schemas, unknown codes and blank reasons are rejected, roles inherit and extend it, and checking SQL ignores it (#67).
 
 ## [0.5.0a2] - 2026-11-26
 
