@@ -17,15 +17,47 @@ def _inexact(limit: exp.Expression) -> bool:
 
 
 def _literal_int(node: exp.Expression | None) -> int | None:
-    if isinstance(node, exp.Literal) and node.is_int:
-        return int(node.name)
+    literal = node.unnest() if node is not None else None
+    if isinstance(literal, exp.Literal) and literal.is_int:
+        return int(literal.name)
     return None
 
 
-def apply_limit(root: exp.Expression, max_rows: int | None) -> exp.Expression:
-    """Add, lower or replace the outermost limit. Set operations are wrapped first."""
+def _limit_tsql_ordered_set(root: exp.SetOperation, max_rows: int) -> exp.SetOperation:
+    existing = current_limit(root)
+    if existing == 0:
+        # FETCH requires a positive count. SQLGlot renders LIMIT 0 as TOP 0 without an offset.
+        root.set("offset", None)
+        root.set("limit", exp.Limit(expression=exp.Literal.number(0)))
+        return root
+
+    count = max_rows if existing is None else min(existing, max_rows)
+    if root.args.get("offset") is None:
+        root.set("offset", exp.Offset(expression=exp.Literal.number(0)))
+    root.set(
+        "limit",
+        exp.Fetch(
+            direction="NEXT",
+            count=exp.Literal.number(count),
+            limit_options=exp.LimitOptions(rows=True),
+        ),
+    )
+    return root
+
+
+def apply_limit(
+    root: exp.Expression, max_rows: int | None, *, output_dialect: str
+) -> exp.Expression:
+    """Add, lower or replace the outermost limit."""
     if max_rows is None:
         return root
+    if (
+        output_dialect == "tsql"
+        and isinstance(root, exp.SetOperation)
+        and root.args.get("order") is not None
+    ):
+        # T-SQL needs ORDER BY at the outer level to order the returned rows.
+        return _limit_tsql_ordered_set(root, max_rows)
     if not isinstance(root, exp.Select):
         # UNION / INTERSECT / EXCEPT: limit the combined result, portable across dialects.
         wrapped = exp.select("*").from_(

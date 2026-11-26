@@ -293,7 +293,9 @@ class Guard:
             state.violations = problems
             return
         state.filters = applied
-        state.root = apply_limit(state.root, compiled.max_rows)
+        state.root = apply_limit(
+            state.root, compiled.max_rows, output_dialect=compiled.output_dialect_name
+        )
         state.sql = state.root.sql(dialect=compiled.output_dialect_name, pretty=self._pretty)
 
     @staticmethod
