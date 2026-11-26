@@ -41,6 +41,10 @@ jobs:
         env:
           SQLGUARD_RESEARCH_PG_DSN: postgresql://postgres:synthetic-study-only@127.0.0.1:5432/postgres
         run: python research/review_eval.py --engines postgres_service --out research/results-native-service
+      - name: Capture native server plans on one million synthetic rows
+        env:
+          SQLGUARD_RESEARCH_PG_DSN: postgresql://postgres:synthetic-study-only@127.0.0.1:5432/postgres
+        run: python research/planner_eval.py --postgres-service --out research/results-native-service/planner.json
       - name: Upload synthetic research observations
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

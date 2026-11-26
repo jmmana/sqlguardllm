@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import random
 import re
 import statistics
+import subprocess
+import uuid
 from pathlib import Path
 
 from native_postgres import NativeSession
@@ -23,6 +27,8 @@ def nodes(plan):
 
 
 def measure(session, query):
+    if isinstance(session, ServerSession):
+        return session.explain(query)
     output = session.command(
         "EXPLAIN (ANALYZE, BUFFERS, TIMING OFF, FORMAT JSON) " + query.strip().rstrip(";")
     )
@@ -32,13 +38,49 @@ def measure(session, query):
     return json.loads(match.group(1))[0]
 
 
+class ServerSession:
+    """An isolated native-server database, containing only the planner fixture."""
+
+    def __init__(self, fixture):
+        import psycopg  # noqa: PLC0415 -- optional native research dependency
+        from psycopg import conninfo, sql  # noqa: PLC0415
+
+        self.sql = sql
+        dsn = os.environ["SQLGUARD_RESEARCH_PG_DSN"]
+        self.admin = psycopg.connect(dsn, autocommit=True)
+        self.name = "sg_planner_" + uuid.uuid4().hex[:12]
+        self.admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.name)))
+        self.conn = psycopg.connect(conninfo.make_conninfo(dsn, dbname=self.name), autocommit=True)
+        self.conn.execute("SET statement_timeout=30000")
+        self.conn.execute(fixture)
+
+    def command(self, query, *, readonly=True):
+        self.conn.execute(query)
+
+    def query(self, query, fetch_limit=9):
+        return [list(r) for r in self.conn.execute(query).fetchmany(fetch_limit)]
+
+    def explain(self, query):
+        with self.conn.transaction():
+            self.conn.execute("SET TRANSACTION READ ONLY")
+            return self.conn.execute(
+                "EXPLAIN (ANALYZE, BUFFERS, TIMING OFF, FORMAT JSON) " + query
+            ).fetchone()[0][0]
+
+    def close(self):
+        self.conn.close()
+        self.admin.execute(self.sql.SQL("DROP DATABASE {}").format(self.sql.Identifier(self.name)))
+        self.admin.close()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rows", type=int, default=1_000_000)
     parser.add_argument("--rounds", type=int, default=15)
+    parser.add_argument("--postgres-service", action="store_true")
     parser.add_argument("--out", type=Path, default=ROOT / "research/results-review/planner.json")
     args = parser.parse_args()
-    session = NativeSession(
+    session = (ServerSession if args.postgres_service else NativeSession)(
         "CREATE TABLE invoices (id bigint, tenant_id integer, total integer);"
         f"INSERT INTO invoices SELECT g, (g%50)+1, (g*13)%1000 FROM generate_series(1,{args.rows}) g;"
         "CREATE INDEX invoices_tenant_id ON invoices(tenant_id,id) INCLUDE(total);ANALYZE invoices;"
@@ -120,7 +162,14 @@ def main():
                     "seed": 2026112604,
                     "warmup_per_variant": 3,
                     "summaries": summaries,
-                    "scope": "single-user native planner and warm EXPLAIN timings; synthetic indexed schema, not production overhead",
+                    "scope": (
+                        "native client/server" if args.postgres_service else "single-user native"
+                    )
+                    + " planner and warm EXPLAIN timings; synthetic indexed schema, not production overhead",
+                    "revision": subprocess.check_output(
+                        ["git", "rev-parse", "HEAD"], text=True
+                    ).strip(),
+                    "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                     "observations": records,
                 },
                 indent=2,

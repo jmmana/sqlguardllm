@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -75,3 +76,34 @@ def test_review_workload_exposes_outer_where_and_surviving_mutants(tmp_path: Pat
     assert next(r for r in function_rows if r["suite"] == "review_edges")["killed"]
     edges = json.loads((tmp_path / "edges.json").read_text())
     assert all(not r.get("executed") for r in edges if not r["execute"])
+
+
+def test_paid_pilot_refuses_a_non_owner_before_accessing_the_api(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    fake_token = "test-credential-must-never-appear-in-output"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(root / "research/claude_pilot.py"),
+            "--execute",
+            "--out",
+            str(tmp_path),
+        ],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+        env={
+            **os.environ,
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "workflow_dispatch",
+            "GITHUB_REPOSITORY": "jmmana/sqlguardllm",
+            "GITHUB_ACTOR": "untrusted-contributor",
+            "GITHUB_TRIGGERING_ACTOR": "untrusted-contributor",
+            "ANTHROPIC_API_TOKEN": fake_token,
+        },
+    )
+    assert completed.returncode != 0
+    assert "restricted to the repository owner's manual dispatch" in completed.stderr
+    assert fake_token not in completed.stdout + completed.stderr
+    assert not list(tmp_path.iterdir())
