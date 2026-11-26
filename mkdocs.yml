@@ -25,6 +25,7 @@ nav:
   - API reference: api.md
   - Threat model: THREAT_MODEL.md
   - Attack gallery: ATTACK_GALLERY.md
+  - Playground: https://jmmana.github.io/sqlguardllm/playground/
   - Integrations:
       - Overview: INTEGRATIONS.md
       - Recipes: RECIPES.md

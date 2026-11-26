@@ -34,7 +34,7 @@ Documentación completa: https://jmmana.github.io/sqlguardllm/
 
 ## Pruébalo: entrada, decisión y SQL devuelto
 
-[Pruébalo en el navegador](playground/) (playground, tras el despliegue) · [Ver el video de 42 segundos](docs/assets/demo.es.mp4) · [Ejecutar el ejemplo](examples/readme_demo.py) · [Cómo se hicieron las demos](docs/DEMOS.md)
+[Pruébalo en el navegador](https://jmmana.github.io/sqlguardllm/playground/) · [Ver el video de 42 segundos](docs/assets/demo.es.mp4) · [Ejecutar el ejemplo](examples/readme_demo.py) · [Cómo se hicieron las demos](docs/DEMOS.md)
 
 El GIF de arriba y los resultados siguientes salen de ejecuciones reales. `check()` devuelve un objeto Python `CheckResult`; aquí mostramos sus campos principales como JSON. La librería valida y reescribe el SQL; tu aplicación ejecuta el SQL devuelto cuando `ok` es verdadero.
 
@@ -258,7 +258,7 @@ Hoy sqlguardllm es una librería de Python: su motor es [sqlglot](https://github
 
 ## Playground: intenta romperlo
 
-Un playground estático (planeado para la v0.5) correrá sqlguardllm **entero en tu navegador** con Pyodide y una base SQLite de demostración: elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro.
+**[Abre el playground](https://jmmana.github.io/sqlguardllm/playground/)**: corre sqlguardllm **entero en tu navegador** con Pyodide y una base SQLite de demostración. Elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro; cada intento se comparte con un enlace. Código en [`playground/`](playground/).
 
 ## Roadmap
 

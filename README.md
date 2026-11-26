@@ -32,7 +32,7 @@ Full documentation: https://jmmana.github.io/sqlguardllm/
 
 ## Try it: input, decision and returned SQL
 
-[Try it in your browser](playground/) (playground, after deployment) · [Watch the 42-second video](docs/assets/demo.en.mp4) · [Run the example](examples/readme_demo.py) · [How the demos are made](docs/DEMOS.md)
+[Try it in your browser](https://jmmana.github.io/sqlguardllm/playground/) · [Watch the 42-second video](docs/assets/demo.en.mp4) · [Run the example](examples/readme_demo.py) · [How the demos are made](docs/DEMOS.md)
 
 The GIF above and the results below come from actual executions. `check()` returns a Python `CheckResult`; its main fields are shown here as JSON. The library validates and rewrites SQL; your application executes the returned SQL when `ok` is true.
 
@@ -256,7 +256,7 @@ sqlguardllm is a Python library today: its engine is [sqlglot](https://github.co
 
 ## Playground: try to break it
 
-A static playground (planned for v0.5) will run sqlguardllm **entirely in your browser** with Pyodide and a demo SQLite database: pick a role, type the nastiest SQL you can think of, and watch it get blocked or rewritten. No server, no sign-up.
+**[Open the playground](https://jmmana.github.io/sqlguardllm/playground/)**: it runs sqlguardllm **entirely in your browser** with Pyodide and a demo SQLite database. Pick a role, type the nastiest SQL you can think of, and watch it get blocked or rewritten. No server, no sign-up; share any attempt with a link. Source in [`playground/`](playground/).
 
 ## Roadmap
 

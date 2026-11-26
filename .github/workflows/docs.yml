@@ -18,6 +18,10 @@ jobs:
       - run: uv sync --group docs
       # Built under site/sqlguardllm/ like the published URL, so root-relative links resolve.
       - run: uv run mkdocs build --strict --site-dir site/sqlguardllm
+      # The playground is static and uses relative paths: ship it inside the site.
+      - run: |
+          mkdir -p site/sqlguardllm/playground
+          cp -R playground/index.html playground/app.js playground/style.css playground/engine.py playground/wheels site/sqlguardllm/playground/
         env:
           DISABLE_MKDOCS_2_WARNING: "true"
       - name: Check links
