@@ -74,7 +74,7 @@ Codes are part of the public API and **stable across minor versions**. Messages 
 | `invalid_context` | A context value has a type that can't be bound safely as a literal |
 | `too_complex` | The query exceeds `max_joins`, `max_subquery_depth` or `forbid_cartesian` |
 | `missing_required_filter` | A table in `required_filters` is read without a predicate on one of its columns |
-| `aggregate_required` | *(planned, v0.3)* An aggregate-only table is read without aggregating |
+| `aggregate_required` | A table in `aggregate_only` is read without aggregating (raw columns, `*`, or window functions) |
 
 ## Pipeline
 
@@ -221,6 +221,8 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 | `required_filters: {table: [columns]}` | Every occurrence of the table must be filtered on at least one of the columns (for example a date range on a large fact table) | `missing_required_filter` |
 
 ### Protecting personal data
+
+> Status: **implemented** (unreleased). `schema` is used to expand `*` over masked tables; exact column checks with it are still planned (#5). Known limits of `aggregate_only`: `COUNT(*)` counts rows, so a join that repeats a person counts them more than once, and a minimum group size alone doesn't stop differencing (asking for a group with and without one person). The hash mask isn't available on SQLite, which has no SHA-256 function: the policy is rejected.
 
 - **`masked_columns: {"table.column": strategy}`**, an alternative to hiding: the column can be selected but comes back masked. Strategies: `null`, `redact` (`'***'`), `hash` (the dialect's SHA-256, hex) and `partial` (first characters plus `***`). Masked columns may only appear in the select list; using them in predicates, joins or ordering is `hidden_column`, because filtering on the real value would leak it. `SELECT *` over a table with masked columns needs `schema` so the star can be expanded with the masks; without it, the query is rejected.
 - **`aggregate_only: {table: k}`**: the table can only be read through aggregates. The `SELECT` that reads it must project only aggregates and `GROUP BY` columns, and the guard adds `HAVING COUNT(*) >= k` so no group smaller than `k` people comes back (k-anonymity). Raw reads are `aggregate_required`.

@@ -77,6 +77,22 @@ _PROPERTIES: dict[str, dict[str, Any]] = {
         "type": ["string", "null"],
         "description": "Generate the rewritten SQL in this dialect instead of dialect.",
     },
+    "masked_columns": {
+        "type": "object",
+        "additionalProperties": {"enum": ["null", "redact", "hash", "partial"]},
+        "description": "table.column → mask. Selectable but masked; never usable in filters, "
+        "joins, grouping or ordering.",
+    },
+    "aggregate_only": {
+        "type": "object",
+        "additionalProperties": {"type": "integer", "minimum": 2},
+        "description": "Table → minimum group size k: only aggregates, groups of at least k rows.",
+    },
+    "schema": {
+        "type": ["object", "null"],
+        "additionalProperties": {**_STRINGS, "minItems": 1},
+        "description": "Table → columns. Lets * over a table with masked columns be expanded.",
+    },
 }
 
 

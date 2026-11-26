@@ -22,6 +22,7 @@ class ViolationCode(str, Enum):
     INVALID_CONTEXT = "invalid_context"
     TOO_COMPLEX = "too_complex"
     MISSING_REQUIRED_FILTER = "missing_required_filter"
+    AGGREGATE_REQUIRED = "aggregate_required"
 
 
 @dataclass(frozen=True)
