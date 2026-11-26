@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 
+- Official Node.js/TypeScript client in `clients/node` (`sqlguardllm` on npm, not yet published): `SqlGuard` with `check`, `enforce`, `explain`, `health` and `wrap` for the `sqlguardllm serve` HTTP API; zero runtime dependencies, ESM + CJS, fails closed on network errors, timeouts and malformed responses (#35).
 - `Policy.from_database(url, include=…, exclude=…, schemas=…, **options)`: fills `tables` and `schema` by reading a live database with the SQLAlchemy inspector (new optional extra `sqlguardllm[db]`). Only names are read, never rows; errors never include the URL (#28).
 
 ### Added
