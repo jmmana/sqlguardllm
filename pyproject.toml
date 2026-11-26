@@ -28,6 +28,7 @@ dependencies = ["sqlglot>=30.0,<31"]
 
 [project.optional-dependencies]
 yaml = ["pyyaml>=6.0"]
+mcp = ["mcp>=2.0.1,<3", "sqlalchemy>=2.0,<3", "pyyaml>=6.0"]
 
 [project.scripts]
 sqlguardllm = "sqlguardllm.cli:main"
@@ -48,6 +49,8 @@ dev = [
     "types-jsonschema",
     "ruff>=0.8",
     "mypy>=1.13",
+    "mcp>=2.0.1,<3",
+    "sqlalchemy>=2.0,<3",
 ]
 
 [build-system]

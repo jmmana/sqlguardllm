@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+
+- MCP server: `sqlguardllm mcp --policy FILE [--role NAME] [--db URL] [--context JSON|@file] [--language es] [--timeout SECONDS]` (optional extra `sqlguardllm[mcp]`) gives any MCP client the tools `list_tables`, `describe_table`, `explain_query` and `query`. Queries go through `Guard.enforce()` and run in a read-only transaction with a timeout, always rolled back, returning at most `max_rows` rows; violations come back as tool errors the model can act on. The context and the database URL never appear in tool output or logs. Setup for Claude Desktop, Cursor and VS Code, and a demo database, in `docs/MCP.md` and `examples/mcp/` (#31, #32).
+
 ## [0.3.0a1] - 2026-11-26
 
 Personal data protection, richer policies and a second security fix. New options are off by default: existing policies behave the same, except that percentage and `WITH TIES` limits are now capped.
