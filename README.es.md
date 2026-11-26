@@ -32,7 +32,7 @@ Tu modelo escribe SQL. **sqlguardllm** se asegura de que solo pueda leer lo perm
 
 ## Pruébalo: entrada, decisión y SQL devuelto
 
-[Ver el video de 42 segundos](docs/assets/demo.es.mp4) · [Ejecutar el ejemplo](examples/readme_demo.py) · [Cómo se hicieron las demos](docs/DEMOS.md)
+[Pruébalo en el navegador](playground/) (playground, tras el despliegue) · [Ver el video de 42 segundos](docs/assets/demo.es.mp4) · [Ejecutar el ejemplo](examples/readme_demo.py) · [Cómo se hicieron las demos](docs/DEMOS.md)
 
 El GIF de arriba y los resultados siguientes salen de ejecuciones reales. `check()` devuelve un objeto Python `CheckResult`; aquí mostramos sus campos principales como JSON. La librería valida y reescribe el SQL; tu aplicación ejecuta el SQL devuelto cuando `ok` es verdadero.
 

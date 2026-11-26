@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>sqlguardllm playground: try to break it</title>
+<meta name="description" content="Try to get a forbidden SQL query past sqlguardllm, running entirely in your browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1 data-i="title">Try to break it</h1>
+  <button id="lang" type="button" aria-label="Español / English">ES</button>
+</header>
+<p data-i="intro"></p>
+<div id="status" class="status" role="status" aria-live="polite"><span id="statusText"></span> <progress id="prog" aria-label="loading"></progress></div>
+<div class="grid">
+  <section aria-labelledby="h-in">
+    <h2 id="h-in" data-i="h_in">Query</h2>
+    <label for="role" data-i="role">Role</label>
+    <select id="role">
+      <option value="north"></option>
+      <option value="south"></option>
+    </select>
+    <p id="ctxShow"></p>
+    <label for="sql" data-i="sql">SQL</label>
+    <textarea id="sql" rows="4" spellcheck="false" autocomplete="off"></textarea>
+    <div class="row">
+      <button id="run" class="primary" type="button" disabled data-i="run">Check and run</button>
+      <button id="share" type="button" data-i="share">Copy share link</button>
+      <span id="shareMsg" role="status"></span>
+    </div>
+    <details open><summary data-i="presets">Attack presets</summary><div id="presets"></div></details>
+  </section>
+  <section aria-labelledby="h-pol">
+    <h2 id="h-pol" data-i="h_pol">Policy (JSON, editable)</h2>
+    <label for="policy" class="sr" data-i="h_pol">Policy</label>
+    <textarea id="policy" rows="16" spellcheck="false" autocomplete="off"></textarea>
+    <p data-i="demodb"></p>
+    <button id="reset" type="button" data-i="reset">Reset policy</button>
+  </section>
+  <section aria-labelledby="h-out" style="grid-column:1/-1">
+    <h2 id="h-out" data-i="h_out">Result</h2>
+    <div id="out" aria-live="polite"><p data-i="empty"></p></div>
+  </section>
+</div>
+<p><small data-i="privacy"></small></p>
+</div>
+<script src="app.js" type="module"></script>
+</body>
+</html>
