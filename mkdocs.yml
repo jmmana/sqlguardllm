@@ -1,0 +1,50 @@
+site_name: sqlguardllm
+site_url: https://jmmana.github.io/sqlguardllm/
+repo_url: https://github.com/jmmana/sqlguardllm
+edit_uri: edit/main/docs/
+theme:
+  name: material
+  features: [navigation.sections, content.code.copy, search.suggest]
+exclude_docs: |
+  pypi.md
+  ROADMAP.md
+  DEMOS.md
+  assets/*.mp4
+validation:
+  links:
+    not_found: warn
+    absolute_links: warn
+    unrecognized_links: warn
+nav:
+  - Home: index.md
+  - Quickstart:
+      - English: quickstart.md
+      - Español: es/quickstart.md
+  - Rules: DESIGN.md
+  - Policy reference: policy-reference.md
+  - API reference: api.md
+  - Threat model: THREAT_MODEL.md
+  - Attack gallery: ATTACK_GALLERY.md
+  - Integrations:
+      - Overview: INTEGRATIONS.md
+      - Recipes: RECIPES.md
+      - MCP server: MCP.md
+      - HTTP server and clients: SERVER.md
+hooks:
+  - scripts/mkdocs_hooks.py
+plugins:
+  - search
+  - gen-files:
+      scripts: [scripts/gen_policy_reference.py]
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: false
+            docstring_style: google
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences

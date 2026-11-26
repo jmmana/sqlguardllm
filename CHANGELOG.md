@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 
+- Documentation site (mkdocs-material, https://jmmana.github.io/sqlguardllm/): quickstart in English and Spanish, rules, a policy reference generated from `schema/policy.schema.json`, an API reference from docstrings, threat model, attack gallery and integrations; built with `--strict` and link-checked on every pull request, deployed to GitHub Pages from main (#14).
 - Optional cost guard for `sqlguardllm mcp` (`--max-cost`, `--max-plan-rows`; `max_cost` / `max_plan_rows` in `create_server`): runs `EXPLAIN` (JSON, never `ANALYZE`) on PostgreSQL and MySQL before a query and refuses plans over the threshold, failing closed if the estimate can't be read; ignored with a warning on other engines. `explain_query` reports the estimate (#33).
 - Cross-language conformance: every attack-corpus case runs through the HTTP server, the Node.js client and the .NET client and must equal the in-process `Guard.check` answer (`conformance/cases.json`, a `Conformance` workflow, `docs/CONFORMANCE.md`). The .NET client now sends a `Content-Length` body, which the server requires (#37).
 - `sqlguardllm serve`: an HTTP server (`GET /v1/health`, `POST /v1/check`, `POST /v1/explain`) so any language can use the engine as a sidecar, standard library only, optional bearer token, plus a `Dockerfile`; install with `sqlguardllm[serve]`. See `docs/SERVER.md` (#34).
