@@ -205,6 +205,8 @@ Node.js/TypeScript: hay un cliente oficial en [`clients/node`](clients/node) (si
 
 Hoy sqlguardllm es una librería de Python: su motor es [sqlglot](https://github.com/tobymao/sqlglot), que solo existe en Python, y tres motores en tres lenguajes podrían comportarse distinto, que en una librería de seguridad es lo mismo que un hueco. **Node.js y .NET están planeados** como un motor con varios clientes: `sqlguardllm serve` (un servicio HTTP al lado de tu app, con imagen Docker) y clientes oficiales para npm y NuGet, con el corpus de ataques como prueba de conformidad para que todos los lenguajes se comporten igual. Síguelo en [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6) y en el [diseño](docs/DESIGN.md#other-languages). Mientras tanto, cualquier lenguaje puede usar el servidor MCP (v0.4) o la CLI (v0.2).
 
+**Cliente .NET:** [`clients/dotnet`](clients/dotnet/README.md) (`SqlGuardLlm`, para NuGet) habla con `sqlguardllm serve` y falla cerrado.
+
 ## Playground: intenta romperlo
 
 Un playground estático (planeado para la v0.3) correrá sqlguardllm **entero en tu navegador** con Pyodide y una base SQLite de demostración: elige un rol, escribe el SQL más malicioso que se te ocurra y mira cómo se bloquea o se reescribe. Sin servidor y sin registro.
