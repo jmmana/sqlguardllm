@@ -43,3 +43,14 @@ And if anything can't be understood, `check()` rejects it.
 ## Reporting
 
 A way to make `check()` return `ok` for SQL that breaks one of the four guarantees above is a security vulnerability. Report it privately: [SECURITY.md](../SECURITY.md).
+
+## Parser differentials found
+
+Places where sqlglot's tree did not say what the real engine would do. Each was fixed and has a corpus case.
+
+| Found | What happened | Fix |
+|---|---|---|
+| Unqualified columns in `HAVING`, `QUALIFY` and expressions of `ORDER BY` / `DISTINCT ON` (0.2.0a2) | sqlglot leaves them out of `Scope.columns` because they could be select aliases, so `HAVING MAX(email) > 'm'` skipped the hidden-column rule | `scope_columns()` adds them back and checks them as source columns |
+| `TOP n PERCENT`, `FETCH FIRST n PERCENT` and `WITH TIES` (0.3.0a1) | sqlglot keeps the flags in `limit_options`; the limit rule looked elsewhere, so `max_rows` was bypassed | Any inexact limit is replaced with a plain limit of `max_rows` |
+
+The baseline attacks and allowed queries run in all ten supported dialects (`tests/test_dialect_matrix.py`), and the rewritten SQL runs on PostgreSQL 16, MySQL 8, SQL Server 2022, DuckDB and SQLite (`tests/engines/`, `.github/workflows/engines.yml`).
