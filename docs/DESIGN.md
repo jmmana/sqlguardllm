@@ -141,6 +141,10 @@ This is what catches `WITH d AS (DELETE … RETURNING *) SELECT * FROM d` (a `De
 | oracle | `dbms_pipe.*`, `utl_http.*`, `utl_file.*`, `utl_inaddr.*`, `dbms_lock.sleep`, `dbms_scheduler.*` |
 | sqlite | `load_extension`, `readfile`, `writefile` |
 | duckdb | `read_csv`, `read_csv_auto`, `read_parquet`, `read_json`, `read_text`, `read_blob`, `glob` |
+| snowflake | `system$wait`, `system$send_email`, `system$abort_session`, `get_presigned_url`, `get_stage_location`, `get_absolute_path`, `get_ddl` ([docs](https://docs.snowflake.com/en/sql-reference/functions-all)) |
+| bigquery | `external_query` (runs the SQL string on Cloud SQL), `load_data` ([docs](https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-all)) |
+| clickhouse | `url`, `file`, `s3`, `hdfs`, `remote`, `jdbc`, `odbc`, `mysql`, `postgresql`, `executable`, `input`, `azureblobstorage`, `gcs`, `iceberg`, `deltalake`, `sleepeachrow` ([docs](https://clickhouse.com/docs/sql-reference/table-functions)) |
+| trino | `system.query`, `system.slow_query`, `system.runtime.queries` ([docs](https://trino.io/docs/current/connector/system.html)); Trino's file and network access is in table functions and connector tables, which the table allowlist refuses |
 
 - **Allowlist mode** (`function_policy="allowlist"`): only functions in `allowed_functions` pass. Recommended when the database has user-defined functions, because any function call can have side effects and a denylist can't know yours.
 
