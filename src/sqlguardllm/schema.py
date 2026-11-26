@@ -97,6 +97,11 @@ _PROPERTIES: dict[str, dict[str, Any]] = {
         "additionalProperties": {**_STRINGS, "minItems": 1},
         "description": "Table → columns. Lets * over a table with masked columns be expanded.",
     },
+    "lint_suppressions": {
+        "type": "object",
+        "additionalProperties": {"type": "string", "minLength": 1},
+        "description": "Warning code → reason for accepting the policy risk.",
+    },
 }
 
 

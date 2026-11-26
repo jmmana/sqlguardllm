@@ -61,6 +61,7 @@ class Policy:
             aggregates, and groups smaller than ``k`` never come back.
         schema: Table → its columns. Lets ``*`` over a table with masked columns be expanded
             with the masks instead of rejected.
+        lint_suppressions: Warning code → reason for accepting the policy risk.
     """
 
     dialect: str
@@ -81,6 +82,7 @@ class Policy:
     masked_columns: Mapping[str, str] = field(default_factory=dict)
     aggregate_only: Mapping[str, int] = field(default_factory=dict)
     schema: Mapping[str, Collection[str]] | None = None
+    lint_suppressions: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not isinstance(self.dialect, str) or not self.dialect.strip():
@@ -166,6 +168,14 @@ class Policy:
                     raise PolicyError(f"schema[{table!r}] must contain non-empty strings")
                 frozen_schema[table] = items
             object.__setattr__(self, "schema", MappingProxyType(frozen_schema))
+        if not isinstance(self.lint_suppressions, Mapping) or not all(
+            isinstance(code, str) and code.strip() and isinstance(reason, str) and reason.strip()
+            for code, reason in self.lint_suppressions.items()
+        ):
+            raise PolicyError("lint_suppressions must map warning codes to non-empty reasons")
+        object.__setattr__(
+            self, "lint_suppressions", MappingProxyType(dict(self.lint_suppressions))
+        )
 
     @classmethod
     def from_database(

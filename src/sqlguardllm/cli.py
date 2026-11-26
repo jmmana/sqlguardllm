@@ -4,6 +4,7 @@
     echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json -
     sqlguardllm schema > schema/policy.schema.json
     sqlguardllm schema --policy-set > schema/policy-set.schema.json
+    sqlguardllm lint --policy policy.yaml --strict
     sqlguardllm serve --policy policy.yaml --port 8787
     sqlguardllm mcp --policy policy.yaml --db sqlite:///demo.db --context @context.json
 
@@ -24,6 +25,7 @@ from typing import Any, TextIO
 
 from sqlguardllm import __version__
 from sqlguardllm.guard import Guard
+from sqlguardllm.lint import lint_policy
 from sqlguardllm.messages import LANGUAGES
 from sqlguardllm.policy import Policy
 from sqlguardllm.policy_set import PolicySet
@@ -64,6 +66,16 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--language", choices=LANGUAGES, default="en", help="message language")
     check.add_argument("--format", choices=("text", "json"), default="text", help="output format")
     check.add_argument("--pretty", action="store_true", help="pretty-print the rewritten SQL")
+
+    lint = commands.add_parser(
+        "lint",
+        help="warn about valid policies that may be unsafe",
+        description="Warnings do not fail unless --strict is used.",
+    )
+    lint.add_argument("--policy", required=True, type=Path, help="policy file (.yaml or .json)")
+    lint.add_argument("--role", default=None, help="role to lint from a policy-set file")
+    lint.add_argument("--format", choices=("text", "json"), default="text", help="output format")
+    lint.add_argument("--strict", action="store_true", help="exit 1 when warnings are found")
 
     schema = commands.add_parser("schema", help="print the JSON Schema of policy files")
     schema.add_argument(
@@ -282,6 +294,38 @@ def _check(args: argparse.Namespace, stdin: TextIO, stdout: TextIO) -> int:
     return EXIT_OK if result.ok else EXIT_REJECTED
 
 
+def _lint(args: argparse.Namespace, stdout: TextIO) -> int:
+    policy = _load_role(args.policy, args.role) if args.role else _load_policy(args.policy, None)
+    try:
+        Guard(policy)
+    except PolicyError as exc:
+        raise _UsageError(f"invalid policy {args.policy}: {exc}") from exc
+    result = lint_policy(policy)
+    if args.format == "json":
+        print(
+            json.dumps(
+                {
+                    "warnings": [dataclasses.asdict(item) for item in result.warnings],
+                    "skipped": [dataclasses.asdict(item) for item in result.skipped],
+                    "suppressed": [dataclasses.asdict(item) for item in result.suppressed],
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            file=stdout,
+        )
+    else:
+        for warning in result.warnings:
+            print(f"warning[{warning.code}]: {warning.message}\n  fix: {warning.fix}", file=stdout)
+        for suppressed_item in result.suppressed:
+            print(f"suppressed[{suppressed_item.code}]: {suppressed_item.reason}", file=stdout)
+        for skipped_item in result.skipped:
+            print(f"skipped[{skipped_item.code}]: {skipped_item.reason}", file=stdout)
+        if not result.warnings and not result.suppressed and not result.skipped:
+            print("No policy warnings.", file=stdout)
+    return EXIT_REJECTED if args.strict and result.warnings else EXIT_OK
+
+
 def main(
     argv: Sequence[str] | None = None,
     stdin: TextIO | None = None,
@@ -305,6 +349,8 @@ def main(
             return _mcp(args)
         if args.command == "serve":
             return _serve(args, stderr)
+        if args.command == "lint":
+            return _lint(args, stdout)
         return _check(args, stdin, stdout)
     except _UsageError as exc:
         print(f"sqlguardllm: error: {exc}", file=stderr)

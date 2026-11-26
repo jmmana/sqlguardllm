@@ -188,6 +188,14 @@
             "minItems": 1
           },
           "description": "Table → columns. Lets * over a table with masked columns be expanded."
+        },
+        "lint_suppressions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Warning code → reason for accepting the policy risk."
         }
       }
     },
@@ -296,6 +304,14 @@
                 "minItems": 1
               },
               "description": "Added to the inherited schema."
+            },
+            "lint_suppressions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Added to the inherited lint_suppressions."
             }
           },
           "description": "Joined to inherited lists, merged into inherited mappings."
@@ -454,6 +470,14 @@
             "minItems": 1
           },
           "description": "Table → columns. Lets * over a table with masked columns be expanded."
+        },
+        "lint_suppressions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Warning code → reason for accepting the policy risk."
         }
       }
     }
