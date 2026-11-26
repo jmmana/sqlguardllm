@@ -13,6 +13,7 @@ appear in tool results, error messages or logs.
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import math
 import time
@@ -42,6 +43,7 @@ from sqlglot.errors import SqlglotError
 
 from sqlguardllm import __version__
 from sqlguardllm._compiled import Compiled
+from sqlguardllm._cost import CostEstimate, explain_statement, parse_plan_cost
 from sqlguardllm._names import TableName, find, norm, parse_table_entry
 from sqlguardllm.guard import Guard
 from sqlguardllm.messages import violation
@@ -74,6 +76,21 @@ _TEXT: dict[str, dict[str, str]] = {
     "rejected_by_db": {
         "en": "The database rejected the query: {detail}",
         "es": "La base de datos rechazó la consulta: {detail}",
+    },
+    "too_costly": {
+        "en": (
+            "The query is too expensive: the database estimates {estimate}, above the limit of "
+            "{limit}. Add a filter (WHERE) or select fewer columns and try again"
+        ),
+        "es": (
+            "La consulta es demasiado costosa: la base de datos estima {estimate}, por encima "
+            "del límite de {limit}. Añade un filtro (WHERE) o selecciona menos columnas e "
+            "inténtalo de nuevo"
+        ),
+    },
+    "cost_unknown": {
+        "en": "The query cost could not be estimated, so the query was not run: {detail}",
+        "es": "No se pudo estimar el costo de la consulta, así que no se ejecutó: {detail}",
     },
     "unavailable": {
         "en": "The database is not available right now; try again later",
@@ -194,6 +211,33 @@ def _begin_read_only(conn: Connection, timeout: float) -> Callable[[], None]:
     return lambda: None
 
 
+Estimator = Callable[[Connection, str], CostEstimate]
+"""Gets the planner's estimate for a query on an open connection (``EXPLAIN``, never run it)."""
+
+_COST_BACKENDS = ("postgresql", "mysql")
+
+
+def _explain_estimate(conn: Connection, sql: str) -> CostEstimate:
+    """Ask the engine for its plan in JSON and read the estimate. Never executes ``sql``."""
+    statement = explain_statement(conn.dialect.name, sql)
+    if statement is None:
+        raise ValueError(f"cost estimates are not supported for {conn.dialect.name}")
+    text = conn.exec_driver_sql(statement).scalar()
+    if isinstance(text, bytes | bytearray):
+        text = bytes(text).decode()
+    if not isinstance(text, str):
+        text = json.dumps(text)  # psycopg may already decode json
+    return parse_plan_cost(conn.dialect.name, text)
+
+
+def _fmt(value: float) -> str:
+    return f"{value:,.0f}" if value >= 100 else f"{value:g}"
+
+
+class _CostRefused(Exception):
+    """The cost guard refused the query; the message is for the model."""
+
+
 class _Tools:
     """The four tools, bound to one guard, one database and one caller's context."""
 
@@ -204,7 +248,14 @@ class _Tools:
         context: Mapping[str, Any] | None,
         language: str,
         timeout: float,
+        *,
+        max_cost: float | None = None,
+        max_plan_rows: float | None = None,
+        estimator: Estimator | None = None,
     ) -> None:
+        self.max_cost = max_cost
+        self.max_plan_rows = max_plan_rows
+        self.estimator = estimator
         self.guard = guard
         self.engine = engine
         self._context = context
@@ -425,7 +476,10 @@ class _Tools:
         # rewritten SQL has the user's context values bound into the row filters. The model gets
         # each filter as written in the policy, with its {user.…} placeholders.
         templates = self.guard.policy.row_filters
+        report = self._estimate_report(sql) if explanation.ok and self.cost_guard else None
+        extra = {"estimate": report} if report is not None else {}
         return {
+            **extra,
             "ok": explanation.ok,
             "tables": sorted(explanation.tables),
             "columns": {
@@ -444,6 +498,69 @@ class _Tools:
                 for item in explanation.violations
             ],
         }
+
+    @property
+    def cost_guard(self) -> bool:
+        return self.max_cost is not None or self.max_plan_rows is not None
+
+    def _check_cost(self, conn: Connection, sql: str) -> None:
+        """Refuse a query whose estimate is over a threshold. Fails closed when one is set."""
+        if not self.cost_guard:
+            return
+        try:
+            estimate = (self.estimator or _explain_estimate)(conn, sql)
+        except Exception as exc:  # EXPLAIN failed or its output can't be read: don't run blind
+            if isinstance(exc, DBAPIError) and exc.connection_invalidated:
+                raise
+            detail = exc.orig if isinstance(exc, DBAPIError) else exc
+            logger.warning(
+                "cost check failed: %s: %s",
+                type(detail).__name__,
+                _first_line(str(detail), self._password),
+            )
+            raise _CostRefused(
+                self._text("cost_unknown", detail=_first_line(str(detail), self._password))
+            ) from None
+        over: list[tuple[str, float, float]] = []
+        if self.max_cost is not None and estimate.cost > self.max_cost:
+            over.append(("cost", estimate.cost, self.max_cost))
+        if self.max_plan_rows is not None:
+            if estimate.rows is None:
+                raise _CostRefused(
+                    self._text("cost_unknown", detail="the plan has no row estimate")
+                )
+            if estimate.rows > self.max_plan_rows:
+                over.append(("rows", estimate.rows, self.max_plan_rows))
+        if over:
+            estimated = ", ".join(f"{name} {_fmt(value)}" for name, value, _ in over)
+            limits = ", ".join(f"{name} {_fmt(limit)}" for name, _, limit in over)
+            raise _CostRefused(self._text("too_costly", estimate=estimated, limit=limits))
+
+    def _estimate_report(self, sql: str) -> dict[str, Any] | None:
+        """The planner's estimate for explain_query, or None when unavailable."""
+        if self.estimator is None and self.engine.dialect.name not in _COST_BACKENDS:
+            return None
+        try:
+            safe_sql = self.guard.enforce(sql, self._context)
+            with self.engine.connect() as raw:
+                conn = raw.execution_options(no_parameters=True)
+                transaction = conn.begin()
+                try:
+                    restore = _begin_read_only(conn, self.timeout)
+                    try:
+                        estimate = (self.estimator or _explain_estimate)(conn, safe_sql)
+                    finally:
+                        restore()
+                finally:
+                    transaction.rollback()
+        except Exception:
+            return None
+        report: dict[str, Any] = {"cost": estimate.cost, "rows": estimate.rows}
+        if self.max_cost is not None:
+            report["max_cost"] = self.max_cost
+        if self.max_plan_rows is not None:
+            report["max_plan_rows"] = self.max_plan_rows
+        return report
 
     def query(self, sql: _SqlArg) -> dict[str, Any]:
         """Run a read-only query and return its rows."""
@@ -464,6 +581,7 @@ class _Tools:
             try:
                 restore = _begin_read_only(conn, self.timeout)
                 try:
+                    self._check_cost(conn, safe_sql)
                     result = conn.exec_driver_sql(safe_sql)
                     columns = list(map(str, result.keys()))  # not iter(result): rows
                     rows = result.fetchmany(self.max_rows)
@@ -472,6 +590,8 @@ class _Tools:
                     restore()
             finally:
                 transaction.rollback()
+        except _CostRefused as refusal:
+            raise ToolError(str(refusal)) from None
         except DBAPIError as exc:
             if time.monotonic() - started >= self.timeout:
                 raise ToolError(self._text("timeout", seconds=self.timeout)) from None
@@ -516,6 +636,9 @@ def create_server(
     language: str = "en",
     timeout: float = DEFAULT_TIMEOUT,
     name: str = "sqlguardllm",
+    max_cost: float | None = None,
+    max_plan_rows: float | None = None,
+    estimator: Estimator | None = None,
 ) -> MCPServer[Any]:
     """Build the MCP server: four read-only tools over ``database``, guarded by ``policy``.
 
@@ -526,15 +649,27 @@ def create_server(
         language: Language of violation messages, ``"en"`` or ``"es"``.
         timeout: Seconds a query may run before it is cancelled.
         name: Server name shown by MCP clients.
+        max_cost: Refuse queries whose planner cost (``EXPLAIN``, PostgreSQL and MySQL) is above
+            this. Ignored, with a warning, on other engines. Fails closed if the estimate fails.
+        max_plan_rows: Same, for the planner's row estimate.
+        estimator: Replaces the ``EXPLAIN`` estimate; meant for tests.
 
     Raises:
         PolicyError: If the policy is invalid.
-        ValueError: If the timeout or the database URL is invalid, or the driver is missing.
+        ValueError: If a threshold or the timeout is invalid, the database URL is invalid or the
+            driver is missing.
     """
     if isinstance(timeout, bool) or not isinstance(timeout, int | float):
         raise ValueError("timeout must be a number of seconds")
     if not math.isfinite(timeout) or timeout <= 0:
         raise ValueError("timeout must be a positive number of seconds")
+    for label, limit in (("max_cost", max_cost), ("max_plan_rows", max_plan_rows)):
+        if limit is None:
+            continue
+        if isinstance(limit, bool) or not isinstance(limit, int | float):
+            raise ValueError(f"{label} must be a number")
+        if not math.isfinite(limit) or limit <= 0:
+            raise ValueError(f"{label} must be a positive number")
     guard = Guard(policy, language=language)
     owned = isinstance(database, str)
     engine = _create_engine(database) if isinstance(database, str) else database
@@ -546,7 +681,24 @@ def create_server(
             "the policy generates %s SQL but the database is %s", target, engine.dialect.name
         )
 
-    tools = _Tools(guard, engine, context, language, float(timeout))
+    unsupported = engine.dialect.name not in _COST_BACKENDS
+    if (max_cost is not None or max_plan_rows is not None) and estimator is None and unsupported:
+        logger.warning(
+            "the cost guard (max_cost, max_plan_rows) is ignored: %s has no supported "
+            "EXPLAIN estimate (only PostgreSQL and MySQL); queries run without a cost check",
+            engine.dialect.name,
+        )
+        max_cost = max_plan_rows = None
+    tools = _Tools(
+        guard,
+        engine,
+        context,
+        language,
+        float(timeout),
+        max_cost=None if max_cost is None else float(max_cost),
+        max_plan_rows=None if max_plan_rows is None else float(max_plan_rows),
+        estimator=estimator,
+    )
 
     @asynccontextmanager
     async def lifespan(_: MCPServer[Any]) -> AsyncIterator[None]:

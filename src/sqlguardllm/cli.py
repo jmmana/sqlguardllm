@@ -104,6 +104,18 @@ def _parser() -> argparse.ArgumentParser:
     mcp.add_argument(
         "--timeout", type=float, default=30.0, help="seconds a query may run (default 30)"
     )
+    mcp.add_argument(
+        "--max-cost",
+        type=float,
+        default=None,
+        help="refuse queries whose EXPLAIN cost exceeds this (PostgreSQL and MySQL only)",
+    )
+    mcp.add_argument(
+        "--max-plan-rows",
+        type=float,
+        default=None,
+        help="refuse queries whose EXPLAIN row estimate exceeds this (PostgreSQL and MySQL only)",
+    )
 
     serve = commands.add_parser(
         "serve",
@@ -201,7 +213,13 @@ def _mcp(args: argparse.Namespace) -> int:
         raise _UsageError("--timeout must be a positive number of seconds")
     try:
         server = create_server(
-            policy, url, context=context, language=args.language, timeout=args.timeout
+            policy,
+            url,
+            context=context,
+            language=args.language,
+            timeout=args.timeout,
+            max_cost=args.max_cost,
+            max_plan_rows=args.max_plan_rows,
         )
     except PolicyError as exc:
         raise _UsageError(f"invalid policy {args.policy}: {exc}") from None

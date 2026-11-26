@@ -1,0 +1,16 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Seq Scan",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Relation Name": "t",
+      "Alias": "t",
+      "Startup Cost": 0.00,
+      "Total Cost": 17.50,
+      "Plan Rows": 143,
+      "Plan Width": 8,
+      "Filter": "(v = 3)"
+    }
+  }
+]

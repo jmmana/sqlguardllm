@@ -245,7 +245,7 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 
 ### MCP server
 
-> Status: **implemented** (unreleased), with `--role` for policy sets, `--language` and `--timeout`. The optional cost guard is still planned. Setup for each client in [MCP.md](MCP.md).
+> Status: **implemented** (unreleased), with `--role` for policy sets, `--language` and `--timeout`. The optional cost guard (`--max-cost`, `--max-plan-rows`, PostgreSQL and MySQL) is implemented. Setup for each client in [MCP.md](MCP.md).
 
 `sqlguardllm mcp --policy policy.yaml --db "$DATABASE_URL" [--context JSON]` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio (optional extra `sqlguardllm[mcp]`). It gives any MCP client (Claude Desktop, Cursor, VS Code, agents) a database tool that can't do harm:
 
