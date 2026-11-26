@@ -11,6 +11,10 @@ on:
         description: Optional comma-separated public context paths
         type: string
         required: false
+      preflight:
+        description: Call only the free Claude token counter, even if execute is selected
+        type: boolean
+        default: false
       execute:
         description: Authorize one Claude response within the USD 5 execution budget
         type: boolean
@@ -31,15 +35,24 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Preview prompt
-        if: ${{ !inputs.execute }}
+        if: ${{ !inputs.execute && !inputs.preflight }}
         env:
           ISSUE: ${{ inputs.issue }}
           ISSUE_FILES: ${{ inputs.files }}
         run: |
           python3 scripts/claude_issue_helper.py --issue="$ISSUE" --files="$ISSUE_FILES" \
             --commit="$GITHUB_SHA" --output-dir="$RUNNER_TEMP/claude-issue-output"
+      - name: Check Claude token count
+        if: ${{ inputs.preflight }}
+        env:
+          ISSUE: ${{ inputs.issue }}
+          ISSUE_FILES: ${{ inputs.files }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+        run: |
+          python3 scripts/claude_issue_helper.py --issue="$ISSUE" --files="$ISSUE_FILES" \
+            --commit="$GITHUB_SHA" --output-dir="$RUNNER_TEMP/claude-issue-output" --preflight-only
       - name: Generate proposal
-        if: ${{ inputs.execute }}
+        if: ${{ inputs.execute && !inputs.preflight }}
         env:
           ISSUE: ${{ inputs.issue }}
           ISSUE_FILES: ${{ inputs.files }}
