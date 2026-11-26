@@ -185,12 +185,15 @@ Lo que no hace, y por qué, está en el [modelo de amenazas](docs/THREAT_MODEL.m
 
 sqlguardllm va donde tu app ejecuta el SQL que escribió el modelo. Las recetas planeadas para la v0.3 cubrirán un envoltorio genérico de `execute()`, las herramientas SQL de LangChain y LlamaIndex, Vanna y servidores MCP de bases de datos. Ver [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
-También habrá una herramienta de línea de comandos, útil en CI y para probar políticas:
+La herramienta de línea de comandos sirve en CI y para probar políticas. Sale con 0 si la consulta se permite (e imprime el SQL reescrito), 1 si se rechaza (e imprime las violaciones) y 2 ante un error de uso o de la política:
 
 ```bash
 sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' \
   "SELECT * FROM invoices"
+echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json --language es -
 ```
+
+Los archivos de política tienen un [JSON Schema](schema/policy.schema.json) para autocompletar en VS Code y otros editores.
 
 ## Otros lenguajes
 

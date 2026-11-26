@@ -183,12 +183,15 @@ What it does not do, and why, is in the [threat model](docs/THREAT_MODEL.md).
 
 sqlguardllm sits wherever your app executes the SQL the model wrote. Recipes, planned for v0.3, will cover a generic `execute()` wrapper, LangChain and LlamaIndex SQL tools, Vanna, and MCP database servers. See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
-A command-line tool is planned too, handy in CI and for trying policies:
+The command-line tool is handy in CI and for trying policies. Exit code 0 means allowed (it prints the rewritten SQL), 1 rejected (it prints the violations) and 2 a usage or policy error:
 
 ```bash
 sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}' \
   "SELECT * FROM invoices"
+echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json -
 ```
+
+Policy files have a [JSON Schema](schema/policy.schema.json) for autocompletion in VS Code and other editors.
 
 ## Other languages
 

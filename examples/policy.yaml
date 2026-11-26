@@ -1,4 +1,6 @@
-# Example sqlguardllm policy (format planned for v0.2: Policy.from_file / sqlguardllm check --policy).
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy.schema.json
+# Example sqlguardllm policy: Policy.from_file("examples/policy.yaml") or
+# sqlguardllm check --policy examples/policy.yaml --context '{"user": {"branches": [1, 2]}}' "SELECT …"
 # A sales database where each branch manager may only see their branches.
 dialect: postgres
 
