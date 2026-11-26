@@ -179,6 +179,8 @@ class Policy:
     ) -> Policy:
         """Build a policy whose ``tables`` and ``schema`` are read from a live database.
 
+        Experimental: this helper can change while the database introspection API evolves.
+
         Needs ``pip install "sqlguardllm[db]"`` and your database driver. Only names are read.
         ``include``/``exclude`` are glob patterns over table names (``"invoice*"``,
         ``"audit_*"``); ``schemas`` limits which schemas are read. ``dialect`` is taken from the

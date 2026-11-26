@@ -17,6 +17,9 @@ validation:
     unrecognized_links: warn
 nav:
   - Home: index.md
+  - Packages:
+      - English: packages.md
+      - Español: es/packages.md
   - Quickstart:
       - English: quickstart.md
       - Español: es/quickstart.md

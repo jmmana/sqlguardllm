@@ -24,6 +24,8 @@ An invalid policy or an empty `--token-env` variable exits with code 2. The toke
 
 ## Contract
 
+See the [package guide](packages.md#http-protocol-version) for the protocol compatibility policy.
+
 All responses are `application/json; charset=utf-8`.
 
 - `GET /v1/health` returns `{"status": "ok", "version": "..."}`. It never needs a token.
