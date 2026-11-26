@@ -16,7 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --group docs
-      - run: uv run mkdocs build --strict
+      # Built under site/sqlguardllm/ like the published URL, so root-relative links resolve.
+      - run: uv run mkdocs build --strict --site-dir site/sqlguardllm
         env:
           DISABLE_MKDOCS_2_WARNING: "true"
       - name: Check links
@@ -29,7 +30,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          path: site
+          path: site/sqlguardllm
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
