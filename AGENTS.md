@@ -1,4 +1,4 @@
-# Contributor and agent workflow
+# Agent workflow
 
 Follow [CONTRIBUTING.md](CONTRIBUTING.md) for setup, design principles and validation commands.
 
@@ -9,9 +9,9 @@ Follow [CONTRIBUTING.md](CONTRIBUTING.md) for setup, design principles and valid
 - Keep one active implementation branch per agent. Finish its checks and integration before starting another implementation.
 - A branch waiting for review may remain while its PR is open. Do not recreate or reuse a merged branch.
 
-## Use the Claude API for issue development
+## Use the Claude API for agent issue development
 
-- Obtain a Claude API proposal or code review for each issue through the [manual issue helper](docs/CLAUDE_ISSUE_HELPER.md).
+- Maintainer-directed coding agents obtain a Claude API proposal or code review for each issue through the [manual issue helper](docs/CLAUDE_ISSUE_HELPER.md).
 - Use the configured GitHub Actions secret `ANTHROPIC_API_TOKEN`. Never expose its value in files, prompts, logs, issues or PRs.
 - Respect the spending limit already authorized for the task, including earlier calls. The helper's USD 5 per-run ceiling is not a new spending authorization.
 - Preserve the run's `manifest.json` and proposal. Record the workflow link, model, token usage and estimated cost in the PR.
