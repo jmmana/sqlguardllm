@@ -4,6 +4,12 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.2.0a2] - 2026-11-25
+
+### Security
+
+- **Hidden columns in `HAVING`, `QUALIFY` and inside `ORDER BY`/`DISTINCT ON` expressions were not checked when unqualified.** sqlglot leaves those columns out of a scope's column list because they could be select aliases, so `SELECT COUNT(*) FROM customers HAVING MAX(email) > 'm'` was allowed and, repeated, leaked the column one comparison at a time. They are now checked conservatively as source columns; a bare alias in `ORDER BY` keeps working. Affects 0.1.0a1 to 0.2.0a1: upgrade.
+
 ### Added
 
 - Command-line tool: `sqlguardllm check --policy FILE [--context JSON|@file] [--dialect D] [--language es] [--format json] [SQL | -]`, with exit codes 0 (allowed), 1 (rejected) and 2 (usage or policy error). Also `python -m sqlguardllm` (#12).
@@ -52,7 +58,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a1...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a2...HEAD
+[0.2.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a1...v0.2.0a2
 [0.2.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a2...v0.2.0a1
 [0.1.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a1...v0.1.0a2
 [0.1.0a1]: https://github.com/jmmana/sqlguardllm/releases/tag/v0.1.0a1
