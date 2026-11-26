@@ -4,6 +4,7 @@
     echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json -
     sqlguardllm schema > schema/policy.schema.json
     sqlguardllm schema --policy-set > schema/policy-set.schema.json
+    sqlguardllm mcp --policy policy.yaml --db sqlite:///demo.db --context @context.json
 
 Exit codes: 0 allowed, 1 rejected, 2 usage or policy error.
 """
@@ -13,6 +14,8 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import math
+import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -22,6 +25,7 @@ from sqlguardllm import __version__
 from sqlguardllm.guard import Guard
 from sqlguardllm.messages import LANGUAGES
 from sqlguardllm.policy import Policy
+from sqlguardllm.policy_set import PolicySet
 from sqlguardllm.result import CheckResult, PolicyError
 from sqlguardllm.schema import policy_schema, policy_set_schema
 
@@ -66,6 +70,39 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="print the schema of policy-set files (base and roles) instead",
     )
+
+    mcp = commands.add_parser(
+        "mcp",
+        help="run an MCP server over stdio with a database tool that can't do harm",
+        description='Needs the optional extra: pip install "sqlguardllm[mcp]". Gives MCP clients '
+        "the tools list_tables, describe_table, explain_query and query. Connect with a "
+        "read-only database user.",
+    )
+    mcp.add_argument(
+        "--policy",
+        required=True,
+        type=Path,
+        help="policy file (.yaml or .json), or a policy-set file with --role",
+    )
+    mcp.add_argument(
+        "--role", default=None, help="role to use from a policy-set file (base and roles)"
+    )
+    mcp.add_argument(
+        "--db",
+        default=None,
+        help="SQLAlchemy database URL, such as sqlite:///demo.db or "
+        "postgresql+psycopg://reader@host/db (default: the DATABASE_URL environment variable, "
+        "which keeps a password out of the command line)",
+    )
+    mcp.add_argument(
+        "--context",
+        default=None,
+        help="JSON with the values for row filters, or @file.json; set by you, never by the model",
+    )
+    mcp.add_argument("--language", choices=LANGUAGES, default="en", help="message language")
+    mcp.add_argument(
+        "--timeout", type=float, default=30.0, help="seconds a query may run (default 30)"
+    )
     return parser
 
 
@@ -99,6 +136,15 @@ def _load_policy(path: Path, dialect: str | None) -> Policy:
         raise _UsageError(f"invalid policy {path}: {exc}") from exc
 
 
+def _load_role(path: Path, role: str) -> Policy:
+    try:
+        return PolicySet.from_file(path).for_role(role)
+    except OSError as exc:
+        raise _UsageError(f"cannot read the policy set: {exc}") from exc
+    except (PolicyError, ValueError) as exc:
+        raise _UsageError(f"invalid policy set {path}: {exc}") from exc
+
+
 def _as_json(result: CheckResult) -> str:
     return json.dumps(
         {
@@ -114,6 +160,34 @@ def _as_json(result: CheckResult) -> str:
         ensure_ascii=False,
         indent=2,
     )
+
+
+def _mcp(args: argparse.Namespace) -> int:
+    try:
+        from sqlguardllm.mcp_server import create_server  # noqa: PLC0415 - optional extra
+    except ImportError as exc:
+        missing = (exc.name or "unknown").split(".")[0]
+        raise _UsageError(
+            'the MCP server needs the optional extra: pip install "sqlguardllm[mcp]" '
+            f"(missing module {missing})"
+        ) from exc
+    policy = _load_role(args.policy, args.role) if args.role else _load_policy(args.policy, None)
+    context = _read_context(args.context)
+    url = args.db or os.environ.get("DATABASE_URL")
+    if not url:
+        raise _UsageError("no database: pass --db URL or set DATABASE_URL")
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        raise _UsageError("--timeout must be a positive number of seconds")
+    try:
+        server = create_server(
+            policy, url, context=context, language=args.language, timeout=args.timeout
+        )
+    except PolicyError as exc:
+        raise _UsageError(f"invalid policy {args.policy}: {exc}") from None
+    except ValueError as exc:  # never includes the URL, which may hold a password
+        raise _UsageError(str(exc)) from None
+    server.run("stdio")
+    return EXIT_OK
 
 
 def _check(args: argparse.Namespace, stdin: TextIO, stdout: TextIO) -> int:
@@ -155,6 +229,8 @@ def main(
             schema = policy_set_schema() if args.policy_set else policy_schema()
             print(json.dumps(schema, indent=2, ensure_ascii=False), file=stdout)
             return EXIT_OK
+        if args.command == "mcp":
+            return _mcp(args)
         return _check(args, stdin, stdout)
     except _UsageError as exc:
         print(f"sqlguardllm: error: {exc}", file=stderr)

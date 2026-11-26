@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-set.schema.json
+# Policy set for the MCP walkthrough in docs/MCP.md, over the demo database in demo.sql:
+#   sqlguardllm mcp --policy examples/mcp/roles.yaml --role manager \
+#     --context @examples/mcp/context.json --db sqlite:///demo.db
+# api_keys is not listed, so the model can't read it, describe it or even see it.
+base:
+  dialect: sqlite
+  tables: [branches, customers, invoices]
+  hidden_columns: [customers.email, customers.tax_id]
+  masked_columns:
+    customers.phone: partial
+  row_filters:
+    # {user.branches} comes from --context, set by you in the client config, never by the model.
+    invoices: "branch_id IN ({user.branches})"
+    branches: "id IN ({user.branches})"
+  max_rows: 200
+
+roles:
+  # A branch manager: only the invoices of their branches.
+  manager: {}
+
+  # An auditor: every branch, no customer names, at most 50 rows per query.
+  auditor:
+    row_filters: {}
+    max_rows: 50
+    add:
+      hidden_columns: [customers.name]
