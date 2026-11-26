@@ -24,6 +24,7 @@
       <option value="south"></option>
     </select>
     <p id="ctxShow"></p>
+    <p id="roleNote" class="note" hidden></p>
     <label for="sql" data-i="sql">SQL</label>
     <textarea id="sql" rows="4" spellcheck="false" autocomplete="off"></textarea>
     <div class="row">
@@ -34,15 +35,51 @@
     <details open><summary data-i="presets">Attack presets</summary><div id="presets"></div></details>
   </section>
   <section aria-labelledby="h-pol">
-    <h2 id="h-pol" data-i="h_pol">Policy (JSON, editable)</h2>
+    <h2 id="h-pol" data-i="h_rules">Policy rules</h2>
+    <p data-i="rules_intro"></p>
+    <div id="rules">
+      <fieldset>
+        <legend data-i="r_email">Email column (customers.email)</legend>
+        <label class="opt"><input type="radio" name="email" value="visible"> <span data-i="r_email_visible"></span></label>
+        <label class="opt"><input type="radio" name="email" value="hidden"> <span data-i="r_email_hidden"></span></label>
+        <label class="opt"><input type="radio" name="email" value="masked"> <span data-i="r_email_masked"></span></label>
+        <div class="sub">
+          <label for="maskStrategy" data-i="r_mask">Mask</label>
+          <select id="maskStrategy">
+            <option value="partial"></option>
+            <option value="redact"></option>
+            <option value="null"></option>
+            <option value="hash" disabled></option>
+          </select>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend data-i="r_rows">Rows</legend>
+        <label class="opt"><input type="checkbox" id="rowFilter"> <span data-i="r_filter"></span></label>
+        <label for="maxRows" data-i="r_max">Maximum rows per query</label>
+        <input type="number" id="maxRows" min="1" step="1" inputmode="numeric">
+        <p class="help" data-i="r_max_help"></p>
+      </fieldset>
+      <fieldset>
+        <legend data-i="r_tables">Tables</legend>
+        <label class="opt"><input type="checkbox" id="allowUsers"> <span data-i="r_users"></span></label>
+        <label class="opt sub"><input type="checkbox" id="hidePwd"> <span data-i="r_pwd"></span></label>
+      </fieldset>
+      <p id="rulesErr" class="err" role="status" hidden></p>
+    </div>
+    <h2 id="h-json" data-i="h_pol">Policy (JSON, editable)</h2>
     <label for="policy" class="sr" data-i="h_pol">Policy</label>
-    <textarea id="policy" rows="16" spellcheck="false" autocomplete="off"></textarea>
+    <textarea id="policy" rows="14" spellcheck="false" autocomplete="off"></textarea>
     <p data-i="demodb"></p>
     <button id="reset" type="button" data-i="reset">Reset policy</button>
   </section>
-  <section aria-labelledby="h-out" style="grid-column:1/-1">
+  <section aria-labelledby="h-out" class="wide">
     <h2 id="h-out" data-i="h_out">Result</h2>
     <div id="out" aria-live="polite"><p data-i="empty"></p></div>
+  </section>
+  <section aria-labelledby="h-help" class="wide">
+    <h2 id="h-help" data-i="h_help">What do these rules mean?</h2>
+    <div id="help"></div>
   </section>
 </div>
 <p><small data-i="privacy"></small></p>

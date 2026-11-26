@@ -1,5 +1,10 @@
 <div align="center">
 
+[![PyPI](https://img.shields.io/pypi/v/sqlguardllm?include_prereleases&label=PyPI&color=10B981)](https://pypi.org/project/sqlguardllm/)
+[![npm](https://img.shields.io/npm/v/sqlguardllm/alpha?label=npm&color=CB3837)](https://www.npmjs.com/package/sqlguardllm)
+[![NuGet](https://img.shields.io/nuget/vpre/SqlGuardLlm?label=NuGet&color=004880)](https://www.nuget.org/packages/SqlGuardLlm)
+[![Docs](https://img.shields.io/badge/docs-jmmana.github.io%2Fsqlguardllm-3B82F6)](https://jmmana.github.io/sqlguardllm/)
+
 [![English](https://img.shields.io/badge/English-10B981?style=for-the-badge)](README.md)
 [![Leer en español](https://img.shields.io/badge/Leer_en_espa%C3%B1ol-1F2937?style=for-the-badge)](README.es.md)
 
@@ -12,7 +17,6 @@
 
 Your model writes SQL. **sqlguardllm** makes sure it can only read what it's allowed to read: one read-only statement, allowlisted tables and columns, row-level filters per user, and a row limit, in any of the 32 dialects [sqlglot](https://github.com/tobymao/sqlglot) speaks.
 
-[![PyPI](https://img.shields.io/pypi/v/sqlguardllm?include_prereleases&label=pypi&color=10B981)](https://pypi.org/project/sqlguardllm/)
 [![CI](https://github.com/jmmana/sqlguardllm/actions/workflows/ci.yml/badge.svg)](https://github.com/jmmana/sqlguardllm/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-3B82F6)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](docs/DESIGN.md)
@@ -29,6 +33,34 @@ Your model writes SQL. **sqlguardllm** makes sure it can only read what it's all
 ---
 
 Full documentation: https://jmmana.github.io/sqlguardllm/
+
+## Install
+
+**Python** 3.10+: the engine itself, inside your process.
+
+```bash
+pip install --pre sqlguardllm
+```
+
+**Node.js / TypeScript** 18+: a client for `sqlguardllm serve`.
+
+```bash
+npm install sqlguardllm
+```
+
+**.NET** 8 or 10: a client for `sqlguardllm serve`, on NuGet from 0.5.0-alpha.2.
+
+```bash
+dotnet add package SqlGuardLlm --prerelease
+```
+
+**The server** that the Node.js and .NET clients talk to, in another terminal (Python 3.10+). No Docker image is published; the [Dockerfile](Dockerfile) builds one if you need it.
+
+```bash
+uvx sqlguardllm serve --policy policy.json --port 8787    # or: pipx run sqlguardllm serve ...
+```
+
+**Step by step** for each language, from install to a program and its exact output: [Python](https://jmmana.github.io/sqlguardllm/guide-python/) · [Node.js / TypeScript](https://jmmana.github.io/sqlguardllm/guide-node/) · [.NET](https://jmmana.github.io/sqlguardllm/guide-dotnet/) · [which package to choose](https://jmmana.github.io/sqlguardllm/packages/). Embedded engines for Node.js ([#85](https://github.com/jmmana/sqlguardllm/issues/85)) and .NET ([#86](https://github.com/jmmana/sqlguardllm/issues/86)), with no server, are planned.
 
 ## Try it: input, decision and returned SQL
 
@@ -244,15 +276,17 @@ Policy files have a [JSON Schema](schema/policy.schema.json) for autocompletion 
 
 **MCP server:** `sqlguardllm mcp` gives Claude Desktop, Cursor and VS Code a database tool that can't write, see hidden data or escape row filters; copy-paste setup in [docs/MCP.md](docs/MCP.md).
 
-**HTTP server:** `sqlguardllm serve` exposes `POST /v1/check` and `/v1/explain` as a sidecar for any language, with a Docker image; see [docs/SERVER.md](docs/SERVER.md).
+**HTTP server:** `sqlguardllm serve` exposes `POST /v1/check` and `/v1/explain` as a sidecar for any language; the [Dockerfile](Dockerfile) builds an image (none is published yet). See [docs/SERVER.md](docs/SERVER.md).
 
 ## Other languages
 
-Node.js/TypeScript: official client source lives in [`clients/node`](clients/node) (zero dependencies; targets the planned HTTP API; not yet on npm).
+One engine, many clients. The engine is Python because it is built on [sqlglot](https://github.com/tobymao/sqlglot), which only exists in Python, and three engines in three languages could disagree, which in a security library means a bypass. Other languages call the same engine through `sqlguardllm serve`, and every case of the attack corpus must get the same answer from Python, the server, the Node.js client and the .NET client ([conformance](docs/CONFORMANCE.md)).
 
-sqlguardllm is a Python library today: its engine is [sqlglot](https://github.com/tobymao/sqlglot), which only exists in Python, and three engines in three languages could disagree, which in a security library means a bypass. **The HTTP sidecar, npm distribution and .NET client are planned** as one engine with many clients: `sqlguardllm serve` (an HTTP sidecar and Docker image) plus official npm and NuGet clients, with the attack corpus as a conformance suite so every language behaves the same. Follow it in [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6) and the [design](docs/DESIGN.md#other-languages). Until then, any language can use the MCP server (v0.4) or the CLI (v0.2).
+- **Node.js / TypeScript:** `npm install sqlguardllm` ([`clients/node`](clients/node/README.md)): zero dependencies, ESM and CJS, fails closed.
+- **.NET:** `dotnet add package SqlGuardLlm --prerelease` ([`clients/dotnet`](clients/dotnet/README.md)), on NuGet from 0.5.0-alpha.2: net8.0 and net10.0, fails closed.
+- **Any other language:** the [HTTP API](docs/SERVER.md), the [MCP server](docs/MCP.md) or the CLI.
 
-**.NET client:** [`clients/dotnet`](clients/dotnet/README.md) (`SqlGuardLlm`, for NuGet) talks to `sqlguardllm serve` and fails closed.
+Install steps for each language are in [Install](#install). Embedded engines, so the Node.js and .NET packages work with no Python and no server, are planned in [#85](https://github.com/jmmana/sqlguardllm/issues/85) and [#86](https://github.com/jmmana/sqlguardllm/issues/86).
 
 ## Playground: try to break it
 

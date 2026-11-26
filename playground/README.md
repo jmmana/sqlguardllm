@@ -1,6 +1,6 @@
 # Playground: try to break it
 
-A static site (plain HTML, CSS and JS, no build step, no backend) that runs `Guard.check()` in your browser with [Pyodide](https://pyodide.org) 0.29.5, then executes allowed, rewritten SQL on a demo SQLite database (Pyodide's own `sqlite3`, so no sql.js is needed). Policy is editable JSON, two roles have different row filters, and presets cover the [attack gallery](../docs/ATTACK_GALLERY.md). English and Spanish.
+A static site (plain HTML, CSS and JS, no build step, no backend) that runs `Guard.check()` in your browser with [Pyodide](https://pyodide.org) 0.29.5, then executes allowed, rewritten SQL on a demo SQLite database (Pyodide's own `sqlite3`, so no sql.js is needed). Policy is editable JSON, with a **Policy rules** panel of plain-language switches that edit it (email visible, hidden or masked; row filter per branch; `max_rows`; the `users` table), an explanation of every rejection (the rule that fired, why it protects data, how to allow it, a link to the policy reference) and a plain-language guide to each policy field. Two roles have different row filters, and presets cover the [attack gallery](../docs/ATTACK_GALLERY.md). English and Spanish.
 
 Privacy: no analytics, no cookies, no storage. The only third-party request is Pyodide from `cdn.jsdelivr.net` (`pyodide.js` is pinned and has an SRI hash; the engine files it fetches come from the same pinned version URL). `sqlguardllm` and `sqlglot` wheels are served from `wheels/`. The share link stores `{policy, sql, role, lang}` as base64url JSON in the URL fragment, which browsers never send to a server.
 
@@ -14,11 +14,11 @@ python3 -m http.server 8765 --directory playground   # open http://localhost:876
 
 ```bash
 cd playground/test && npm ci && npx playwright install chromium
-python3 -m http.server 8765 --directory .. &          # in another shell
-npm test
+npm test                                   # serves ../ itself on a free port
+PLAYGROUND_URL=https://jmmana.github.io/sqlguardllm/playground/ npm test   # or test a deployed copy
 ```
 
-It checks that Pyodide loads, a DELETE inside a CTE is rejected, an allowed query returns only the role's rows (`OR 1 = 1` cannot widen them), the share link round-trips in a new page, the language toggle works and there is no horizontal scroll at 360 px. CI: `.github/workflows/playground.yml`.
+It checks that Pyodide loads, a DELETE inside a CTE is rejected, an allowed query returns only the role's rows (`OR 1 = 1` cannot widen them), the share link round-trips in a new page, the policy rules panel (email hidden, visible and masked, row filter off, `max_rows`, the `users` table, JSON edits moving the switches, share links carrying an edited policy), the explanations shown for a rejection, the language toggle, and no horizontal scroll at 360 px in dark mode. CI: `.github/workflows/playground.yml`.
 
 ## Measured load time (honest numbers)
 

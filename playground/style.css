@@ -9,7 +9,7 @@ p{margin:.25em 0 1em;color:var(--mut)}
 .grid{display:grid;gap:16px;grid-template-columns:1fr}
 @media (min-width:860px){.grid{grid-template-columns:1fr 1fr}}
 section{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;min-width:0}
-textarea,select{width:100%;font:14px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:8px}
+textarea,select,input[type=number]{width:100%;font:14px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:8px}
 textarea{resize:vertical}
 label{display:block;font-weight:600;margin:0 0 4px}
 button{font:inherit;cursor:pointer;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;min-height:40px}
@@ -30,4 +30,23 @@ pre{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8p
 ul{padding-left:20px;margin:6px 0}
 .sr{position:absolute;left:-9999px}
 .err{color:var(--bad)}
+.wide{grid-column:1/-1}
+fieldset{border:1px solid var(--bd);border-radius:8px;margin:0 0 10px;padding:8px 12px 10px;min-width:0}
+legend{font-weight:700;padding:0 4px}
+label.opt{display:flex;gap:8px;align-items:flex-start;font-weight:400;margin:6px 0;cursor:pointer}
+label.opt input{margin-top:.3em;flex:none;width:auto}
+.sub{margin-left:26px}
+.sub select{max-width:22rem}
+.help,.note{font-size:.9rem;margin:4px 0 6px}
+.note{color:var(--fg);border-left:3px solid var(--ac);padding-left:8px}
+#rules :disabled+span{opacity:.6}
+.why{list-style:none;padding:0}
+.why>li{border:1px solid var(--bd);border-left:4px solid var(--bad);border-radius:6px;padding:8px 10px;margin:8px 0;background:var(--bg)}
+.why p{margin:4px 0;color:var(--fg)}
+.why b{font-weight:700}
+.why .row{margin:6px 0 0}
+.why .row button{font-size:.9rem;min-height:36px;padding:4px 10px}
+dl{margin:0}dt{font-weight:700;margin-top:10px}dd{margin:2px 0 0;color:var(--mut)}
+a{color:var(--ac)}
+code{overflow-wrap:anywhere}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

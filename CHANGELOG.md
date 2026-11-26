@@ -13,8 +13,14 @@ First release on all three registries at once: PyPI, npm and, for the first time
 
 ### Added
 - Every release now publishes to PyPI, npm and NuGet together with the same version, all with Trusted Publishing.
+- Playground: a "Policy rules" panel ("Reglas de la política") of plain-language switches that edit the policy JSON and follow it when the JSON is edited by hand: `customers.email` visible, hidden (the query is rejected) or masked (the query runs and the value comes back as `ce***`; `partial`, `redact` or `null`, since `hash` has no SQLite version), the row filter per branch, `max_rows`, and the `users` table with its `password_hash`. Share links carry the edited policy.
+- Playground: every rejection now explains each violation, for every code the engine emits: the rule that fired, why it protects data, how to allow it (with one-click fixes for the demo's own rules) and a link to the field in the policy reference. A "What do these rules mean?" section explains each policy field in plain language. The Playwright test covers both and now serves the folder itself.
+- Step-by-step guides for Python, Node.js / TypeScript and .NET, in English and Spanish, linked from "Choose a package": install, start `sqlguardllm serve` for the clients, a program that checks one allowed and one rejected query, its exact output, and how to change a rule. The quickstarts point to them.
+- README and README.es: an Install section for every language, and registry badges for PyPI, npm, NuGet and the docs at the top.
+- Policy reference: each field has its own anchor, such as `policy-reference/#max_rows`.
 
 ### Fixed
+- README: "Other languages" still described the server and the npm package as planned, and the HTTP server was said to ship a Docker image; none is published, the `Dockerfile` builds one.
 - T-SQL ordered set operations preserve their ordering and use a valid row limit on SQL Server (#92).
 - Node.js client: the package declared the MIT license by mistake; it is Apache-2.0 like the rest of the project, and the license file now ships in the package.
 - Node.js client: `sqlguardllm/package.json` is exported, so tools can read the installed version.
