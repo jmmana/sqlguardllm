@@ -1,0 +1,7 @@
+{
+  "name": "sqlguardllm-playground-test",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node playground.test.mjs" },
+  "devDependencies": { "playwright": "1.49.1" }
+}
