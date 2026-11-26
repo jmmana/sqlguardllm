@@ -199,6 +199,8 @@ Los archivos de política tienen un [JSON Schema](schema/policy.schema.json) par
 
 **Servidor MCP:** `sqlguardllm mcp` le da a Claude Desktop, Cursor y VS Code una herramienta de base de datos que no puede escribir, ver datos ocultos ni saltarse los filtros por fila; configuración lista para copiar en [docs/MCP.md](docs/MCP.md).
 
+**Servidor HTTP:** `sqlguardllm serve` expone `POST /v1/check` y `/v1/explain` como sidecar para cualquier lenguaje, con imagen Docker; ver [docs/SERVER.md](docs/SERVER.md).
+
 ## Otros lenguajes
 
 Node.js/TypeScript: hay un cliente oficial en [`clients/node`](clients/node) (sin dependencias, habla con `sqlguardllm serve`; aún no está en npm).
