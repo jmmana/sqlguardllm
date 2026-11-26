@@ -274,7 +274,7 @@ sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}
 echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json --language es -
 ```
 
-Los archivos de política tienen un [JSON Schema](schema/policy.schema.json) para autocompletar en VS Code y otros editores.
+Los archivos de política tienen un [JSON Schema](schema/policy.schema.json) para autocompletar en VS Code y otros editores. En CI, `sqlguardllm test` ejecuta las [consultas que tu política debe permitir o rechazar](docs/es/quickstart.md#prueba-una-política-en-ci) y `sqlguardllm lint` [avisa de políticas válidas pero probablemente inseguras](docs/es/quickstart.md#revisa-una-política-con-lint), como una columna `tenant_id` sin filtro por fila.
 
 **Servidor MCP:** `sqlguardllm mcp` le da a Claude Desktop, Cursor y VS Code una herramienta de base de datos que no puede escribir, ver datos ocultos ni saltarse los filtros por fila; configuración lista para copiar en [docs/MCP.md](docs/MCP.md).
 

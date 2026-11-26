@@ -1,4 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-tests.schema.json
+# What the demo policy (policy.yaml) must allow and reject. CI runs:
+#   sqlguardllm test examples/policy-tests.yaml --policy examples/policy.yaml
+# The policy-set demo (roles.yaml) has its cases, one role each, in roles-tests.yaml.
 cases:
   - name: branch manager can read invoices
     sql: SELECT id FROM invoices
@@ -13,3 +16,11 @@ cases:
     sql: SELECT id FROM invoices
     expect: reject
     violation: missing_context
+  - name: answers are capped at 1000 rows
+    sql: SELECT id, name FROM products
+    expect: allow
+    sql_contains: LIMIT 1000
+  - name: the model can't change data
+    sql: DELETE FROM invoices
+    expect: reject
+    violation: not_a_query

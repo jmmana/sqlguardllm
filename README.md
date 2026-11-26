@@ -272,7 +272,7 @@ sqlguardllm check --policy policy.yaml --context '{"user": {"branches": [1, 2]}}
 echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json -
 ```
 
-Policy files have a [JSON Schema](schema/policy.schema.json) for autocompletion in VS Code and other editors.
+Policy files have a [JSON Schema](schema/policy.schema.json) for autocompletion in VS Code and other editors. In CI, `sqlguardllm test` runs the [queries your policy must allow or reject](docs/quickstart.md#test-a-policy-in-ci) and `sqlguardllm lint` [warns about policies that are valid but probably unsafe](docs/quickstart.md#lint-a-policy), such as a `tenant_id` column without a row filter.
 
 **MCP server:** `sqlguardllm mcp` gives Claude Desktop, Cursor and VS Code a database tool that can't write, see hidden data or escape row filters; copy-paste setup in [docs/MCP.md](docs/MCP.md).
 

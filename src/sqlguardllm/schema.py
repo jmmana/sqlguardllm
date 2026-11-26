@@ -1,8 +1,9 @@
 """JSON Schemas of policy and policy-set files, for editors and CI.
 
 The published copies live in ``schema/`` and are regenerated with
-``sqlguardllm schema > schema/policy.schema.json`` and
-``sqlguardllm schema --policy-set > schema/policy-set.schema.json``; a test keeps them in sync.
+``sqlguardllm schema > schema/policy.schema.json``,
+``sqlguardllm schema --policy-set > schema/policy-set.schema.json`` and
+``sqlguardllm schema --cases > schema/policy-tests.schema.json``; tests keep them in sync.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 from dataclasses import fields
 from typing import Any
 
+from sqlguardllm.lint import LintCode
 from sqlguardllm.policy import Policy
 from sqlguardllm.result import ViolationCode
 
@@ -97,6 +99,13 @@ _PROPERTIES: dict[str, dict[str, Any]] = {
         "type": ["object", "null"],
         "additionalProperties": {**_STRINGS, "minItems": 1},
         "description": "Table → columns. Lets * over a table with masked columns be expanded.",
+    },
+    "lint_suppress": {
+        "type": "object",
+        "propertyNames": {"enum": [code.value for code in LintCode]},
+        "additionalProperties": {"type": "string", "pattern": r"\S"},
+        "description": "sqlguardllm lint warning code → why it doesn't apply to this policy. "
+        "Only the linter reads it.",
     },
 }
 

@@ -188,6 +188,25 @@
             "minItems": 1
           },
           "description": "Table → columns. Lets * over a table with masked columns be expanded."
+        },
+        "lint_suppress": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "no-table-allowlist",
+              "tenant-without-row-filter",
+              "sensitive-column-exposed",
+              "max-rows-disabled",
+              "max-rows-high",
+              "aggregate-k-low",
+              "denied-function-allowed"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "description": "sqlguardllm lint warning code → why it doesn't apply to this policy. Only the linter reads it."
         }
       }
     },
@@ -296,6 +315,25 @@
                 "minItems": 1
               },
               "description": "Added to the inherited schema."
+            },
+            "lint_suppress": {
+              "type": "object",
+              "propertyNames": {
+                "enum": [
+                  "no-table-allowlist",
+                  "tenant-without-row-filter",
+                  "sensitive-column-exposed",
+                  "max-rows-disabled",
+                  "max-rows-high",
+                  "aggregate-k-low",
+                  "denied-function-allowed"
+                ]
+              },
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": "Added to the inherited lint_suppress."
             }
           },
           "description": "Joined to inherited lists, merged into inherited mappings."
@@ -454,6 +492,25 @@
             "minItems": 1
           },
           "description": "Table → columns. Lets * over a table with masked columns be expanded."
+        },
+        "lint_suppress": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "no-table-allowlist",
+              "tenant-without-row-filter",
+              "sensitive-column-exposed",
+              "max-rows-disabled",
+              "max-rows-high",
+              "aggregate-k-low",
+              "denied-function-allowed"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "description": "sqlguardllm lint warning code → why it doesn't apply to this policy. Only the linter reads it."
         }
       }
     }
