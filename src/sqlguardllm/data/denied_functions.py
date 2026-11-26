@@ -119,6 +119,71 @@ BY_DIALECT: dict[str, frozenset[str]] = {
             "delta_scan",
         }
     ),
+    # https://docs.snowflake.com/en/sql-reference/functions-all
+    "snowflake": frozenset(
+        {
+            "system$wait",
+            "system$abort_session",
+            "system$cancel_all_queries",
+            "system$cancel_query",
+            "system$send_email",
+            "system$set_return_value",
+            "system$log",
+            # Stage and file level reads, and the URL the caller could then fetch itself.
+            "get_presigned_url",
+            "get_stage_location",
+            "build_stage_file_url",
+            "get_absolute_path",
+            "get_ddl",
+        }
+    ),
+    # https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-all
+    "bigquery": frozenset(
+        {
+            # Runs the SQL string on a Cloud SQL instance.
+            "external_query",
+            "load_data",
+        }
+    ),
+    # https://clickhouse.com/docs/sql-reference/table-functions
+    "clickhouse": frozenset(
+        {
+            "url",
+            "urlcluster",
+            "file",
+            "filecluster",
+            "s3",
+            "s3cluster",
+            "hdfs",
+            "hdfscluster",
+            "remote",
+            "remotesecure",
+            "jdbc",
+            "odbc",
+            "mysql",
+            "postgresql",
+            "sqlite",
+            "mongodb",
+            "redis",
+            "executable",
+            "input",
+            "azureblobstorage",
+            "gcs",
+            "iceberg",
+            "deltalake",
+            "sleepeachrow",
+        }
+    ),
+    # https://trino.io/docs/current/connector/system.html. Trino's file and network access lives
+    # in table functions and connector tables, which the table allowlist already refuses; what is
+    # left here is the query-history surface.
+    "trino": frozenset(
+        {
+            "system.query",
+            "system.slow_query",
+            "system.runtime.queries",
+        }
+    ),
 }
 
 

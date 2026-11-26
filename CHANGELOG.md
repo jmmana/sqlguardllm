@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 
+- Denied functions for Snowflake, BigQuery, ClickHouse and Trino, with a corpus case for each (#16).
 - Command-line tool: `sqlguardllm check --policy FILE [--context JSON|@file] [--dialect D] [--language es] [--format json] [SQL | -]`, with exit codes 0 (allowed), 1 (rejected) and 2 (usage or policy error). Also `python -m sqlguardllm` (#12).
 - JSON Schema of policy files in `schema/policy.schema.json`, printed by `sqlguardllm schema` and kept in sync by a test; `examples/policy.yaml` points editors to it (#11).
 
