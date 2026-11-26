@@ -4,6 +4,7 @@
     echo "SELECT …" | sqlguardllm check --policy policy.yaml --format json -
     sqlguardllm schema > schema/policy.schema.json
     sqlguardllm schema --policy-set > schema/policy-set.schema.json
+    sqlguardllm serve --policy policy.yaml --port 8787
     sqlguardllm mcp --policy policy.yaml --db sqlite:///demo.db --context @context.json
 
 Exit codes: 0 allowed, 1 rejected, 2 usage or policy error.
@@ -103,6 +104,26 @@ def _parser() -> argparse.ArgumentParser:
     mcp.add_argument(
         "--timeout", type=float, default=30.0, help="seconds a query may run (default 30)"
     )
+
+    serve = commands.add_parser(
+        "serve",
+        help="run an HTTP server (POST /v1/check, /v1/explain) for any language",
+        description="Standard library only; see docs/SERVER.md. Binds to loopback by default.",
+    )
+    serve.add_argument(
+        "--policy", required=True, type=Path, help="policy file, or a policy-set file with --role"
+    )
+    serve.add_argument("--role", default=None, help="role to use from a policy-set file")
+    serve.add_argument("--host", default="127.0.0.1", help="address to bind (default 127.0.0.1)")
+    serve.add_argument("--port", type=int, default=8787, help="port (default 8787)")
+    serve.add_argument("--language", choices=LANGUAGES, default="en", help="message language")
+    serve.add_argument(
+        "--token-env",
+        default=None,
+        metavar="NAME",
+        help="name of an environment variable holding a bearer token required on every "
+        "request except /v1/health (the token is never read from the command line)",
+    )
     return parser
 
 
@@ -190,6 +211,39 @@ def _mcp(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _serve(args: argparse.Namespace, stderr: TextIO) -> int:
+    from sqlguardllm.server import make_server  # noqa: PLC0415 - only needed here
+
+    policy = _load_role(args.policy, args.role) if args.role else _load_policy(args.policy, None)
+    token = None
+    if args.token_env:
+        token = os.environ.get(args.token_env)
+        if not token:
+            raise _UsageError(f"--token-env: the environment variable {args.token_env} is empty")
+    if not 0 <= args.port <= 65535:
+        raise _UsageError("--port must be between 0 and 65535")
+    try:
+        guard = Guard(policy, language=args.language)
+        server = make_server(guard, args.host, args.port, token)
+    except PolicyError as exc:
+        raise _UsageError(f"invalid policy {args.policy}: {exc}") from None
+    except OSError as exc:
+        raise _UsageError(
+            f"cannot listen on {args.host}:{args.port}: {exc.strerror or exc}"
+        ) from None
+    host, port = server.server_address[:2]
+    host = host.decode() if isinstance(host, bytes) else host
+    auth = "token required" if token else "no token"
+    print(f"sqlguardllm {__version__} listening on http://{host}:{port} ({auth})", file=stderr)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return EXIT_OK
+
+
 def _check(args: argparse.Namespace, stdin: TextIO, stdout: TextIO) -> int:
     policy = _load_policy(args.policy, args.dialect)
     context = _read_context(args.context)
@@ -231,6 +285,8 @@ def main(
             return EXIT_OK
         if args.command == "mcp":
             return _mcp(args)
+        if args.command == "serve":
+            return _serve(args, stderr)
         return _check(args, stdin, stdout)
     except _UsageError as exc:
         print(f"sqlguardllm: error: {exc}", file=stderr)

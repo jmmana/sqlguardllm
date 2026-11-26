@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 
+- `sqlguardllm serve`: an HTTP server (`GET /v1/health`, `POST /v1/check`, `POST /v1/explain`) so any language can use the engine as a sidecar, standard library only, optional bearer token, plus a `Dockerfile`; install with `sqlguardllm[serve]`. See `docs/SERVER.md` (#34).
 - `Policy.from_database(url, include=…, exclude=…, schemas=…, **options)`: fills `tables` and `schema` by reading a live database with the SQLAlchemy inspector (new optional extra `sqlguardllm[db]`). Only names are read, never rows; errors never include the URL (#28).
 
 ### Added

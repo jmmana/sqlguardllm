@@ -116,3 +116,16 @@ def test_version() -> None:
     result = run("--version")
     assert result.returncode == 0
     assert result.stdout.startswith("sqlguardllm ")
+
+
+def test_serve_policy_error_exits_2(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.json"
+    bad.write_text("{nope")
+    result = run("serve", "--policy", str(bad), "--port", "0")
+    assert result.returncode == 2
+    assert "invalid policy" in result.stderr
+
+
+def test_serve_empty_token_env_exits_2() -> None:
+    result = run("serve", "--policy", str(POLICY), "--port", "0", "--token-env", "SG_NOT_SET_XYZ")
+    assert result.returncode == 2

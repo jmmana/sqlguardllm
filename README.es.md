@@ -199,6 +199,8 @@ Los archivos de política tienen un [JSON Schema](schema/policy.schema.json) par
 
 **Servidor MCP:** `sqlguardllm mcp` le da a Claude Desktop, Cursor y VS Code una herramienta de base de datos que no puede escribir, ver datos ocultos ni saltarse los filtros por fila; configuración lista para copiar en [docs/MCP.md](docs/MCP.md).
 
+**Servidor HTTP:** `sqlguardllm serve` expone `POST /v1/check` y `/v1/explain` como sidecar para cualquier lenguaje, con imagen Docker; ver [docs/SERVER.md](docs/SERVER.md).
+
 ## Otros lenguajes
 
 Hoy sqlguardllm es una librería de Python: su motor es [sqlglot](https://github.com/tobymao/sqlglot), que solo existe en Python, y tres motores en tres lenguajes podrían comportarse distinto, que en una librería de seguridad es lo mismo que un hueco. **Node.js y .NET están planeados** como un motor con varios clientes: `sqlguardllm serve` (un servicio HTTP al lado de tu app, con imagen Docker) y clientes oficiales para npm y NuGet, con el corpus de ataques como prueba de conformidad para que todos los lenguajes se comporten igual. Síguelo en [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6) y en el [diseño](docs/DESIGN.md#other-languages). Mientras tanto, cualquier lenguaje puede usar el servidor MCP (v0.4) o la CLI (v0.2).
