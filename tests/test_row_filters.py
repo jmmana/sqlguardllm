@@ -81,6 +81,43 @@ def test_applied_filters_are_reported() -> None:
     assert result.applied_filters == ("invoices: branch_id IN (3)", "invoices: branch_id IN (3)")
 
 
+def test_rewritten_row_filter_is_idempotent() -> None:
+    guard = sqlite_guard({"invoices": "branch_id IN ({user.branches})"})
+    context = {"user": {"branches": [1, 2]}}
+    result = guard.check("SELECT id FROM invoices", context)
+    assert result.ok and result.sql is not None
+    rewritten = guard.check(result.sql, context)
+    assert rewritten.ok and rewritten.sql == result.sql
+
+
+def test_hidden_columns_are_not_carried_into_rewritten_sources() -> None:
+    guard = Guard(
+        Policy(
+            dialect="sqlite",
+            tables={"invoices"},
+            hidden_columns={"invoices.internal_notes"},
+            row_filters={"invoices": "branch_id IN ({user.branches})"},
+            schema={"invoices": ["id", "branch_id", "internal_notes"]},
+        )
+    )
+    context = {"user": {"branches": [1, 2]}}
+    result = guard.check("SELECT id FROM invoices", context)
+    assert result.ok and result.sql is not None
+    assert "SELECT id, branch_id FROM invoices" in result.sql
+    assert guard.check(result.sql, context).sql == result.sql
+
+
+def test_existing_exact_filter_is_enforced_without_wrapping() -> None:
+    guard = sqlite_guard({"invoices": "branch_id IN ({user.branches})"})
+    result = guard.check(
+        "SELECT id FROM invoices WHERE branch_id IN (1, 2) AND id > 0",
+        {"user": {"branches": [1, 2]}},
+    )
+    assert result.ok and result.sql is not None
+    assert result.sql.count("branch_id IN (1, 2)") == 1
+    assert guard.check(result.sql, {"user": {"branches": [1, 2]}}).sql == result.sql
+
+
 def test_attribute_and_nested_context() -> None:
     @dataclass
     class User:

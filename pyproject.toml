@@ -45,6 +45,7 @@ Source = "https://github.com/jmmana/sqlguardllm"
 [dependency-groups]
 dev = [
     "pytest>=8.3",
+    "hypothesis>=6.159.0,<7",
     "pyyaml>=6.0",
     "types-PyYAML",
     "jsonschema>=4.23",

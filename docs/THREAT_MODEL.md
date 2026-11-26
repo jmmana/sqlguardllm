@@ -27,7 +27,7 @@ And if anything can't be understood, `check()` rejects it.
 |---|---|---|
 | **Missing database permissions** | sqlguardllm is a layer above the database, not a replacement | Always connect with a read-only user limited to the needed tables |
 | **Expensive queries** | Cost depends on data and plans, not on syntax | Statement timeouts, a read replica, resource limits per user |
-| **Parser differentials** | sqlglot may understand a statement differently from the real engine | sqlguardllm regenerates the SQL from the validated tree, rejects unsupported syntax, and the corpus is run against real engines (v0.2). Report any differential as a vulnerability |
+| **Parser differentials** | sqlglot may understand a statement differently from the real engine | sqlguardllm regenerates the SQL from the validated tree, rejects unsupported syntax, and the corpus and property-based fuzz suite are exercised against real engines. Report any differential as a vulnerability |
 | **Inference through allowed data** | Aggregates and filters over allowed columns can reveal facts about hidden ones if they are correlated | Hide correlated columns too, or expose a view without them |
 | **Side effects of allowed functions** | Any function may have side effects, especially user-defined ones | Use `function_policy="allowlist"` when your database has UDFs |
 | **Timing side channels** | Out of scope for a syntax-level guard | Timeouts, rate limits |
@@ -54,3 +54,22 @@ Places where sqlglot's tree did not say what the real engine would do. Each was 
 | `TOP n PERCENT`, `FETCH FIRST n PERCENT` and `WITH TIES` (0.3.0a1) | sqlglot keeps the flags in `limit_options`; the limit rule looked elsewhere, so `max_rows` was bypassed | Any inexact limit is replaced with a plain limit of `max_rows` |
 
 The baseline attacks and allowed queries run in all ten supported dialects (`tests/test_dialect_matrix.py`), and the rewritten SQL runs on PostgreSQL 16, MySQL 8, SQL Server 2022, DuckDB and SQLite (`tests/engines/`, `.github/workflows/engines.yml`).
+
+## Fuzzing oracle and limits
+
+`tests/fuzz/` generates bounded SQLGlot query trees over the demonstration tables (`invoices`,
+`invoice_lines`, `branches`, `customers` and `products`) and executes only SQL accepted by the
+guard against SQLite, DuckDB, PostgreSQL 16, MySQL 8 and SQL Server 2022. The fixtures put unique
+`CANARY_…` sentinels in every hidden or masked field and in the public fields of rows belonging to
+other tenants. Any sentinel returned by an allowed query is a failure; the suite also checks the
+row cap, fail-closed handling of guard exceptions, and rewrite idempotence. Hypothesis shrinks
+failures, which are persisted in `tests/corpus/fuzz_regressions.yaml`, re-executed by the fuzz suite
+against the engines, and included in generated conformance cases so all clients replay them.
+
+Each run prints its seed, profile, engine set and configured examples per engine. Replay a run with
+`SQLGUARD_FUZZ_SEED=<seed> SQLGUARD_FUZZ_EXAMPLES=<count> SQLGUARD_FUZZ_ENGINES=<engines> uv run pytest tests/fuzz`.
+
+The oracle is limited to the rows, columns, query shapes, engine versions and policy fixture it
+generates. It does not prove that every SQL construct or database configuration is safe, detect
+inference through aggregates over otherwise allowed data, model timing or resource side channels,
+or replace least-privilege database credentials and engine-specific security testing.

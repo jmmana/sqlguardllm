@@ -1,0 +1,77 @@
+- id: fuzz-0857f2e360b2
+  dialect: sqlite
+  sql: SELECT t.id FROM invoices AS t LIMIT 1
+  expect: allow
+  policy:
+    tables:
+    - invoices
+    - invoice_lines
+    - branches
+    - customers
+    - products
+    hidden_columns:
+    - invoices.hidden_value
+    - invoice_lines.hidden_value
+    - branches.hidden_value
+    - customers.hidden_value
+    - products.hidden_value
+    masked_columns:
+      invoices.masked_value: 'null'
+      invoice_lines.masked_value: 'null'
+      branches.masked_value: 'null'
+      customers.masked_value: 'null'
+      products.masked_value: 'null'
+    row_filters:
+      invoices: branch_id IN ({user.branches})
+      invoice_lines: branch_id IN ({user.branches})
+      branches: id IN ({user.branches})
+      customers: branch_id IN ({user.branches})
+      products: branch_id IN ({user.branches})
+    schema:
+      invoices:
+      - id
+      - branch_id
+      - related_id
+      - label
+      - payload
+      - hidden_value
+      - masked_value
+      invoice_lines:
+      - id
+      - branch_id
+      - related_id
+      - label
+      - payload
+      - hidden_value
+      - masked_value
+      branches:
+      - id
+      - branch_id
+      - related_id
+      - label
+      - payload
+      - hidden_value
+      - masked_value
+      customers:
+      - id
+      - branch_id
+      - related_id
+      - label
+      - payload
+      - hidden_value
+      - masked_value
+      products:
+      - id
+      - branch_id
+      - related_id
+      - label
+      - payload
+      - hidden_value
+      - masked_value
+    max_rows: 4
+  context:
+    user:
+      branches:
+      - DATA_TENANT1_BRANCH
+      - DATA_TENANT2_BRANCH
+  note: Minimized Hypothesis regression for idempotence.

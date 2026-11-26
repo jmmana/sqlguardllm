@@ -7,6 +7,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,7 +22,7 @@ jobs:
   engines:
     name: Real engines
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 360
     services:
       postgres:
         image: postgres:16
@@ -60,7 +63,24 @@ jobs:
       - name: Engine tests
         env:
           SQLGUARD_REQUIRE_ENGINES: "1"
+          SQLGUARD_FUZZ_REQUIRE_ENGINES: "1"
           SQLGUARD_PG_URL: postgresql+psycopg://postgres:test-only@localhost:5432/postgres
           SQLGUARD_MYSQL_URL: mysql+pymysql://root:test-only@127.0.0.1:3306/sg
           SQLGUARD_MSSQL_URL: mssql+pymssql://sa:Test-only-1234@localhost:1433/master
-        run: uv run pytest tests/engines -v
+        run: |
+          uv run pytest tests/engines -v
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            SQLGUARD_FUZZ_PROFILE=deep \
+            SQLGUARD_FUZZ_EXAMPLES=20000 \
+            SQLGUARD_FUZZ_ENGINES=sqlite,duckdb,postgres,mysql,tsql \
+            uv run pytest tests/fuzz -v
+          fi
+      - name: Upload fuzz results and minimized cases
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-results
+          path: |
+            research/results/fuzz.json
+            tests/corpus/fuzz_regressions.yaml
+          if-no-files-found: ignore

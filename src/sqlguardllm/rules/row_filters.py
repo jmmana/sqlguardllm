@@ -111,6 +111,31 @@ def bind(row_filter: RowFilter, context: Any) -> exp.Expression:
     return condition
 
 
+def _filter_is_enforced(ref: PhysicalRef, condition: exp.Expression) -> bool:
+    """Recognize the exact policy predicate in a single-table scope."""
+    scope = ref.scope
+    if (
+        not isinstance(scope.expression, exp.Select)
+        or len(scope.tables) != 1
+        or scope.tables[0] is not ref.table
+    ):
+        return False
+    where = scope.expression.args.get("where")
+    if where is None:
+        return False
+
+    def contains_conjunct(expression: exp.Expression) -> bool:
+        while isinstance(expression, exp.Paren):
+            expression = expression.this
+        if expression == condition:
+            return True
+        return isinstance(expression, exp.And) and (
+            contains_conjunct(expression.this) or contains_conjunct(expression.expression)
+        )
+
+    return contains_conjunct(where.this)
+
+
 def apply_filters(
     refs: list[PhysicalRef], compiled: Compiled, context: Any
 ) -> tuple[list[tuple[str, str]], list[Violation]]:
@@ -123,6 +148,7 @@ def apply_filters(
     lang = compiled.language
     bound: dict[TableName, exp.Expression] = {}
     problems: list[Violation] = []
+    applied: list[tuple[str, str]] = []
     targets: list[tuple[PhysicalRef, TableName]] = []
 
     for ref in refs:
@@ -140,12 +166,14 @@ def apply_filters(
                 violation(ViolationCode.TABLE_NOT_ALLOWED, f"{ref.name} (unsupported syntax)", lang)
             )
             continue
+        if _filter_is_enforced(ref, bound[entry]):
+            applied.append((str(ref.name), bound[entry].sql(dialect=compiled.dialect_name)))
+            continue
         targets.append((ref, entry))
 
     if problems:
         return [], list({(v.code, v.detail): v for v in problems}.values())
 
-    applied: list[tuple[str, str]] = []
     for ref, entry in targets:
         table = ref.table
         condition = bound[entry].copy()
@@ -154,8 +182,24 @@ def apply_filters(
             inner.set(key, None)
         alias = table.args.get("alias")
         new_alias = alias.copy() if alias is not None else exp.TableAlias(this=table.this.copy())
+        columns = compiled.schema.get(entry)
+        if columns is None:
+            projection: list[exp.Expression] = [exp.Star()]
+        else:
+            visible = [column for column in columns if column not in compiled.hidden.get(entry, ())]
+            masks = compiled.masked.get(entry, {})
+            projection = []
+            for column in visible:
+                if masks.get(column) == "null":
+                    projection.append(cast(exp.Expression, exp.alias_(exp.Null(), column)))
+                else:
+                    projection.append(exp.column(column))
+            if not projection:
+                projection = [
+                    cast(exp.Expression, exp.alias_(exp.Literal.number(1), "__sqlguard_row"))
+                ]
         derived = exp.Subquery(
-            this=exp.select("*").from_(inner).where(condition),
+            this=exp.select(*projection).from_(inner).where(condition),
             alias=new_alias,
         )
         if table.args.get("pivots"):

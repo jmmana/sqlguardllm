@@ -4091,6 +4091,111 @@
   {
    "cases": [
     {
+     "codes": [],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        "DATA_TENANT1_BRANCH",
+        "DATA_TENANT2_BRANCH"
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT t.id FROM (SELECT id, branch_id, related_id, label, payload, NULL AS masked_value FROM invoices WHERE branch_id IN ('DATA_TENANT1_BRANCH', 'DATA_TENANT2_BRANCH')) AS t LIMIT 1"
+     },
+     "id": "fuzz-0857f2e360b2",
+     "not_contains": [],
+     "sql": "SELECT t.id FROM invoices AS t LIMIT 1"
+    }
+   ],
+   "name": "g22-sqlite",
+   "policy": {
+    "dialect": "sqlite",
+    "hidden_columns": [
+     "invoices.hidden_value",
+     "invoice_lines.hidden_value",
+     "branches.hidden_value",
+     "customers.hidden_value",
+     "products.hidden_value"
+    ],
+    "masked_columns": {
+     "branches.masked_value": "null",
+     "customers.masked_value": "null",
+     "invoice_lines.masked_value": "null",
+     "invoices.masked_value": "null",
+     "products.masked_value": "null"
+    },
+    "max_rows": 4,
+    "row_filters": {
+     "branches": "id IN ({user.branches})",
+     "customers": "branch_id IN ({user.branches})",
+     "invoice_lines": "branch_id IN ({user.branches})",
+     "invoices": "branch_id IN ({user.branches})",
+     "products": "branch_id IN ({user.branches})"
+    },
+    "schema": {
+     "branches": [
+      "id",
+      "branch_id",
+      "related_id",
+      "label",
+      "payload",
+      "hidden_value",
+      "masked_value"
+     ],
+     "customers": [
+      "id",
+      "branch_id",
+      "related_id",
+      "label",
+      "payload",
+      "hidden_value",
+      "masked_value"
+     ],
+     "invoice_lines": [
+      "id",
+      "branch_id",
+      "related_id",
+      "label",
+      "payload",
+      "hidden_value",
+      "masked_value"
+     ],
+     "invoices": [
+      "id",
+      "branch_id",
+      "related_id",
+      "label",
+      "payload",
+      "hidden_value",
+      "masked_value"
+     ],
+     "products": [
+      "id",
+      "branch_id",
+      "related_id",
+      "label",
+      "payload",
+      "hidden_value",
+      "masked_value"
+     ]
+    },
+    "tables": [
+     "invoices",
+     "invoice_lines",
+     "branches",
+     "customers",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
      "codes": [
       "denied_function"
      ],
@@ -4166,7 +4271,7 @@
      "sql": "SELECT system.slow_query('x')"
     }
    ],
-   "name": "g22-trino",
+   "name": "g23-trino",
    "policy": {
     "dialect": "trino",
     "hidden_columns": [

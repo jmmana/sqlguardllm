@@ -35,7 +35,18 @@ jobs:
       - name: Types
         run: uv run mypy
       - name: Tests and adversarial corpus
+        env:
+          SQLGUARD_FUZZ_PROFILE: fast
         run: uv run pytest
+      - name: Upload fuzz results and minimized cases
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-results-${{ matrix.python }}
+          path: |
+            research/results/fuzz.json
+            tests/corpus/fuzz_regressions.yaml
+          if-no-files-found: ignore
 
   package:
     name: Build and check the package
