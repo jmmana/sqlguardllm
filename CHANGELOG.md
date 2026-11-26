@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Security
+
+- **`max_rows` could be bypassed with a percentage or `WITH TIES` limit.** `SELECT TOP 50 PERCENT …` (SQL Server), `FETCH FIRST 50 PERCENT ROWS ONLY` (Oracle) and `FETCH FIRST n ROWS WITH TIES` passed unchanged, because sqlglot 30 keeps those flags in `limit_options`. Such limits are now replaced with a plain limit of `max_rows`. Affects 0.1.0a1 to 0.2.0a2: upgrade. Found while building `Guard.explain()`.
+
 ### Added
 
 - `masked_columns`: a column can be selected but comes back masked (`null`, `redact`, `hash` as SHA-256 hex per dialect, `partial`), even inside functions or `CASE`; using it anywhere outside the select list is `hidden_column`. With the new `schema` option, `*` over such a table is expanded with the masks (#29).
