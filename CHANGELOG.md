@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 
+- Optional cost guard for `sqlguardllm mcp` (`--max-cost`, `--max-plan-rows`; `max_cost` / `max_plan_rows` in `create_server`): runs `EXPLAIN` (JSON, never `ANALYZE`) on PostgreSQL and MySQL before a query and refuses plans over the threshold, failing closed if the estimate can't be read; ignored with a warning on other engines. `explain_query` reports the estimate (#33).
 - `sqlguardllm serve`: an HTTP server (`GET /v1/health`, `POST /v1/check`, `POST /v1/explain`) so any language can use the engine as a sidecar, standard library only, optional bearer token, plus a `Dockerfile`; install with `sqlguardllm[serve]`. See `docs/SERVER.md` (#34).
 - Official .NET client `SqlGuardLlm` (`clients/dotnet/`, NuGet): `CheckAsync`, `EnforceAsync`, `ExplainAsync` and `HealthAsync` against `sqlguardllm serve`, multi-targeting net8.0 and net10.0, with no dependencies and fail-closed errors. Not published yet (#36).
 - Official Node.js/TypeScript client in `clients/node` (`sqlguardllm` on npm, not yet published): `SqlGuard` with `check`, `enforce`, `explain`, `health` and `wrap` for the `sqlguardllm serve` HTTP API; zero runtime dependencies, ESM + CJS, fails closed on network errors, timeouts and malformed responses (#35).

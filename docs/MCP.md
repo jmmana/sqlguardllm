@@ -27,6 +27,7 @@ The `mcp` extra brings the [MCP Python SDK](https://github.com/modelcontextproto
 ```text
 sqlguardllm mcp --policy FILE [--role NAME] [--db URL] [--context JSON|@file]
                 [--language en|es] [--timeout SECONDS]
+                [--max-cost N] [--max-plan-rows N]
 ```
 
 | Option | |
@@ -37,6 +38,16 @@ sqlguardllm mcp --policy FILE [--role NAME] [--db URL] [--context JSON|@file]
 | `--context` | The values for row filters, as JSON or `@file.json`. Set by you, never by the model |
 | `--language` | Language of violation messages: `en` (default) or `es` |
 | `--timeout` | Seconds a query may run before it is cancelled (default 30) |
+| `--max-cost` | Cost guard: refuse queries whose planner cost is above this (PostgreSQL and MySQL only) |
+| `--max-plan-rows` | Cost guard: refuse queries whose planner row estimate is above this (PostgreSQL and MySQL only) |
+
+### Cost guard
+
+With `--max-cost` or `--max-plan-rows` (or `max_cost=` / `max_plan_rows=` in `create_server`), a query the guard allowed is first sent to the engine as `EXPLAIN (FORMAT JSON)` on PostgreSQL (`Total Cost` and `Plan Rows` of the top node) or `EXPLAIN FORMAT=JSON` on MySQL 8 (`query_cost` and the largest `rows_examined_per_scan` / `rows_produced_per_join`), inside the same read-only transaction. It never uses `EXPLAIN ANALYZE`, which would run the query. If an estimate is above its threshold the query is not run and the model gets an error with the estimate, the limit and a hint to add a filter or select fewer columns. `explain_query` also returns the `estimate`.
+
+- The units are the engine's own, so pick thresholds by trying typical queries. The cost is an estimate from table statistics (run `ANALYZE`).
+- It fails closed: if `EXPLAIN` fails or its output can't be read, the query is refused instead of run blind.
+- On other engines (SQLite, SQL Server, Oracle, ...) the options are ignored, with a warning at startup.
 
 It exits with code 2 and a message on stderr when the extra isn't installed, the policy is invalid, the database URL is wrong or its driver is missing.
 
