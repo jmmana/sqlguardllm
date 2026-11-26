@@ -48,7 +48,7 @@ def http(monkeypatch):
             "sha": BLOB,
             "content": base64.b64encode(BODY).decode(),
         },
-        helper.MESSAGES + "/count_tokens": {"input_tokens": 300},
+        helper.COUNT_TOKENS: {"input_tokens": 300},
         helper.MESSAGES: {
             "model": helper.MODEL,
             "stop_reason": "end_turn",
@@ -112,7 +112,7 @@ def test_execute_counts_reserves_and_sends_one_bounded_request(http, tmp_path, m
     code, output, manifest = invoke(tmp_path, "--execute", "--max-tokens=100")
     assert code == 0
     assert [request.full_url for request in calls[-2:]] == [
-        helper.MESSAGES + "/count_tokens",
+        helper.COUNT_TOKENS,
         helper.MESSAGES,
     ]
     assert all(request.get_header("Authorization") is None for request in calls[:-2])
@@ -120,6 +120,7 @@ def test_execute_counts_reserves_and_sends_one_bounded_request(http, tmp_path, m
         assert request.get_header("Authorization") == f"Bearer {KEY}"
         assert request.get_header("Anthropic-version") == "2026-10-21"
     counted, generated = (json.loads(request.data) for request in calls[-2:])
+    assert counted["thinking"] == {"type": "between_tools"}
     assert generated == {**counted, "max_tokens": 100, "service_tier": "standard_only"}
     assert "tools" not in generated
     assert manifest["counted_input_tokens"] == 300
@@ -135,7 +136,7 @@ def test_execute_counts_reserves_and_sends_one_bounded_request(http, tmp_path, m
 def test_over_budget_never_generates(http, tmp_path, monkeypatch):
     calls, responses = http
     monkeypatch.setenv("ANTHROPIC_API_TOKEN", KEY)
-    responses[helper.MESSAGES + "/count_tokens"]["input_tokens"] = 3_000_000
+    responses[helper.COUNT_TOKENS]["input_tokens"] = 3_000_000
     code, output, manifest = invoke(tmp_path, "--execute")
     assert code == 1
     assert calls[-1].full_url.endswith("/count_tokens")
@@ -158,6 +159,7 @@ def test_failed_generation_never_retries_or_exposes_server_body(
     assert [request.full_url for request in calls].count(helper.MESSAGES) == 1
     assert manifest["generation_attempted"] is True
     assert manifest["status"] == "failed"
+    assert manifest["error"] == "Claude /v1/messages returned HTTP 503."
     assert KEY not in capsys.readouterr().err
     assert not (output / "proposal.md").exists()
 
@@ -213,3 +215,94 @@ def test_preview_rejects_credential_shapes_in_public_issue(http, tmp_path):
     assert code == 1
     assert not output.exists()
     assert all(request.full_url.startswith(helper.GITHUB) for request in calls)
+
+
+def test_preflight_counts_without_generation(http, tmp_path, monkeypatch):
+    calls, _ = http
+    monkeypatch.setenv("ANTHROPIC_API_TOKEN", KEY)
+    code, output, manifest = invoke(tmp_path, "--preflight-only")
+    assert code == 0
+    assert [
+        request.full_url for request in calls if request.full_url.startswith(helper.MESSAGES)
+    ] == [
+        helper.COUNT_TOKENS,
+    ]
+    assert manifest["mode"] == "preflight-only"
+    assert manifest["generation_attempted"] is False
+    assert manifest["counted_input_tokens"] == 300
+    assert manifest["reserved_cost_microusd"] < manifest["budget_microusd"]
+    assert not (output / "proposal.md").exists()
+
+
+def test_preflight_and_execute_are_mutually_exclusive(http, tmp_path):
+    calls, _ = http
+    with pytest.raises(SystemExit) as error:
+        invoke(tmp_path, "--preflight-only", "--execute")
+    assert error.value.code == 2
+    assert calls == []
+
+
+@pytest.mark.parametrize("echo", [KEY, "sk-ant-" + "T" * 30, "Bearer " + "A" * 20])
+def test_count_error_saves_only_sanitized_detail(http, tmp_path, monkeypatch, capsys, echo):
+    calls, responses = http
+    monkeypatch.setenv("ANTHROPIC_API_TOKEN", KEY)
+    body = json.dumps(
+        {
+            "error": {
+                "type": "invalid_request_error",
+                "message": f"bad request\n{echo}",
+                "details": {"secret": "extra-json-marker"},
+            },
+            "request_id": "request-id-marker",
+        }
+    ).encode()
+    responses[helper.COUNT_TOKENS] = HTTPError(
+        helper.COUNT_TOKENS,
+        400,
+        "reason-marker",
+        {"X-Request-Header": "header-marker"},
+        io.BytesIO(body),
+    )
+    code, output, manifest = invoke(tmp_path, "--preflight-only")
+    assert code == 1
+    assert helper.MESSAGES not in [request.full_url for request in calls]
+    assert manifest["generation_attempted"] is False
+    assert manifest["status"] == "failed"
+    assert manifest["error"].startswith(
+        "Claude /v1/messages/count_tokens returned HTTP 400 (invalid_request_error"
+    )
+    assert "[redacted]" in manifest["error"]
+    assert "\n" not in manifest["error"]
+    record = (output / "manifest.json").read_text() + capsys.readouterr().err
+    for marker in (
+        echo,
+        "header-marker",
+        "reason-marker",
+        "request-id-marker",
+        "extra-json-marker",
+    ):
+        assert marker not in record
+
+
+def test_count_error_limits_diagnostic_length(http, tmp_path, monkeypatch):
+    _, responses = http
+    monkeypatch.setenv("ANTHROPIC_API_TOKEN", KEY)
+    body = json.dumps(
+        {
+            "error": {
+                "type": "invalid_request_error",
+                "message": "x" * helper.MAX_ERROR_MESSAGE_CHARS + "after-limit",
+            },
+        }
+    ).encode()
+    responses[helper.COUNT_TOKENS] = HTTPError(
+        helper.COUNT_TOKENS,
+        400,
+        "",
+        {},
+        io.BytesIO(body),
+    )
+    code, _, manifest = invoke(tmp_path, "--preflight-only")
+    assert code == 1
+    assert manifest["error"].endswith("x" * helper.MAX_ERROR_MESSAGE_CHARS + ").")
+    assert "after-limit" not in manifest["error"]

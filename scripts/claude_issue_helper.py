@@ -18,6 +18,8 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 REPOSITORY = "jmmana/sqlguardllm"
 GITHUB = f"https://api.github.com/repos/{REPOSITORY}"
 MESSAGES = "https://api.anthropic.com/v1/messages"
+COUNT_TOKENS = MESSAGES + "/count_tokens"
+CLAUDE_ENDPOINTS = {MESSAGES: "/v1/messages", COUNT_TOKENS: "/v1/messages/count_tokens"}
 MODEL = "claude-sonnet-5-5"
 API_VERSION = "2026-10-21"
 
@@ -31,6 +33,8 @@ MAX_FILE_BYTES = 16_384
 MAX_ISSUE_BYTES = 24_576
 MAX_REQUEST_BYTES = 160_000
 MAX_RESPONSE_BYTES = 1_048_576
+MAX_ERROR_BODY_BYTES = 4_096
+MAX_ERROR_MESSAGE_CHARS = 384
 TOKEN_VARIABLES = ("ANTHROPIC_API_TOKEN", "ANTHROPIC_API_KEY")
 CREDENTIAL_PATTERN = re.compile(
     r"-----BEGIN [A-Z ]*PRIVATE KEY-----|sk-ant-[A-Za-z0-9_-]{20,}|"
@@ -61,8 +65,37 @@ def json_bytes(value: Any) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")
 
 
+def claude_error_detail(response: HTTPError, key: str) -> str:
+    try:
+        data = response.read(MAX_ERROR_BODY_BYTES + 1)
+        if len(data) > MAX_ERROR_BODY_BYTES:
+            return ""
+        decoded = json.loads(data)
+    except (OSError, ValueError):
+        return ""
+    error = decoded.get("error") if isinstance(decoded, dict) else None
+    if not isinstance(error, dict):
+        return ""
+
+    def clean(value: str) -> str:
+        if key:
+            value = value.replace(key, "[redacted]")
+        return " ".join("".join(char if char.isprintable() else " " for char in value).split())
+
+    kind = error.get("type")
+    message = error.get("message")
+    kind = clean(kind) if isinstance(kind, str) else ""
+    message = clean(message) if isinstance(message, str) else ""
+    kind = kind if re.fullmatch(r"[a-z0-9_]{1,64}", kind) else ""
+    if CREDENTIAL_PATTERN.search(message) or re.search(r"\bBearer\s+[\w.+/=-]{8,}", message, re.I):
+        message = "[redacted]"
+    fields = [part for part in (kind, message[:MAX_ERROR_MESSAGE_CHARS]) if part]
+    return f" ({' — '.join(fields)})" if fields else ""
+
+
 def request_json(url: str, headers: dict[str, str], payload: bytes | None = None) -> dict[str, Any]:
-    service = "GitHub" if url.startswith(GITHUB + "/") else "Claude"
+    endpoint = CLAUDE_ENDPOINTS.get(url)
+    service = f"Claude {endpoint}" if endpoint else "GitHub"
     request = Request(url, data=payload, headers=headers)
     try:
         with build_opener(NoRedirects()).open(request, timeout=90) as response:
@@ -71,8 +104,10 @@ def request_json(url: str, headers: dict[str, str], payload: bytes | None = None
             raise HelperError(f"{service} response exceeds the size limit.")
         decoded = json.loads(data)
     except HTTPError as exc:
-        exc.close()
-        raise HelperError(f"{service} returned HTTP {exc.code}.") from None
+        with exc:
+            key = headers.get("Authorization", "").removeprefix("Bearer ")
+            detail = claude_error_detail(exc, key) if endpoint else ""
+        raise HelperError(f"{service} returned HTTP {exc.code}{detail}.") from None
     except (URLError, OSError, ValueError):
         raise HelperError(f"{service} request failed or returned invalid JSON.") from None
     if not isinstance(decoded, dict):
@@ -172,12 +207,17 @@ def save_manifest(output: Path, manifest: dict[str, Any]) -> None:
     (output / "manifest.json").write_bytes(json_bytes(manifest) + b"\n")
 
 
-def generate(
-    output: Path, prompt: dict[str, Any], max_tokens: int, manifest: dict[str, Any]
+def call_claude(
+    output: Path,
+    prompt: dict[str, Any],
+    max_tokens: int,
+    manifest: dict[str, Any],
+    *,
+    preflight_only: bool,
 ) -> None:
     key = next((os.environ[name] for name in TOKEN_VARIABLES if os.environ.get(name)), "")
     if not key.strip():
-        raise HelperError("Set ANTHROPIC_API_TOKEN or ANTHROPIC_API_KEY to execute.")
+        raise HelperError("Set ANTHROPIC_API_TOKEN or ANTHROPIC_API_KEY to contact Claude.")
     if not key.isascii() or any(char.isspace() or ord(char) < 33 for char in key):
         raise HelperError("Claude API key contains invalid characters.")
 
@@ -189,7 +229,7 @@ def generate(
     prompt_bytes = json_bytes(prompt)
     if key.encode("ascii") in prompt_bytes:
         raise HelperError("The selected context contains the configured API key.")
-    counted = request_json(MESSAGES + "/count_tokens", headers, prompt_bytes)
+    counted = request_json(COUNT_TOKENS, headers, prompt_bytes)
     count = token_count(counted.get("input_tokens"))
     # Counting is an estimate. Reserve for a 25% discrepancy and extra framing.
     # The independent byte-based reserve keeps small counter values conservative.
@@ -200,6 +240,9 @@ def generate(
     )
     if estimated > BUDGET:
         raise HelperError("Estimated Claude cost exceeds the USD 5 execution budget.")
+
+    if preflight_only:
+        return
 
     # Save before the only billable operation. An ambiguous failure must never retry.
     manifest["generation_attempted"] = True
@@ -268,13 +311,18 @@ def run(args: argparse.Namespace) -> None:
         "model": MODEL,
         "system": SYSTEM,
         "messages": [{"role": "user", "content": context}],
-        "thinking": {"type": "disabled"},
+        # Sonnet 5.5 uses between_tools for a request without upfront thinking.
+        "thinking": {"type": "between_tools"},
     }
     data = json_bytes(prompt)
     if len(data) > MAX_REQUEST_BYTES:
         raise HelperError("Request exceeds the context size limit. Select fewer files.")
     manifest = {
-        "mode": "execute" if args.execute else "dry-run",
+        "mode": "preflight-only"
+        if args.preflight_only
+        else "execute"
+        if args.execute
+        else "dry-run",
         "issue": args.issue,
         "repository": REPOSITORY,
         "commit": commit,
@@ -291,13 +339,15 @@ def run(args: argparse.Namespace) -> None:
     output: Path = args.output_dir
     output.mkdir()
     try:
-        if args.execute:
-            generate(output, prompt, args.max_tokens, manifest)
+        if args.execute or args.preflight_only:
+            call_claude(
+                output, prompt, args.max_tokens, manifest, preflight_only=args.preflight_only
+            )
         else:
             (output / "prompt.json").write_bytes(data + b"\n")
         manifest["status"] = "complete"
-    except HelperError:
-        manifest["status"] = "failed"
+    except HelperError as exc:
+        manifest.update(status="failed", error=str(exc))
         raise
     finally:
         save_manifest(output, manifest)
@@ -314,7 +364,11 @@ def main(argv: list[str] | None = None) -> int:
         "--output-dir", type=Path, required=True, help="A new directory for artifacts."
     )
     parser.add_argument("--max-tokens", type=int, default=4_096)
-    parser.add_argument("--execute", action="store_true", help="Allow one billable Claude request.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--execute", action="store_true", help="Allow one billable Claude request.")
+    mode.add_argument(
+        "--preflight-only", action="store_true", help="Use only Claude's free token counter."
+    )
     args = parser.parse_args(argv)
     if not 0 < args.issue <= 2_147_483_647 or not 1 <= args.max_tokens <= MAX_OUTPUT:
         parser.error(f"Use a positive issue number and 1 to {MAX_OUTPUT} output tokens.")

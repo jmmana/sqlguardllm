@@ -8,6 +8,8 @@
 
 For the local CLI, run `python3 scripts/claude_issue_helper.py --issue=71 --files=docs/api.md --output-dir=claude-preview`. The default preview contacts only public GitHub. To generate locally, provide `ANTHROPIC_API_TOKEN` or `ANTHROPIC_API_KEY`, pass `--execute`, and choose a new output directory. Context comes from the public issue and up to six explicitly selected files on public `main`. The manifest records the commit, prompt hash, model, reserved cost and reported token usage when available. Estimates use the published standard [model rates](https://platform.claude.com/docs/en/models/sonnet-5-5/overview).
 
+For API diagnostics, select **preflight** or pass `--preflight-only` locally. This uses the secret to call the free token counter and saves its result or a sanitized error in `manifest.json`. Selecting **preflight** takes precedence over **execute** in Actions.
+
 The workflow produces text for review. The maintainer or local agent applies and tests any accepted changes. This helper is for repository maintenance and runs independently of the paper's research experiments.
 
 ## Español
@@ -17,5 +19,7 @@ The workflow produces text for review. The maintainer or local agent applies and
 3. Revisa el artefacto. Con **execute** activado, el flujo hace una petición a Claude Sonnet 5.5 tras un conteo gratuito. Reserva margen para la entrada y limita la salida antes de comprobar el presupuesto de 5 USD para esa ejecución. Descarga `proposal.md` y `manifest.json` para revisar e implementar la propuesta.
 
 Para usar la CLI local, ejecuta `python3 scripts/claude_issue_helper.py --issue=71 --files=docs/api.md --output-dir=claude-preview`. La vista previa solo consulta GitHub público. Para generar localmente, configura `ANTHROPIC_API_TOKEN` o `ANTHROPIC_API_KEY`, añade `--execute` y elige un directorio de salida nuevo. El contexto procede del issue público y de hasta seis archivos seleccionados en el `main` público. El manifiesto registra el commit, el hash del prompt, el modelo, el coste reservado y el uso de tokens cuando esté disponible. Los cálculos usan las [tarifas estándar](https://platform.claude.com/docs/en/models/sonnet-5-5/overview) publicadas.
+
+Para diagnosticar la API, activa **preflight** o añade `--preflight-only` en local. Usa el secreto para llamar al contador de tokens gratuito y guarda su resultado o un error depurado en `manifest.json`. En Actions, **preflight** tiene prioridad sobre **execute**.
 
 El flujo entrega texto para revisión. La persona responsable o el agente local aplica y prueba los cambios que acepte. La herramienta sirve para mantener el repositorio y funciona de forma independiente de los experimentos del artículo.
