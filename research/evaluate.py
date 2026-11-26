@@ -55,12 +55,12 @@ def canonical(rows: list) -> list[str]:
 
 
 class LocalBackend:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, fixtures: dict[str, str] | None = None) -> None:
         self.name = name
         self.temp = tempfile.TemporaryDirectory(prefix="sqlguard-study-")
         self.connections = {}
         for key, tenant in (("full", None), ("tenant_1", 1), ("tenant_2", 2)):
-            schema = fixture_sql(tenant, oracle=tenant is not None)
+            schema = fixtures[key] if fixtures else fixture_sql(tenant, oracle=tenant is not None)
             if name == "sqlite":
                 conn = sqlite3.connect(":memory:")
                 conn.executescript(schema)
@@ -77,8 +77,10 @@ class LocalBackend:
                 self.engine_version = duckdb.__version__
             self.connections[key] = conn
 
-    def query(self, key: str, sql: str, *, role: str | None = None) -> list:
-        return self.connections[key].execute(sql).fetchmany(MAX_ROWS)
+    def query(
+        self, key: str, sql: str, *, role: str | None = None, fetch_limit: int = MAX_ROWS
+    ) -> list:
+        return self.connections[key].execute(sql).fetchmany(fetch_limit)
 
     def close(self) -> None:
         for conn in self.connections.values():
@@ -91,7 +93,7 @@ class PGliteBackend:
 
     name = "postgres_pglite"
 
-    def __init__(self) -> None:
+    def __init__(self, fixtures: dict[str, str] | None = None) -> None:
         self.proc = subprocess.Popen(
             ["node", str(ROOT / "research/pglite.mjs")],
             stdin=subprocess.PIPE,
@@ -101,7 +103,8 @@ class PGliteBackend:
         result = self.request(
             {
                 "op": "init",
-                "fixtures": {
+                "fixtures": fixtures
+                or {
                     "full": fixture_sql(),
                     "tenant_1": fixture_sql(1, oracle=True),
                     "tenant_2": fixture_sql(2, oracle=True),
@@ -121,9 +124,11 @@ class PGliteBackend:
             raise RuntimeError(response["error"])
         return response
 
-    def query(self, key: str, sql: str, *, role: str | None = None) -> list:
+    def query(
+        self, key: str, sql: str, *, role: str | None = None, fetch_limit: int = MAX_ROWS
+    ) -> list:
         return self.request({"op": "query", "key": key, "sql": sql, "role": role})["rows"][
-            :MAX_ROWS
+            :fetch_limit
         ]
 
     def close(self) -> None:

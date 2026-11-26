@@ -1,0 +1,49 @@
+name: Research native PostgreSQL
+
+on:
+  pull_request:
+    paths:
+      - "research/**"
+      - "src/**"
+      - ".github/workflows/research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16.2
+        env:
+          POSTGRES_PASSWORD: synthetic-study-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Research dependencies
+        run: python -m pip install -r research/requirements.txt "psycopg[binary]==3.2.12"
+      - name: Execute physical-oracle study on native PostgreSQL
+        env:
+          SQLGUARD_RESEARCH_PG_DSN: postgresql://postgres:synthetic-study-only@127.0.0.1:5432/postgres
+        run: python research/review_eval.py --engines postgres_service --out research/results-native-service
+      - name: Upload synthetic research observations
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-postgres-research
+          path: research/results-native-service/
+          retention-days: 30
