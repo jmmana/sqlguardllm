@@ -269,7 +269,22 @@ Until then, other languages can already use the [MCP server](#mcp-server) or, fr
 
 ## Performance budget
 
-Target: under **2 ms** median per `check()` for typical analytical queries (one to five joins) on a laptop, measured with `pyperf` in CI from v0.3. Parsing dominates; policy compilation happens once per `Guard`.
+Target: under **2 ms** median per `check()` for typical analytical queries (one to five joins), with a warm `Guard` (the policy is compiled once, when the guard is created).
+
+[`benchmarks/bench_check.py`](../benchmarks/bench_check.py) times 21 representative queries: simple selects, a masked column, row filters, two to five joins (one with every optional limit on), CTEs, subqueries, a `UNION` with window functions, two rejected queries, and a large report. Every call is timed on its own with `time.perf_counter_ns`, 500 per query, interleaved in rounds so noise on a shared machine hits all queries alike; the garbage collector stays on, as in production. It reports the median and the 95th percentile.
+
+- The [Benchmark workflow](../.github/workflows/bench.yml) runs it on GitHub's `ubuntu-latest` with Python 3.12 and writes the table to the job summary. It fails when a typical query's median is over the budget, or, on a pull request, when any query's median is more than 25 % slower than on the base branch, both measured on the same runner (fastest of two runs per side).
+- The large report (5 CTEs, 10 joins, window functions, 7 filtered table occurrences) is outside "one to five joins". It is reported and compared like the rest, with a ceiling of 5× the budget so a blow-up still fails.
+- Run it locally with `uv run python benchmarks/bench_check.py`.
+
+Measured with sqlglot 30.35 and Python 3.12 (sqlguardllm 0.4.0a1), median per query:
+
+| Machine | Typical queries | Five joins (all limits on) | Chain of three CTEs | Large report (p95) |
+|---|---|---|---|---|
+| Apple M4 Pro laptop | 0.14–0.84 ms | 1.37 ms (1.43 ms) | 1.14 ms | 5.6 ms (9.5 ms) |
+| GitHub `ubuntu-latest`, AMD EPYC 7763 | 0.30–2.00 ms | **3.24 ms (3.38 ms)** | **2.74 ms** | 12.7 ms (22.4 ms) |
+
+The 2 ms target holds on the laptop. **On GitHub's shared runner, about 2.3 times slower, five joins and the CTE chain are over it**, so the workflow enforces 4 ms there (`BUDGET_MS`), with the regression check against the base branch as the main guard. Parsing takes about 40 % of the time and generating the rewritten SQL about 20 %, half of it sqlglot copying the tree; the rules take the rest. Those are the places to look for the time it takes to bring five joins under 2 ms on the runner.
 
 ## Compatibility
 
