@@ -229,7 +229,10 @@ def read_mapping(path: str | Path) -> Mapping[str, Any]:
             import yaml  # noqa: PLC0415
         except ImportError as exc:  # pragma: no cover - depends on the environment
             raise PolicyError('YAML policies need: pip install "sqlguardllm[yaml]"') from exc
-        data = yaml.safe_load(text)
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            raise PolicyError("invalid YAML syntax") from exc
     else:
         data = json.loads(text)
     if not isinstance(data, Mapping):

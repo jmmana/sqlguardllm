@@ -28,7 +28,7 @@ from sqlguardllm.messages import LANGUAGES
 from sqlguardllm.policy import Policy
 from sqlguardllm.policy_set import PolicySet
 from sqlguardllm.result import CheckResult, PolicyError
-from sqlguardllm.schema import policy_schema, policy_set_schema
+from sqlguardllm.schema import policy_schema, policy_set_schema, policy_tests_schema
 
 EXIT_OK = 0
 EXIT_REJECTED = 1
@@ -66,7 +66,11 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--pretty", action="store_true", help="pretty-print the rewritten SQL")
 
     schema = commands.add_parser("schema", help="print the JSON Schema of policy files")
-    schema.add_argument(
+    schema_kind = schema.add_mutually_exclusive_group()
+    schema_kind.add_argument(
+        "--cases", action="store_true", help="print the schema of policy test cases instead"
+    )
+    schema_kind.add_argument(
         "--policy-set",
         action="store_true",
         help="print the schema of policy-set files (base and roles) instead",
@@ -136,6 +140,10 @@ def _parser() -> argparse.ArgumentParser:
         help="name of an environment variable holding a bearer token required on every "
         "request except /v1/health (the token is never read from the command line)",
     )
+    test = commands.add_parser("test", help="run declared cases against a policy or policy set")
+    test.add_argument("cases", type=Path, help="case file (.yaml or .json)")
+    test.add_argument("--policy", required=True, type=Path, help="policy or policy-set file")
+    test.add_argument("--format", choices=("text", "junit"), default="text", help="output format")
     return parser
 
 
@@ -176,6 +184,21 @@ def _load_role(path: Path, role: str) -> Policy:
         raise _UsageError(f"cannot read the policy set: {exc}") from exc
     except (PolicyError, ValueError) as exc:
         raise _UsageError(f"invalid policy set {path}: {exc}") from exc
+
+
+def _test(args: argparse.Namespace, stdout: TextIO) -> int:
+    from sqlguardllm.policy_tests import (  # noqa: PLC0415 - used only by the test command
+        PolicyTestError,
+        format_outcomes,
+        run_policy_tests,
+    )
+
+    try:
+        outcomes = run_policy_tests(args.cases, args.policy)
+    except PolicyTestError as exc:
+        raise _UsageError(str(exc)) from exc
+    print(format_outcomes(outcomes, junit=args.format == "junit"), file=stdout)
+    return EXIT_REJECTED if any(outcome.failure is not None for outcome in outcomes) else EXIT_OK
 
 
 def _as_json(result: CheckResult) -> str:
@@ -298,9 +321,14 @@ def main(
         return exc.code if isinstance(exc.code, int) else EXIT_ERROR
     try:
         if args.command == "schema":
-            schema = policy_set_schema() if args.policy_set else policy_schema()
+            if args.cases:
+                schema = policy_tests_schema()
+            else:
+                schema = policy_set_schema() if args.policy_set else policy_schema()
             print(json.dumps(schema, indent=2, ensure_ascii=False), file=stdout)
             return EXIT_OK
+        if args.command == "test":
+            return _test(args, stdout)
         if args.command == "mcp":
             return _mcp(args)
         if args.command == "serve":

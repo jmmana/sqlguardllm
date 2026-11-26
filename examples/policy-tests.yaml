@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-tests.schema.json
+cases:
+  - name: branch manager can read invoices
+    sql: SELECT id FROM invoices
+    context: {user: {branches: [1, 2]}}
+    expect: allow
+    sql_contains: branch_id IN (1, 2)
+  - name: customers' email is private
+    sql: SELECT email FROM customers
+    expect: reject
+    violation: hidden_column
+  - name: invoice reads need a branch context
+    sql: SELECT id FROM invoices
+    expect: reject
+    violation: missing_context
