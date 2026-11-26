@@ -5,7 +5,6 @@ from __future__ import annotations
 import functools
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from types import MappingProxyType
 from typing import Any, TypeVar, cast
 
 import sqlglot
@@ -17,14 +16,20 @@ from sqlglot.optimizer.scope import Scope, traverse_scope
 from sqlguardllm._compiled import Compiled, RowFilter
 from sqlguardllm._names import TableName, find, norm, parse_column_entry, parse_table_entry
 from sqlguardllm.data.denied_functions import default_denylist
-from sqlguardllm.explain import Explanation, read_columns
+from sqlguardllm.explain import Explanation, protections, read_columns
 from sqlguardllm.messages import LANGUAGES, violation
 from sqlguardllm.policy import Policy
 from sqlguardllm.result import CheckResult, GuardViolation, PolicyError, Violation, ViolationCode
+from sqlguardllm.rules.aggregate_only import (
+    AggregatePlan,
+    apply_aggregate_only,
+    check_aggregate_only,
+)
 from sqlguardllm.rules.columns import check_columns
 from sqlguardllm.rules.complexity import check_complexity
 from sqlguardllm.rules.functions import check_functions
 from sqlguardllm.rules.limit import apply_limit, current_limit
+from sqlguardllm.rules.masking import HASH_TEMPLATES, MaskPlan, apply_masks, plan_masks
 from sqlguardllm.rules.required_filters import check_required_filters
 from sqlguardllm.rules.row_filters import apply_filters, compile_filter
 from sqlguardllm.rules.sources import PhysicalRef, collect_sources
@@ -78,6 +83,32 @@ def _compile(policy: Policy, language: str) -> Compiled:
             raise PolicyError(f"required filter for {key!r}, which is not in the allowed tables")
         required[table] = frozenset(norm(column, dialect) for column in columns)
 
+    masked: dict[TableName, dict[str, str]] = {}
+    for entry, strategy in sorted(policy.masked_columns.items()):
+        table, column = parse_column_entry(entry, dialect, dialect_name)
+        if tables is not None and find(tables, table, default_schema) is None:
+            raise PolicyError(f"masked column {entry!r} is on a table outside the allowed tables")
+        if table in hidden and column in hidden[table]:
+            raise PolicyError(f"a column can't be both hidden and masked: {entry!r}")
+        if strategy == "hash" and output_name not in HASH_TEMPLATES:
+            raise PolicyError(
+                f"the hash mask is not available for {output_name}; use null, redact or partial"
+            )
+        masked.setdefault(table, {})[column] = strategy
+
+    aggregate_only: dict[TableName, int] = {}
+    for key, k in sorted(policy.aggregate_only.items()):
+        table = parse_table_entry(key, dialect, dialect_name)
+        if tables is not None and find(tables, table, default_schema) is None:
+            raise PolicyError(f"aggregate_only for {key!r}, which is not in the allowed tables")
+        aggregate_only[table] = k
+
+    schema: dict[TableName, tuple[str, ...]] = {}
+    for key, columns in sorted((policy.schema or {}).items()):
+        schema[parse_table_entry(key, dialect, dialect_name)] = tuple(
+            norm(column, dialect) for column in columns
+        )
+
     base = (
         policy.denied_functions
         if policy.denied_functions is not None
@@ -105,6 +136,9 @@ def _compile(policy: Policy, language: str) -> Compiled:
         max_subquery_depth=policy.max_subquery_depth,
         forbid_cartesian=policy.forbid_cartesian,
         required=required,
+        masked=masked,
+        aggregate_only=aggregate_only,
+        schema=schema,
     )
 
 
@@ -116,6 +150,8 @@ class _State:
     root: exp.Expression | None = None
     scopes: list[Scope] = field(default_factory=list)
     refs: list[PhysicalRef] = field(default_factory=list)
+    masks: MaskPlan = field(default_factory=MaskPlan)
+    aggregates: AggregatePlan = field(default_factory=AggregatePlan)
     filters: list[tuple[str, str]] = field(default_factory=list)  # (table, bound condition)
     sql: str | None = None
 
@@ -153,9 +189,10 @@ class Guard:
     def explain(self, sql: str, context: Mapping[str, Any] | None = None) -> Explanation:
         """Describe what ``sql`` reads and what the guard does to it, allowed or not.
 
-        Runs the same pass as :meth:`check` and adds the columns read per table. The
-        explanation's text is in the Guard's language and includes the bound row filters,
-        so it is meant for users, UIs and audit logs.
+        Runs the same pass as :meth:`check`, so both always agree, and adds the columns read
+        per table, the masks and minimum group sizes that apply. The explanation's text is in
+        the Guard's language and includes the bound row filters, so it is meant for users, UIs
+        and audit logs rather than for the model.
 
         Args:
             sql: The SQL written by the model, agent or user.
@@ -164,6 +201,7 @@ class Guard:
         state = self._analyze(sql)
         # Read the columns before the rewrite replaces filtered tables with derived tables.
         reads = read_columns(state.scopes, state.refs, self._compiled)
+        masked, groups = protections(reads, state.refs, self._compiled)
         self._rewrite(state, context)
         result = self._result(state)
         return Explanation(
@@ -172,7 +210,9 @@ class Guard:
             tables=frozenset(str(ref.name) for ref in state.refs),
             columns=reads.columns,
             unresolved_columns=reads.unresolved,
-            row_filters=MappingProxyType(dict(state.filters)),
+            masked_columns=masked if result.ok else {},
+            aggregate_only=groups if result.ok else {},
+            row_filters=dict(state.filters),
             limit=current_limit(state.root) if result.ok and state.root is not None else None,
             violations=result.violations,
             language=self._compiled.language,
@@ -231,13 +271,21 @@ class Guard:
         problems += check_functions(root, compiled)
         problems += check_complexity(root, scopes, compiled)
         problems += check_required_filters(refs, compiled)
-        return _State(problems, root=root, scopes=scopes, refs=refs)
+        masks, mask_problems = plan_masks(scopes, compiled)
+        problems += mask_problems
+        aggregates, aggregate_problems = check_aggregate_only(refs, compiled)
+        problems += aggregate_problems
+        return _State(
+            problems, root=root, scopes=scopes, refs=refs, masks=masks, aggregates=aggregates
+        )
 
     def _rewrite(self, state: _State, context: Mapping[str, Any] | None) -> None:
-        """Steps 7-9, only for a query without violations: row filters, limit, generate."""
+        """Steps 7-9, only for a query without violations: masks, row filters, limit, generate."""
         if state.violations or state.root is None:
             return
         compiled = self._compiled
+        apply_masks(state.masks, compiled)
+        apply_aggregate_only(state.aggregates)
         applied, problems = apply_filters(
             state.refs, compiled, context if context is not None else {}
         )

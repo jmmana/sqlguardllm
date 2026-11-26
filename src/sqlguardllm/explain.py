@@ -1,7 +1,7 @@
 """``Guard.explain()``: what a query reads and what the guard does to it, in data and in words.
 
 The explanation comes from the same pass as ``Guard.check()``; this module only adds the
-columns read per table and the sentence for people.
+columns read per table, the masks and group sizes that apply, and the sentence for people.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from sqlglot import exp
 from sqlglot.optimizer.scope import Scope
 
 from sqlguardllm._compiled import Compiled
-from sqlguardllm._names import norm
+from sqlguardllm._names import find, norm, table_name
 from sqlguardllm.messages import LANGUAGES, violation
 from sqlguardllm.result import Violation, ViolationCode
 from sqlguardllm.rules.columns import _visible_sources, scope_columns
@@ -28,8 +28,10 @@ _WORDS: dict[str, dict[str, str]] = {
         "and": "and",
         "reads": "Reads {reads}",
         "reads_nothing": "Reads no table",
+        "masking": "masking {columns}",
         "filtered": "filtered by {filters}",
         "filter": "{condition} on {table}",
+        "groups": "only groups of at least {k} rows from {table}",
         "limit": "up to {limit} rows",
         "limit_one": "up to 1 row",
         "no_limit": "with no row limit",
@@ -41,8 +43,10 @@ _WORDS: dict[str, dict[str, str]] = {
         "and": "y",
         "reads": "Lee {reads}",
         "reads_nothing": "No lee ninguna tabla",
+        "masking": "enmascarando {columns}",
         "filtered": "filtrado por {filters}",
         "filter": "{condition} en {table}",
+        "groups": "solo grupos de al menos {k} filas de {table}",
         "limit": "hasta {limit} filas",
         "limit_one": "hasta 1 fila",
         "no_limit": "sin límite de filas",
@@ -69,7 +73,11 @@ class Explanation:
         columns: Table → columns the query references in it, in any clause and scope; ``"*"``
             for a star. A table read without naming columns (``COUNT(*)``) maps to an empty set.
         unresolved_columns: Unqualified columns of a ``SELECT`` with several sources, whose
-            table can't be known without table metadata.
+            table can't be known (the policy's ``schema`` resolves them when it lists the tables).
+        masked_columns: ``"table.column"`` → mask strategy, for the masked columns the query
+            returns (only when ``ok``).
+        aggregate_only: Aggregate-only table → minimum group size ``k`` enforced on the query
+            (only when ``ok``).
         row_filters: Table → row filter injected, with context values bound (only when ``ok``).
         limit: Row limit of the rewritten query; ``None`` when rejected or unlimited.
         violations: Every reason the query is rejected (empty when ``ok``).
@@ -81,6 +89,8 @@ class Explanation:
     tables: frozenset[str] = frozenset()
     columns: Mapping[str, frozenset[str]] = field(default_factory=dict)
     unresolved_columns: frozenset[str] = frozenset()
+    masked_columns: Mapping[str, str] = field(default_factory=dict)
+    aggregate_only: Mapping[str, int] = field(default_factory=dict)
     row_filters: Mapping[str, str] = field(default_factory=dict)
     limit: int | None = None
     violations: tuple[Violation, ...] = ()
@@ -89,7 +99,8 @@ class Explanation:
     def __post_init__(self) -> None:
         columns = {table: frozenset(names) for table, names in self.columns.items()}
         object.__setattr__(self, "columns", MappingProxyType(columns))
-        object.__setattr__(self, "row_filters", MappingProxyType(dict(self.row_filters)))
+        for name in ("masked_columns", "aggregate_only", "row_filters"):
+            object.__setattr__(self, name, MappingProxyType(dict(getattr(self, name))))
 
     @property
     def codes(self) -> frozenset[ViolationCode]:
@@ -120,12 +131,19 @@ class Explanation:
             return f"{text} {words['would_read'].format(reads=reads)}" if reads else text
 
         parts = [words["reads"].format(reads=reads) if reads else words["reads_nothing"]]
+        if self.masked_columns:
+            masked = [f"{name} ({how})" for name, how in sorted(self.masked_columns.items())]
+            parts.append(words["masking"].format(columns=_join(masked, words["and"])))
         if self.row_filters:
             filters = [
                 words["filter"].format(condition=condition, table=table)
                 for table, condition in sorted(self.row_filters.items())
             ]
             parts.append(words["filtered"].format(filters=_join(filters, words["and"])))
+        parts.extend(
+            words["groups"].format(k=k, table=table)
+            for table, k in sorted(self.aggregate_only.items())
+        )
         if self.limit is None:
             parts.append(words["no_limit"])
         elif self.limit == 1:
@@ -142,6 +160,8 @@ class Explanation:
             "tables": sorted(self.tables),
             "columns": {table: sorted(names) for table, names in sorted(self.columns.items())},
             "unresolved_columns": sorted(self.unresolved_columns),
+            "masked_columns": dict(sorted(self.masked_columns.items())),
+            "aggregate_only": dict(sorted(self.aggregate_only.items())),
             "row_filters": dict(sorted(self.row_filters.items())),
             "limit": self.limit,
             "violations": [
@@ -181,8 +201,9 @@ def read_columns(scopes: list[Scope], refs: list[PhysicalRef], compiled: Compile
 
     A qualified column is resolved through the aliases visible in its scope, outer ones
     included (correlated subqueries). An unqualified column belongs to the only source of its
-    ``SELECT``, or of the nearest enclosing one when it has none; with several sources it is
-    unresolved. A column of a CTE or derived table is not a table column: the CTE's own scope
+    ``SELECT``, or of the nearest enclosing one when it has none; with several sources, to the
+    only one whose columns in the policy's ``schema`` include it, and else it is unresolved.
+    A column of a CTE or derived table is not a table column: the CTE's own scope
     records what it reads. Must run before row filters replace the tables.
     """
     dialect = compiled.dialect
@@ -231,8 +252,9 @@ def read_columns(scopes: list[Scope], refs: list[PhysicalRef], compiled: Compile
             if name in aliases and _clause(column, select) != "expressions":
                 continue  # an output alias in GROUP BY, HAVING or ORDER BY
             sources = _nearest_sources(scope)
-            if len(sources) == 1:
-                record(sources[0], name)
+            owner = sources[0] if len(sources) == 1 else _schema_owner(name, sources, compiled)
+            if owner is not None:
+                record(owner, name)
             elif sources:
                 unresolved.add(name)
 
@@ -240,6 +262,43 @@ def read_columns(scopes: list[Scope], refs: list[PhysicalRef], compiled: Compile
         columns=MappingProxyType({table: frozenset(names) for table, names in found.items()}),
         unresolved=frozenset(unresolved),
     )
+
+
+def protections(
+    reads: ColumnsRead, refs: list[PhysicalRef], compiled: Compiled
+) -> tuple[dict[str, str], dict[str, int]]:
+    """The masks on the columns read, and the minimum group size of aggregate-only tables."""
+    masked: dict[str, str] = {}
+    groups: dict[str, int] = {}
+    for ref in refs:
+        table = str(ref.name)
+        entry = find(compiled.masked.keys(), ref.name, compiled.default_schema)
+        if entry is not None:
+            used = reads.columns.get(table, frozenset()) | reads.unresolved
+            for column, strategy in compiled.masked[entry].items():
+                if column in used or STAR in used:
+                    masked[f"{table}.{column}"] = strategy
+        entry = find(compiled.aggregate_only.keys(), ref.name, compiled.default_schema)
+        if entry is not None:
+            groups[table] = compiled.aggregate_only[entry]
+    return masked, groups
+
+
+def _schema_owner(
+    name: str, sources: list[exp.Table | Scope], compiled: Compiled
+) -> exp.Table | None:
+    """The only source whose ``schema`` columns include ``name``, when every source has one."""
+    owners: list[exp.Table] = []
+    for source in sources:
+        if not isinstance(source, exp.Table) or not isinstance(source.this, exp.Identifier):
+            return None  # a CTE or derived table: its columns are not in the schema
+        ref = table_name(source, compiled.dialect)
+        entry = find(compiled.schema.keys(), ref, compiled.default_schema)
+        if entry is None:
+            return None
+        if name in compiled.schema[entry]:
+            owners.append(source)
+    return owners[0] if len(owners) == 1 else None
 
 
 def _nearest_sources(scope: Scope) -> list[exp.Table | Scope]:

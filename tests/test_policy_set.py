@@ -113,6 +113,23 @@ def test_add_extends_lists_and_merges_mappings() -> None:
     assert roles.base.tables == {"invoices", "branches"}  # the base is not modified
 
 
+def test_add_works_for_every_mapping_key() -> None:
+    careful = policy_set(
+        careful={
+            "add": {
+                "masked_columns": {"invoices.customer": "hash"},
+                "aggregate_only": {"invoices": 5},
+            }
+        }
+    ).for_role("careful")
+    assert dict(careful.masked_columns) == {"invoices.customer": "hash"}
+    assert dict(careful.aggregate_only) == {"invoices": 5}
+    with pytest.raises(PolicyError, match="role 'clash': a column can't be both hidden and masked"):
+        policy_set(clash={"add": {"masked_columns": {"invoices.notes": "null"}}})
+    with pytest.raises(PolicyError, match="can't add to schema"):
+        policy_set(wide={"add": {"schema": {"invoices": ["id"]}}})
+
+
 def test_extends_inherits_from_another_role() -> None:
     roles = policy_set(
         senior={"extends": "manager", "max_rows": 50},

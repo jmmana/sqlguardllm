@@ -122,6 +122,80 @@ def test_output_aliases_are_not_columns() -> None:
     assert e.unresolved_columns == frozenset()
 
 
+def test_schema_resolves_unqualified_columns() -> None:
+    schema = {"branches": ["id", "name"], "invoices": ["id", "branch_id", "total"]}
+    e = explain(
+        "SELECT name, total, id FROM branches b JOIN invoices i ON i.branch_id = b.id",
+        schema=schema,
+    )
+    assert columns(e) == {"branches": {"id", "name"}, "invoices": {"branch_id", "total"}}
+    assert e.unresolved_columns == {"id"}  # in both tables
+    partial = explain(
+        "SELECT name, total FROM branches b JOIN invoices i ON i.branch_id = b.id",
+        schema={"branches": ["id", "name"]},
+    )
+    assert partial.unresolved_columns == {"name", "total"}  # invoices is not in the schema
+
+
+MASKED = {"customers.email": "hash", "customers.phone": "partial"}
+CUSTOMERS = ["id", "name", "email", "phone"]
+
+
+def test_masked_columns() -> None:
+    e = explain("SELECT name, email FROM customers", hidden_columns=set(), masked_columns=MASKED)
+    assert e.ok
+    assert columns(e) == {"customers": {"name", "email"}}
+    assert dict(e.masked_columns) == {"customers.email": "hash"}
+    assert e.text == (
+        "Reads customers.email and customers.name, masking customers.email (hash), up to 1000 rows."
+    )
+    assert e.to_text("es") == (
+        "Lee customers.email y customers.name, enmascarando customers.email (hash), "
+        "hasta 1000 filas."
+    )
+
+
+def test_star_over_masked_columns_with_schema() -> None:
+    e = explain(
+        "SELECT * FROM customers",
+        hidden_columns=set(),
+        masked_columns=MASKED,
+        schema={"customers": CUSTOMERS},
+    )
+    assert e.ok
+    assert dict(e.masked_columns) == MASKED
+    assert "masking customers.email (hash) and customers.phone (partial)" in e.text
+
+
+def test_masked_column_outside_the_select_list_is_rejected() -> None:
+    e = explain(
+        "SELECT id FROM customers WHERE email LIKE 'a%'",
+        hidden_columns=set(),
+        masked_columns=MASKED,
+    )
+    assert not e.ok
+    assert e.codes == {ViolationCode.HIDDEN_COLUMN}
+    assert dict(e.masked_columns) == {}
+    assert columns(e) == {"customers": {"id", "email"}}
+
+
+def test_aggregate_only() -> None:
+    e = explain(
+        "SELECT branch_id, SUM(total) FROM invoices GROUP BY branch_id",
+        aggregate_only={"invoices": 5},
+    )
+    assert e.ok and e.sql is not None and "HAVING COUNT(*) >= 5" in e.sql
+    assert dict(e.aggregate_only) == {"invoices": 5}
+    assert e.text == (
+        "Reads invoices.branch_id and invoices.total, filtered by branch_id IN (1, 2) on "
+        "invoices, only groups of at least 5 rows from invoices, up to 1000 rows."
+    )
+    assert "solo grupos de al menos 5 filas de invoices" in e.to_text("es")
+    raw = explain("SELECT total FROM invoices", aggregate_only={"invoices": 5})
+    assert raw.codes == {ViolationCode.AGGREGATE_REQUIRED}
+    assert dict(raw.aggregate_only) == {}
+
+
 def test_rejected_query_still_lists_what_it_reads() -> None:
     e = explain("SELECT name, email FROM customers")
     assert not e.ok and e.sql is None
@@ -242,6 +316,8 @@ def test_to_dict_is_json_ready() -> None:
         "tables": ["branches"],
         "columns": {"branches": ["name"]},
         "unresolved_columns": [],
+        "masked_columns": {},
+        "aggregate_only": {},
         "row_filters": {},
         "limit": 1000,
         "violations": [],

@@ -40,3 +40,6 @@ class Compiled:
     max_subquery_depth: int | None = None
     forbid_cartesian: bool = False
     required: Mapping[TableName, frozenset[str]] = field(default_factory=dict)
+    masked: Mapping[TableName, Mapping[str, str]] = field(default_factory=dict)
+    aggregate_only: Mapping[TableName, int] = field(default_factory=dict)
+    schema: Mapping[TableName, tuple[str, ...]] = field(default_factory=dict)

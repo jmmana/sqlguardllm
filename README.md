@@ -66,6 +66,8 @@ Off by default; turn on what you need. They stop queries that are far more expen
 | `forbid_cartesian=True` | Rejects `CROSS JOIN` and comma joins with no linking equality in `WHERE` | `too_complex` |
 | `required_filters={"invoices": ["issued_at"]}` | Every read of the table must filter on one of the columns, such as a date range on a big fact table | `missing_required_filter` |
 | `output_dialect="tsql"` | The model writes PostgreSQL; the rewritten SQL comes out for SQL Server, Oracle or any sqlglot dialect | — |
+| `masked_columns={"customers.email": "partial"}` | The column can be selected but comes back masked: `null`, `redact` (`***`), `hash` (SHA-256) or `partial` (`ju***`). Filtering, joining, grouping or sorting by it is rejected | `hidden_column` |
+| `aggregate_only={"salaries": 5}` | The table can only be read through aggregates, and groups smaller than 5 rows never come back (`HAVING COUNT(*) >= 5`) | `aggregate_required` |
 
 ## Quick look
 

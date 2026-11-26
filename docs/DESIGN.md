@@ -74,7 +74,7 @@ Codes are part of the public API and **stable across minor versions**. Messages 
 | `invalid_context` | A context value has a type that can't be bound safely as a literal |
 | `too_complex` | The query exceeds `max_joins`, `max_subquery_depth` or `forbid_cartesian` |
 | `missing_required_filter` | A table in `required_filters` is read without a predicate on one of its columns |
-| `aggregate_required` | *(planned, v0.3)* An aggregate-only table is read without aggregating |
+| `aggregate_required` | A table in `aggregate_only` is read without aggregating (raw columns, `*`, or window functions) |
 
 ## Pipeline
 
@@ -222,6 +222,8 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 
 ### Protecting personal data
 
+> Status: **implemented** (unreleased). `schema` is used to expand `*` over masked tables; exact column checks with it are still planned (#5). Known limits of `aggregate_only`: `COUNT(*)` counts rows, so a join that repeats a person counts them more than once, and a minimum group size alone doesn't stop differencing (asking for a group with and without one person). The hash mask isn't available on SQLite, which has no SHA-256 function: the policy is rejected.
+
 - **`masked_columns: {"table.column": strategy}`**, an alternative to hiding: the column can be selected but comes back masked. Strategies: `null`, `redact` (`'***'`), `hash` (the dialect's SHA-256, hex) and `partial` (first characters plus `***`). Masked columns may only appear in the select list; using them in predicates, joins or ordering is `hidden_column`, because filtering on the real value would leak it. `SELECT *` over a table with masked columns needs `schema` so the star can be expanded with the masks; without it, the query is rejected.
 - **`aggregate_only: {table: k}`**: the table can only be read through aggregates. The `SELECT` that reads it must project only aggregates and `GROUP BY` columns, and the guard adds `HAVING COUNT(*) >= k` so no group smaller than `k` people comes back (k-anonymity). Raw reads are `aggregate_required`.
 
@@ -229,8 +231,12 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 
 - **`schema: {table: [columns]}`** enables exact column checks: columns are qualified with `sqlglot.optimizer.qualify`, unknown columns are rejected, and stars can be expanded (needed by masking).
 - **`Policy.from_database(url, include=[...])`** reads tables and columns with the SQLAlchemy inspector (optional extra `sqlguardllm[db]`) to build `schema` and `tables`.
-- **`PolicySet`**: one file with a `base` policy and `roles` that override or extend it (`roles: {manager: {...}, analyst: {extends: manager, ...}}`), loaded once and asked for `policy_set.for_role("manager")`.
-- **`Guard.explain(sql, context)`** returns what a query reads (tables, columns per table), the filters and masks it would get, its limit and any violation, plus a short text in English or Spanish for UIs and audit logs.
+- **`PolicySet`** *(implemented, unreleased)*: one file with a `base` policy and `roles` that override or extend it (`roles: {manager: {...}, analyst: {extends: manager, ...}}`), loaded once (`PolicySet.from_file`, `from_dict`) and asked for `policy_set.for_role("manager")`, which returns the `Policy`; `policy_set.guard("manager", language="es")` returns a `Guard` cached per role, language and `pretty`. Example: [`examples/roles.yaml`](../examples/roles.yaml). Merge rules, applied from `base` down the `extends` chain:
+  - A policy key set in a role **replaces** the inherited value, for scalars, lists and mappings alike: what the role says is what it gets. `row_filters: {}` removes every inherited filter.
+  - Keys under **`add:`** **extend** the inherited value: lists are joined (union) and mappings merged key by key, the role winning for a key in both. Adding to a scalar, to an inherited `null` (`tables: null`, `schema: null`) or to a key the role also sets is a `PolicyError`.
+  - `extends` names the role to start from; without it a role starts from `base`. Unknown roles (in `extends` or `for_role`), `extends` cycles and invalid roles are `PolicyError`. Every role is resolved and compiled when the set is loaded, so a broken role fails at startup, not when its first user arrives.
+  - `sqlguardllm schema --policy-set` prints the JSON Schema of these files, published as `schema/policy-set.schema.json`. It embeds the policy schema, so it is regenerated whenever policy keys change.
+- **`Guard.explain(sql, context)`** *(implemented, unreleased)* returns an `Explanation`: the tables a query reads, the columns per table (`*` for a star; unqualified columns of a `SELECT` with several sources are resolved with `schema` or reported as unresolved), the masks, minimum group sizes and bound row filters it gets, its limit and any violations, plus `text`, a sentence in the Guard's language (`to_text("es")` for another, `to_dict()` for audit logs). It runs the same pass as `check()`, so both always agree; rejected queries still list what they would read. The text includes the bound row filters, so it is meant for people, not for the model.
 - **`output_dialect`** *(implemented in 0.2.0a1)*: read the model's SQL in one dialect and generate it in another, so a model that writes PostgreSQL can target SQL Server. sqlglot keeps semantics where dialects differ: PostgreSQL's `ORDER BY x DESC` (nulls first) becomes a `CASE` in SQL Server.
 
 ### MCP server

@@ -68,6 +68,8 @@ Apagados por defecto; activa los que necesites. Frenan consultas mucho más cost
 | `forbid_cartesian=True` | Rechaza `CROSS JOIN` y joins con coma sin una igualdad que los una en el `WHERE` | `too_complex` |
 | `required_filters={"invoices": ["issued_at"]}` | Toda lectura de la tabla debe filtrar por una de esas columnas, como un rango de fechas en una tabla de hechos grande | `missing_required_filter` |
 | `output_dialect="tsql"` | El modelo escribe PostgreSQL y el SQL reescrito sale para SQL Server, Oracle o cualquier dialecto de sqlglot | — |
+| `masked_columns={"customers.email": "partial"}` | La columna se puede seleccionar pero vuelve enmascarada: `null`, `redact` (`***`), `hash` (SHA-256) o `partial` (`ju***`). Filtrar, unir, agrupar u ordenar por ella se rechaza | `hidden_column` |
+| `aggregate_only={"salaries": 5}` | La tabla solo se puede leer con agregados, y los grupos de menos de 5 filas nunca vuelven (`HAVING COUNT(*) >= 5`) | `aggregate_required` |
 
 ## Un vistazo
 
