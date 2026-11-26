@@ -42,6 +42,8 @@ class GuardServer(ThreadingHTTPServer):
     """A threaded HTTP server holding one Guard (immutable, shared by all requests)."""
 
     daemon_threads = True
+    # The default backlog is 5: a burst of parallel requests would be reset by the kernel.
+    request_queue_size = 128
 
     def __init__(self, address: tuple[str, int], guard: Guard, token: str | None = None) -> None:
         self.guard = guard
