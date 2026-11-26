@@ -2,6 +2,8 @@
 
 Official TypeScript client for the [sqlguardllm](https://github.com/jmmana/sqlguardllm) SQL firewall. The engine runs in `sqlguardllm serve` (one engine, many clients); this package is a thin, typed HTTP client with **zero runtime dependencies** (global `fetch`: Node 18+, Deno, Bun, edge runtimes). ESM and CJS.
 
+> **Today this package needs a running `sqlguardllm serve`.** An embedded engine, so that `npm install sqlguardllm` works with no Python and no server, is planned in [#85](https://github.com/jmmana/sqlguardllm/issues/85).
+
 ```sh
 npm install sqlguardllm
 ```

@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Fixed
+- Node.js client: the package declared the MIT license by mistake; it is Apache-2.0 like the rest of the project, and the license file now ships in the package.
+
+
 ## [0.5.0a1] - 2026-11-26
 
 Everything that was planned for other languages and tooling: an HTTP server, official Node.js and .NET clients checked against the same 148-case corpus, a documentation site and a browser playground, plus `Policy.from_database`, a cost guard for the MCP server and the rest of the warehouse denylists.
