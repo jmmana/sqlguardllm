@@ -126,6 +126,7 @@ jobs:
           SQLGUARD_FUZZ_EXAMPLES: ${{ inputs.examples }}
           SQLGUARD_FUZZ_SEED: ${{ inputs.seed }}
           SQLGUARD_FUZZ_STATS: fuzz-stats.json
+          SQLGUARD_FUZZ_TRACE: fuzz-last-statement.txt
           SQLGUARD_REQUIRE_ENGINES: "1"
           SQLGUARD_PG_URL: postgresql+psycopg://postgres:test-only@localhost:5432/postgres
           SQLGUARD_MYSQL_URL: mysql+pymysql://root:test-only@127.0.0.1:3306/sg
@@ -138,5 +139,6 @@ jobs:
           name: fuzz-${{ github.run_id }}
           path: |
             fuzz-stats.json
+            fuzz-last-statement.txt
             tests/corpus/fuzz_regressions.yaml
           if-no-files-found: ignore

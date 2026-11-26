@@ -10,6 +10,7 @@ Profiles (``SQLGUARD_FUZZ_PROFILE``):
 ``SQLGUARD_FUZZ_SEED``, ``SQLGUARD_FUZZ_EXAMPLES`` and ``SQLGUARD_FUZZ_ENGINES`` (comma-separated)
 override the profile; the seed and count are printed so any run replays exactly.
 ``SQLGUARD_FUZZ_STATS=path`` writes the run statistics as JSON (research/results/fuzz.json).
+``SQLGUARD_FUZZ_TRACE=path`` keeps the statement each engine is running, for a crashing engine.
 
 A failure is shrunk by hypothesis and appended to tests/corpus/fuzz_regressions.yaml.
 """

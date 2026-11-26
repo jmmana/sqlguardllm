@@ -29,6 +29,17 @@ URLS = {
 ALL_ENGINES = ("sqlite", "duckdb", "postgres", "mysql", "tsql")
 
 
+# SQLGUARD_FUZZ_TRACE=path keeps the statement each engine is running, to find one that crashes
+# the engine process itself (DuckDB has segfaulted on a generated query).
+_TRACE = os.environ.get("SQLGUARD_FUZZ_TRACE")
+
+
+def _trace(engine: str, sql: str) -> None:
+    if _TRACE:
+        with open(_TRACE, "w", encoding="utf-8") as out:
+            out.write(f"{engine}\n{sql}\n")
+
+
 class EngineError(Exception):
     """The engine refused or failed to run the query (not a guard failure by itself)."""
 
@@ -68,6 +79,7 @@ class SQLiteBackend(Backend):
 
     def query(self, world: str, sql: str) -> list[Row]:
         conn = self.conns[world]
+        _trace(self.name, sql)
         deadline = time.monotonic() + TIMEOUT_S
         conn.set_progress_handler(lambda: int(time.monotonic() > deadline), 10_000)
         try:
@@ -107,6 +119,7 @@ class DuckDBBackend(Backend):
 
     def query(self, world: str, sql: str) -> list[Row]:
         conn = self.conns[world]
+        _trace(self.name, sql)
         timer = threading.Timer(TIMEOUT_S, conn.interrupt)
         timer.start()
         try:
@@ -187,6 +200,7 @@ class RemoteBackend(Backend):
 
     def query(self, world: str, sql: str) -> list[Row]:
         conn = self.conns[world]
+        _trace(self.name, sql)
         cursor = conn.cursor()
         try:
             cursor.execute(sql)
