@@ -7,6 +7,8 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 ### Added
 
 - Denied functions for Snowflake, BigQuery, ClickHouse and Trino, each list linked to the vendor documentation, with a corpus case for every entry (#16). Contributed by @shiwng in #42.
+- Integration recipes in `docs/RECIPES.md` with runnable code in `examples/`: a generic DB-API wrapper, SQLAlchemy, LangChain (`create_agent` tool and langchain-community's toolkit), LlamaIndex, Vanna 2.0 and a pointer to the MCP server. Each is tested with fake model output on SQLite; a Recipes workflow runs them against the framework versions they target. No framework is a dependency (#17).
+- Performance budget: `benchmarks/bench_check.py` times `Guard.check()` on 21 representative queries (median and p95), and a Benchmark workflow fails when a typical query's median is over budget (2 ms on a laptop, 4 ms on GitHub's slower shared runner, where five joins take 3.2–3.4 ms) or a pull request makes a query more than 25 % slower than its base branch (#19).
 
 ## [0.4.0a1] - 2026-11-26
 

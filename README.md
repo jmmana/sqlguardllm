@@ -183,7 +183,7 @@ What it does not do, and why, is in the [threat model](docs/THREAT_MODEL.md).
 
 ## Works with your stack
 
-sqlguardllm sits wherever your app executes the SQL the model wrote. Recipes, planned for v0.3, will cover a generic `execute()` wrapper, LangChain and LlamaIndex SQL tools, Vanna, and MCP database servers. See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+sqlguardllm sits wherever your app executes the SQL the model wrote. **[Recipes](docs/RECIPES.md)** with runnable, tested code: a generic `execute()` wrapper (DB-API and SQLAlchemy), LangChain, LlamaIndex, Vanna and MCP. See also [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 The command-line tool is handy in CI and for trying policies. Exit code 0 means allowed (it prints the rewritten SQL), 1 rejected (it prints the violations) and 2 a usage or policy error:
 

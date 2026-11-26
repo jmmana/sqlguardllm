@@ -32,17 +32,17 @@ except GuardViolation as e:
     feedback = "; ".join(v.message for v in e.violations)   # e.g. "customers.email is a hidden column"
 ```
 
-## Recipes (planned for v0.3)
+## Recipes
 
-Each recipe will live in `examples/` with a test, without adding the framework as a dependency of sqlguardllm.
+Runnable code for each stack, tested in CI with fake model output, is in **[RECIPES.md](RECIPES.md)** and [`examples/`](../examples). No framework is a dependency of sqlguardllm.
 
 | Stack | Integration point |
 |---|---|
-| Plain Python / SQLAlchemy | Wrap the function that executes SQL (above) |
-| LangChain | Wrap the SQL database tool so every query goes through `guard.enforce()` before it runs |
-| LlamaIndex | Same idea for its SQL database and query engines |
-| Vanna | Validate the generated SQL before Vanna executes it |
-| MCP database servers | Call `guard.enforce()` inside the `query` tool, with the context of the authenticated caller |
+| Plain Python (DB-API) / SQLAlchemy | Wrap the function that executes SQL (above): [`generic_wrapper.py`](../examples/generic_wrapper.py), [`sqlalchemy_wrapper.py`](../examples/sqlalchemy_wrapper.py) |
+| LangChain | `guard.enforce()` inside the `sql_db_query` tool, or a guarded `SQLDatabase` for langchain-community's toolkit: [`langchain_sql.py`](../examples/langchain_sql.py), [`langchain_community_sql.py`](../examples/langchain_community_sql.py) |
+| LlamaIndex | A guarded `SQLDatabase.run_sql()` under its query engines: [`llamaindex_sql.py`](../examples/llamaindex_sql.py) |
+| Vanna | A guarded `SqlRunner` for `RunSqlTool`: [`vanna_runner.py`](../examples/vanna_runner.py) |
+| MCP | The built-in server, `sqlguardllm mcp`: [MCP.md](MCP.md) |
 | [ChatIApp](https://github.com/jmmana/ChatIApp) | Uses sqlguardllm as its SQL guard; policies come from its semantic model |
 
 Using sqlguardllm somewhere else? Open a PR to add your recipe.

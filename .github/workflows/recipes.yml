@@ -1,0 +1,40 @@
+name: Recipes
+
+# The integration recipes in examples/ (docs/RECIPES.md), run against the framework versions
+# they target. The frameworks are installed only here, never as dependencies of sqlguardllm.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recipes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recipes:
+    name: Integration recipes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Dependencies
+        run: uv sync --locked
+      - name: Recipes with LangChain, LlamaIndex and Vanna
+        env:
+          SQLGUARDLLM_RECIPES: "1"  # a missing framework fails instead of skipping
+        run: >
+          uv run
+          --with "langchain>=1.0,<2"
+          --with "langchain-core>=1.0,<2"
+          --with "langchain-community>=0.4,<0.5"
+          --with "llama-index-core>=0.14,<0.15"
+          --with "vanna>=2.0,<2.1"
+          python -m pytest tests/test_examples.py -W ignore::DeprecationWarning
