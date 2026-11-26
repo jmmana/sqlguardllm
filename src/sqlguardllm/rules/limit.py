@@ -5,6 +5,17 @@ from __future__ import annotations
 from sqlglot import exp
 
 
+def _inexact(limit: exp.Expression) -> bool:
+    """``PERCENT`` or ``WITH TIES``: the limit is not an upper bound on rows.
+
+    sqlglot keeps both in ``limit_options`` for ``TOP`` (``Limit``) and ``FETCH``.
+    """
+    options = limit.args.get("limit_options")
+    return isinstance(options, exp.Expression) and bool(
+        options.args.get("percent") or options.args.get("with_ties")
+    )
+
+
 def _literal_int(node: exp.Expression | None) -> int | None:
     if isinstance(node, exp.Literal) and node.is_int:
         return int(node.name)
@@ -24,6 +35,10 @@ def apply_limit(root: exp.Expression, max_rows: int | None) -> exp.Expression:
 
     current = root.args.get("limit")
     if current is None:
+        return root.limit(max_rows, copy=False)
+    if _inexact(current):
+        # TOP 50 PERCENT or FETCH … WITH TIES could return more than max_rows rows.
+        root.set("limit", None)
         return root.limit(max_rows, copy=False)
     if isinstance(current, exp.Limit):
         value = _literal_int(current.expression)
@@ -46,8 +61,7 @@ def current_limit(root: exp.Expression) -> int | None:
     A percentage (``TOP 50 PERCENT``) is not a row count, so it is reported as ``None``.
     """
     current = root.args.get("limit")
-    options = current.args.get("limit_options") if isinstance(current, exp.Expression) else None
-    if isinstance(options, exp.Expression) and options.args.get("percent"):
+    if isinstance(current, exp.Expression) and _inexact(current):
         return None
     if isinstance(current, exp.Limit):
         return _literal_int(current.expression)

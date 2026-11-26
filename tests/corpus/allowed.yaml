@@ -56,3 +56,34 @@
   sql: SELECT id FROM invoices LIMIT 10
   expect: allow
   contains: ["LIMIT 10"]
+- id: tsql-top-percent-is-capped
+  dialect: tsql
+  sql: SELECT TOP 50 PERCENT id FROM invoices
+  expect: allow
+  contains: [TOP 1000]
+  not_contains: [PERCENT]
+  note: A percentage is not a row bound; fixed in 0.3.0a1 (it used to pass unchanged).
+- id: tsql-top-with-ties-is-capped
+  dialect: tsql
+  sql: SELECT TOP 5 WITH TIES id FROM invoices ORDER BY total
+  expect: allow
+  contains: [TOP 1000]
+  not_contains: [TIES]
+  note: WITH TIES can return more rows than the limit.
+- id: oracle-fetch-percent-is-capped
+  dialect: oracle
+  sql: SELECT id FROM invoices FETCH FIRST 50 PERCENT ROWS ONLY
+  expect: allow
+  contains: [FETCH FIRST 1000 ROWS ONLY]
+  not_contains: [PERCENT]
+- id: pg-fetch-with-ties-is-capped
+  dialect: postgres
+  sql: SELECT id FROM invoices ORDER BY total FETCH FIRST 5 ROWS WITH TIES
+  expect: allow
+  contains: [LIMIT 1000]
+  not_contains: [TIES]
+- id: pg-limit-all-is-capped
+  dialect: postgres
+  sql: SELECT id FROM invoices LIMIT ALL
+  expect: allow
+  contains: [LIMIT 1000]
