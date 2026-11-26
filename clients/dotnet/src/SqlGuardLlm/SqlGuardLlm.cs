@@ -129,7 +129,7 @@ public sealed class SqlGuardClient : IDisposable
         using var req = new HttpRequestMessage(method, new Uri(_options.BaseUrl, path.TrimStart('/')));
         if (!string.IsNullOrEmpty(_options.Token))
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.Token);
-        if (body is not null) req.Content = JsonContent.Create(body, options: new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.Never });
+        if (body is not null) req.Content = new StringContent(JsonSerializer.Serialize(body, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.Never }), System.Text.Encoding.UTF8, "application/json"); // a known length: the server rejects chunked bodies
         try
         {
             using var resp = await _http.SendAsync(req, cts.Token).ConfigureAwait(false);
