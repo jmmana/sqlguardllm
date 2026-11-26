@@ -199,6 +199,8 @@ Policy files have a [JSON Schema](schema/policy.schema.json) for autocompletion 
 
 ## Other languages
 
+Node.js/TypeScript: an official client lives in [`clients/node`](clients/node) (zero dependencies, talks to `sqlguardllm serve`; not yet on npm).
+
 sqlguardllm is a Python library today: its engine is [sqlglot](https://github.com/tobymao/sqlglot), which only exists in Python, and three engines in three languages could disagree, which in a security library means a bypass. **Node.js and .NET are planned** as one engine with many clients: `sqlguardllm serve` (an HTTP sidecar and Docker image) plus official npm and NuGet clients, with the attack corpus as a conformance suite so every language behaves the same. Follow it in [Later · Node.js and .NET](https://github.com/jmmana/sqlguardllm/milestone/6) and the [design](docs/DESIGN.md#other-languages). Until then, any language can use the MCP server (v0.4) or the CLI (v0.2).
 
 **.NET client:** [`clients/dotnet`](clients/dotnet/README.md) (`SqlGuardLlm`, for NuGet) talks to `sqlguardllm serve` and fails closed.
