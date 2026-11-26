@@ -4,13 +4,17 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0a2] - 2026-11-26
+
+First release on all three registries at once: PyPI, npm and, for the first time, NuGet.
+
 ### Added
 - Every release now publishes to PyPI, npm and NuGet together with the same version, all with Trusted Publishing.
 
 ### Fixed
 - T-SQL ordered set operations preserve their ordering and use a valid row limit on SQL Server (#92).
 - Node.js client: the package declared the MIT license by mistake; it is Apache-2.0 like the rest of the project, and the license file now ships in the package.
-
+- Node.js client: `sqlguardllm/package.json` is exported, so tools can read the installed version.
 
 ## [0.5.0a1] - 2026-11-26
 
@@ -106,7 +110,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...HEAD
+[0.5.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...v0.5.0a2
 [0.5.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.4.0a1...v0.5.0a1
 [0.4.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.3.0a1...v0.4.0a1
 [0.3.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a2...v0.3.0a1
