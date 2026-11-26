@@ -1,0 +1,290 @@
+[
+  {
+    "id": "benign_literal",
+    "kind": "benign",
+    "sql": "SELECT 1 AS n",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_keyword_literal",
+    "kind": "benign",
+    "sql": "SELECT 'DELETE DROP UPDATE' AS note",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_keyword_comment",
+    "kind": "benign",
+    "sql": "SELECT 1 /* DELETE FROM invoices */ AS n",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_semicolon_literal",
+    "kind": "benign",
+    "sql": "SELECT 'x; DROP TABLE invoices' AS note",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_keyword_identifier",
+    "kind": "benign",
+    "sql": "SELECT 1 AS delete_count",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_projection",
+    "kind": "benign",
+    "sql": "SELECT id, total FROM invoices ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_public_columns",
+    "kind": "benign",
+    "sql": "SELECT id, name FROM customers ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_branches",
+    "kind": "benign",
+    "sql": "SELECT id, name FROM branches ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_predicate",
+    "kind": "benign",
+    "sql": "SELECT id, total FROM invoices WHERE total > 103 ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_join",
+    "kind": "benign",
+    "sql": "SELECT i.id, c.name, i.total FROM invoices i JOIN customers c ON c.id = i.customer_id ORDER BY i.id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_left_join",
+    "kind": "benign",
+    "sql": "SELECT i.id, b.name FROM invoices i LEFT JOIN branches b ON b.id = i.branch_id ORDER BY i.id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_count",
+    "kind": "benign",
+    "sql": "SELECT COUNT(*) AS n FROM invoices",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_sum",
+    "kind": "benign",
+    "sql": "SELECT SUM(total) AS total FROM invoices",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_group",
+    "kind": "benign",
+    "sql": "SELECT branch_id, SUM(total) AS total FROM invoices GROUP BY branch_id ORDER BY branch_id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_having",
+    "kind": "benign",
+    "sql": "SELECT branch_id, COUNT(*) AS n FROM invoices GROUP BY branch_id HAVING COUNT(*) > 1 ORDER BY branch_id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_distinct",
+    "kind": "benign",
+    "sql": "SELECT DISTINCT category FROM invoices ORDER BY category",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_case",
+    "kind": "benign",
+    "sql": "SELECT id, CASE WHEN total > 103 THEN 'large' ELSE 'small' END AS size FROM invoices ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_cte",
+    "kind": "benign",
+    "sql": "WITH report AS (SELECT branch_id, SUM(total) AS total FROM invoices GROUP BY branch_id) SELECT * FROM report ORDER BY branch_id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_derived",
+    "kind": "benign",
+    "sql": "SELECT q.id, q.total FROM (SELECT id, total FROM invoices) q ORDER BY q.id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_correlated",
+    "kind": "benign",
+    "sql": "SELECT c.id, (SELECT SUM(i.total) FROM invoices i WHERE i.customer_id = c.id) AS total FROM customers c ORDER BY c.id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_exists",
+    "kind": "benign",
+    "sql": "SELECT c.id, c.name FROM customers c WHERE EXISTS (SELECT 1 FROM invoices i WHERE i.customer_id = c.id) ORDER BY c.id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_window",
+    "kind": "benign",
+    "sql": "SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS position FROM invoices ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_union",
+    "kind": "benign",
+    "sql": "SELECT id FROM invoices WHERE id % 2 = 0 UNION SELECT id FROM invoices WHERE id % 2 = 1 ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "benign_existing_limit",
+    "kind": "benign",
+    "sql": "SELECT id, total FROM invoices ORDER BY id LIMIT 3",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_tautology",
+    "kind": "isolation",
+    "sql": "SELECT id, tenant_id, total FROM invoices WHERE tenant_id = 999 OR 1 = 1 ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_other_tenant",
+    "kind": "isolation",
+    "sql": "SELECT id, total FROM invoices WHERE tenant_id = 2 ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_negated_tenant",
+    "kind": "isolation",
+    "sql": "SELECT id, total FROM invoices WHERE NOT tenant_id = 1 ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_cte_all_rows",
+    "kind": "isolation",
+    "sql": "WITH report AS (SELECT id, tenant_id FROM invoices) SELECT * FROM report ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_union_branches",
+    "kind": "isolation",
+    "sql": "SELECT id, tenant_id FROM invoices WHERE tenant_id = 1 UNION ALL SELECT id, tenant_id FROM invoices WHERE tenant_id = 2 ORDER BY id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_scalar_count",
+    "kind": "isolation",
+    "sql": "SELECT (SELECT COUNT(*) FROM invoices) AS n",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_correlated_other",
+    "kind": "isolation",
+    "sql": "SELECT c.id FROM customers c WHERE EXISTS (SELECT 1 FROM invoices i WHERE i.customer_id = c.id AND i.tenant_id = 2) ORDER BY c.id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_self_join",
+    "kind": "isolation",
+    "sql": "SELECT a.id, a.tenant_id, b.tenant_id FROM invoices a JOIN invoices b ON a.id = b.id ORDER BY a.id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_join_tautology",
+    "kind": "isolation",
+    "sql": "SELECT i.id, c.id AS customer FROM invoices i JOIN customers c ON i.customer_id = c.id OR 1 = 1 ORDER BY i.id, c.id",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_aggregate",
+    "kind": "isolation",
+    "sql": "SELECT SUM(total) AS total, COUNT(*) AS n FROM invoices",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_oversized_limit",
+    "kind": "isolation",
+    "sql": "SELECT id, tenant_id FROM invoices ORDER BY id LIMIT 10000",
+    "expected": "allow"
+  },
+  {
+    "id": "isolation_nested_cte",
+    "kind": "isolation",
+    "sql": "WITH a AS (SELECT id FROM invoices), b AS (SELECT id FROM a UNION ALL SELECT id FROM invoices) SELECT COUNT(*) AS n FROM b",
+    "expected": "allow"
+  },
+  {
+    "id": "forbidden_hidden_projection",
+    "kind": "forbidden",
+    "sql": "SELECT email FROM customers ORDER BY id",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_hidden_predicate",
+    "kind": "forbidden",
+    "sql": "SELECT id FROM customers WHERE email > 'a' ORDER BY id",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_hidden_order",
+    "kind": "forbidden",
+    "sql": "SELECT id FROM customers ORDER BY LOWER(email)",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_hidden_group",
+    "kind": "forbidden",
+    "sql": "SELECT email, COUNT(*) FROM customers GROUP BY email ORDER BY email",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_hidden_having",
+    "kind": "forbidden",
+    "sql": "SELECT COUNT(*) FROM customers HAVING MAX(email) > 'a'",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_hidden_derived",
+    "kind": "forbidden",
+    "sql": "SELECT q.contact FROM (SELECT email AS contact FROM customers) q ORDER BY q.contact",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_hidden_cte",
+    "kind": "forbidden",
+    "sql": "WITH c AS (SELECT email AS contact FROM customers) SELECT contact FROM c ORDER BY contact",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_forbidden_union",
+    "kind": "forbidden",
+    "sql": "SELECT id FROM invoices UNION SELECT id FROM secrets ORDER BY id",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_hidden_star",
+    "kind": "forbidden",
+    "sql": "SELECT * FROM customers ORDER BY id",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_forbidden_table",
+    "kind": "forbidden",
+    "sql": "SELECT token FROM secrets ORDER BY id",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_forbidden_scalar",
+    "kind": "forbidden",
+    "sql": "SELECT (SELECT MAX(token) FROM secrets) AS value",
+    "expected": "reject"
+  },
+  {
+    "id": "forbidden_forbidden_cte",
+    "kind": "forbidden",
+    "sql": "WITH s AS (SELECT token FROM secrets) SELECT token FROM s",
+    "expected": "reject"
+  }
+]

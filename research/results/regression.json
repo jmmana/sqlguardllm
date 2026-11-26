@@ -1,0 +1,1290 @@
+[
+  {
+    "id": "pg-drop-in-string",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-drop-in-comment",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-cte-shadows-table",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-cte-reads-real-table",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "tsql-default-schema-top",
+    "dialect": "tsql",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "oracle-fetch-first",
+    "dialect": "oracle",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-union-limited-as-a-whole",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-join-filtered",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-subquery-filtered",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-lower-limit",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-keep-smaller-limit",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "tsql-top-percent-is-capped",
+    "dialect": "tsql",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "tsql-top-with-ties-is-capped",
+    "dialect": "tsql",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "oracle-fetch-percent-is-capped",
+    "dialect": "oracle",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-fetch-with-ties-is-capped",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-limit-all-is-capped",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "joins-within-limit",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "joins-over-limit",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "joins-counted-across-scopes",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "joins-zero-allows-single-table",
+    "dialect": "tsql",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "depth-zero-rejects-subquery",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "depth-counts-ctes",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "depth-nested-over-limit",
+    "dialect": "mysql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "depth-within-limit",
+    "dialect": "mysql",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "depth-union-is-not-nesting",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "cartesian-comma-join",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "cartesian-comma-join-linked-in-where",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "cartesian-chain-linked-in-where",
+    "dialect": "oracle",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "cartesian-one-table-left-out",
+    "dialect": "oracle",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "cartesian-link-under-or-does-not-count",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "cartesian-explicit-cross-join",
+    "dialect": "tsql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "cartesian-join-without-on",
+    "dialect": "mysql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "cartesian-in-subquery",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "too_complex"
+    ]
+  },
+  {
+    "id": "cartesian-on-and-using-are-fine",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "cartesian-off-by-default",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-missing-context",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "missing_context"
+    ]
+  },
+  {
+    "id": "pg-invalid-context-type",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "invalid_context"
+    ]
+  },
+  {
+    "id": "pg-empty-list-matches-nothing",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-no-filter-needed",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-sleep",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "pg-read-file",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "mysql-load-file",
+    "dialect": "mysql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "tsql-openrowset-table",
+    "dialect": "tsql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "oracle-dbms-pipe",
+    "dialect": "oracle",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "oracle-sys-dbms-pipe",
+    "dialect": "oracle",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "pg-query-to-xml",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "pg-table-to-xml",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "pg-set-config",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "pg-nextval",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "mysql-sleep",
+    "dialect": "mysql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "mysql-benchmark",
+    "dialect": "mysql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "sqlite-load-extension",
+    "dialect": "sqlite",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "duckdb-read-csv-table",
+    "dialect": "duckdb",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "pg-generate-series-table",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "pg-allowed-aggregates",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "snowflake-build-stage-file-url",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-get-absolute-path",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-get-ddl",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-get-presigned-url",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-get-stage-location",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-system-abort-session",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-system-cancel-all-queries",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-system-cancel-query",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-system-log",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-system-send-email",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-system-set-return-value",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "snowflake-system-wait",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "bigquery-external-query",
+    "dialect": "bigquery",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "bigquery-load-data",
+    "dialect": "bigquery",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "clickhouse-azureblobstorage",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-deltalake",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-executable",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-file",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-filecluster",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-gcs",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-hdfs",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-hdfscluster",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-iceberg",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-input",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-jdbc",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-mongodb",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-mysql",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-odbc",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-postgresql",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-redis",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-remote",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-remotesecure",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-s3",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-s3cluster",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-sleepeachrow",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "clickhouse-sqlite",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-url",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "clickhouse-urlcluster",
+    "dialect": "clickhouse",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function",
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "trino-system-query",
+    "dialect": "trino",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "trino-system-runtime-queries",
+    "dialect": "trino",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "trino-system-slow-query",
+    "dialect": "trino",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "denied_function"
+    ]
+  },
+  {
+    "id": "required-missing",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "missing_required_filter"
+    ]
+  },
+  {
+    "id": "required-in-where",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "required-qualified-with-alias",
+    "dialect": "tsql",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "required-in-join-on",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "required-column-of-another-table-does-not-count",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "missing_required_filter"
+    ]
+  },
+  {
+    "id": "required-inside-cte-missing",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "missing_required_filter"
+    ]
+  },
+  {
+    "id": "required-inside-cte-present",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "required-filter-in-nested-subquery-does-not-count",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "missing_required_filter"
+    ]
+  },
+  {
+    "id": "required-every-occurrence",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "missing_required_filter"
+    ]
+  },
+  {
+    "id": "required-any-of-the-columns",
+    "dialect": "mysql",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "required-row-filter-does-not-satisfy-it",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "missing_required_filter"
+    ]
+  },
+  {
+    "id": "pg-union-not-allowed-table",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "pg-other-schema",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "pg-subquery-in-where",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "table_not_allowed"
+    ]
+  },
+  {
+    "id": "pg-hidden-column",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-star",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-qualified-star",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-in-predicate",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-in-order-by",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-whole-row",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-correlated",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-using",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-alias-rename",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-visible-columns",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-hidden-in-having-unqualified",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-in-having-with-group-by",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-in-having-of-a-subquery",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "snowflake-hidden-in-qualify-unqualified",
+    "dialect": "snowflake",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-having-on-an-alias-still-works",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-hidden-in-order-expression-behind-an-alias",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-hidden-in-distinct-on-expression-behind-an-alias",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "hidden_column"
+    ]
+  },
+  {
+    "id": "pg-order-by-a-bare-alias-still-works",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  },
+  {
+    "id": "pg-delete",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "tsql-stacked-drop",
+    "dialect": "tsql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "multiple_statements",
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "pg-stacked-mixed-case",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "multiple_statements",
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "tsql-select-into",
+    "dialect": "tsql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "write_operation"
+    ]
+  },
+  {
+    "id": "pg-cte-delete",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "write_operation"
+    ]
+  },
+  {
+    "id": "pg-copy",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "mysql-into-outfile",
+    "dialect": "mysql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "parse_error"
+    ]
+  },
+  {
+    "id": "sqlite-attach",
+    "dialect": "sqlite",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "sqlite-pragma",
+    "dialect": "sqlite",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "pg-lock-table",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "pg-set-role",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "pg-call",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "tsql-exec-xp-cmdshell",
+    "dialect": "tsql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "tsql-waitfor",
+    "dialect": "tsql",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "parse_error"
+    ]
+  },
+  {
+    "id": "pg-for-update",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "row_lock"
+    ]
+  },
+  {
+    "id": "pg-insert-select",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "pg-update",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "pg-drop",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "not_a_query"
+    ]
+  },
+  {
+    "id": "pg-empty",
+    "dialect": "postgres",
+    "expected": "reject",
+    "outcome": "pass",
+    "codes": [
+      "empty_statement"
+    ]
+  },
+  {
+    "id": "pg-trailing-semicolon",
+    "dialect": "postgres",
+    "expected": "allow",
+    "outcome": "pass",
+    "codes": []
+  }
+]

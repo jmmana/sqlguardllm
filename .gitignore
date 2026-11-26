@@ -15,3 +15,13 @@ site/
 .DS_Store
 .idea/
 .vscode/
+.venv-research/
+research/node_modules/
+research/paper/*.aux
+research/paper/*.bbl
+research/paper/*.blg
+research/paper/*.log
+research/paper/*.out
+research/paper/*.fls
+research/paper/*.fdb_latexmk
+docs/assets/demo-contact.*.png

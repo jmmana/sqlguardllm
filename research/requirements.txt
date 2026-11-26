@@ -1,0 +1,7 @@
+# Run from the repository root in a separate research virtual environment.
+-e .
+sqlglot==30.35.0
+duckdb==2.0.1
+PyYAML==6.0.4
+matplotlib==3.11.2
+Pillow==13.0.0

@@ -81,6 +81,23 @@ def test_generic_wrapper_script(capsys: pytest.CaptureFixture[str]) -> None:
     assert out.count("Query rejected") == 2
 
 
+@pytest.mark.parametrize("language", ["en", "es"])
+def test_readme_demo_executes_only_admitted_tenant_rows(language: str) -> None:
+    trace = recipe("readme_demo").capture(language)
+    cases = {case["id"]: case for case in trace["cases"]}
+    assert cases["allowed"]["rows"] == [[1, 250], [3, 120]]
+    assert cases["cross_tenant"]["rows"] == cases["allowed"]["rows"]
+    assert cases["harmless_literal"]["rows"] == [["DROP TABLE invoices"]]
+    for name, code in (
+        ("write", "write_operation"),
+        ("private_column", "hidden_column"),
+        ("missing_context", "missing_context"),
+    ):
+        assert not cases[name]["executed"]
+        assert cases[name]["sql"] is None
+        assert cases[name]["violations"][0]["code"] == code
+
+
 def test_sqlalchemy_wrapper(demo: ModuleType, db_path: Path) -> None:
     sqlalchemy = need("sqlalchemy")
     wrapper = recipe("sqlalchemy_wrapper")

@@ -1,0 +1,19 @@
+\begin{tabular}{llrrrr}
+\toprule
+Runtime & Method & Match & Block & Mismatch & Other \\
+\midrule
+DuckDB & Keyword filter & 7 & 0 & 83 & 6 \\
+DuckDB & No row filters & 13 & 24 & 59 & 0 \\
+DuckDB & Read-only shape & 13 & 0 & 83 & 0 \\
+DuckDB & sqlguardllm & 72 & 24 & 0 & 0 \\
+PG/WASM & Keyword filter & 7 & 0 & 83 & 6 \\
+PG/WASM & Native RLS + grants & 72 & 24 & 0 & 0 \\
+PG/WASM & No row filters & 13 & 24 & 59 & 0 \\
+PG/WASM & Read-only shape & 13 & 0 & 83 & 0 \\
+PG/WASM & sqlguardllm & 72 & 24 & 0 & 0 \\
+SQLite & Keyword filter & 7 & 0 & 83 & 6 \\
+SQLite & No row filters & 13 & 24 & 59 & 0 \\
+SQLite & Read-only shape & 13 & 0 & 83 & 0 \\
+SQLite & sqlguardllm & 72 & 24 & 0 & 0 \\
+\bottomrule
+\end{tabular}
