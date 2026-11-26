@@ -53,12 +53,7 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
-      - name: Install ODBC driver for SQL Server
-        run: |
-          curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mssql.list
-          sudo apt-get update
-          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+      # The ubuntu runner image already ships the Microsoft ODBC Driver 18 for SQL Server.
       - name: Dependencies
         run: uv sync --locked --extra db
       - name: Drivers
