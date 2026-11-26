@@ -251,7 +251,9 @@ class Guard:
 
         try:
             parsed = sqlglot.parse(sql, read=compiled.dialect_name)
-        except SqlglotError as exc:
+        except (SqlglotError, TypeError, ValueError, RecursionError) as exc:
+            # Untrusted input never makes check() raise. sqlglot raises TypeError for some
+            # malformed calls when unittest or pytest is imported, and deep nesting recurses.
             return _State([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
         statements = [
             cast(exp.Expression, statement) for statement in parsed if statement is not None
@@ -263,7 +265,7 @@ class Guard:
 
         try:
             scopes = traverse_scope(root)
-        except SqlglotError as exc:
+        except (SqlglotError, TypeError, ValueError, RecursionError) as exc:
             return _State([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
 
         refs, problems = collect_sources(root, scopes, compiled)

@@ -275,8 +275,9 @@ def protections(
         entry = find(compiled.masked.keys(), ref.name, compiled.default_schema)
         if entry is not None:
             used = reads.columns.get(table, frozenset()) | reads.unresolved
+            folded = {name.casefold() for name in used}  # as rules/masking.py matches them
             for column, strategy in compiled.masked[entry].items():
-                if column in used or STAR in used:
+                if column.casefold() in folded or STAR in used:
                     masked[f"{table}.{column}"] = strategy
         entry = find(compiled.aggregate_only.keys(), ref.name, compiled.default_schema)
         if entry is not None:

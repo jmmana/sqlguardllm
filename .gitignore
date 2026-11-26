@@ -25,3 +25,4 @@ research/paper/*.out
 research/paper/*.fls
 research/paper/*.fdb_latexmk
 docs/assets/demo-contact.*.png
+.hypothesis/

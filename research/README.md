@@ -87,6 +87,7 @@ order is fixed and the host is shared, so these are descriptive measurements.
 | `results/latency.json` | All timed validation samples in nanoseconds and per-case quantiles |
 | `results/regression.json` | Development-corpus decisions, violation codes and checks |
 | `results/summary.json` | Counts and pooled warm-validation quantiles |
+| `results/fuzz.json` | One run of the property-based fuzzer (`tests/fuzz/`): seed, examples, and per engine the queries allowed, rejected by violation code, executed, engine errors and invariant failures. Not covered by `verify_artifacts.py`; reproduce with the `replay` command it records |
 
 Tenant 2 queries are instantiated from the same public templates by
 `workload.cases(2)`. No unreported model-generated attack set is used.

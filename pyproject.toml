@@ -55,6 +55,7 @@ dev = [
     "sqlalchemy>=2.0,<3",
     "duckdb>=1.5.6",
     "duckdb-engine>=0.17.0",
+    "hypothesis>=6.100",
 ]
 docs = [
     "mkdocs>=1.6,<2",
@@ -91,3 +92,4 @@ files = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["fuzz: property-based fuzzing of the guard with canary data (tests/fuzz)"]

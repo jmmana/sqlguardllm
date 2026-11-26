@@ -27,6 +27,7 @@ git clone https://github.com/jmmana/sqlguardllm.git
 cd sqlguardllm
 uv sync                      # Python 3.10+, installs dev tools
 uv run pytest                # unit tests + adversarial corpus
+SQLGUARD_FUZZ_PROFILE=deep uv run pytest tests/fuzz -m fuzz   # 20,000 fuzzed queries (docs/THREAT_MODEL.md)
 uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy
 ```
 

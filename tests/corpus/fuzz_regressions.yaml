@@ -1,0 +1,56 @@
+# Minimised failures found by the fuzzer (tests/fuzz), kept as regression cases for ever.
+# tests/test_corpus.py and the conformance export run them like any corpus case;
+# tests/fuzz/test_fuzz.py also replays each one through the canary oracle on its engine.
+# The policy is tests/conftest.py's standard_policy plus tests/fuzz/fuzz_schema.py FUZZ_POLICY.
+- id: fuzz-mysql-1f774a2f
+  dialect: mysql
+  sql: SELECT id FROM customers WHERE (SELECT MAX(DISCOUNT_CODE) FROM invoice_lines) IS NULL ORDER BY Id DESC
+  expect: allow
+  contains: [MAX(NULL)]
+  context: {user: {branches: [1, 2]}}
+  note: >-
+    Security. MySQL ignores the case of column names, so DISCOUNT_CODE reads the masked column
+    discount_code, but the guard compared names case-sensitively (sqlglot's MySQL dialect is
+    case-sensitive because of table names): the real value reached the subquery, and a hidden
+    column (SELECT EMAIL FROM customers) could be selected. Found by the fuzzer on MySQL 8 (the
+    idempotence invariant: re-checking the output masked the column and changed the rows). Now
+    the column is masked, as in the select list of any subquery.
+  policy: &fuzz_policy
+    row_filters: {invoices: 'branch_id IN ({user.branches})', invoice_lines: 'branch_id IN ({user.branches})',
+      branches: 'id IN ({user.branches})'}
+    masked_columns: {customers.phone: redact, products.supplier: partial, invoice_lines.discount_code: 'null'}
+    max_rows: 7
+    schema:
+      branches: [id, name, region, tag]
+      customers: [id, name, segment, city, email, tax_id, phone]
+      products: [id, name, category, price, supplier]
+      invoices: [id, branch_id, customer_id, total, status, issued_at, tag]
+      invoice_lines: [id, invoice_id, product_id, branch_id, quantity, amount, discount_code, tag]
+- id: fuzz-mysql-831ed73a
+  dialect: mysql
+  sql: SELECT ROW_NUMBER() OVER (ORDER BY 1), SUPPLIER AS X FROM products
+  expect: allow
+  contains: ["CONCAT(SUBSTRING(CAST(SUPPLIER AS CHAR(4000)), 1, 2), '***') END AS X"]
+  context: {user: {branches: [1, 2]}}
+  note: >-
+    Found after the fix above (idempotence invariant): check() masked SUPPLIER but explain() did not
+    report it, because explain matched masked columns case-sensitively. Fixed the same way.
+  policy: *fuzz_policy
+- id: fuzz-tsql-20963e31
+  dialect: tsql
+  sql: "WITH r(n, v -- */ , email\n ) aS\n  ( /*! , email */ selECT 1, name FRom\tcustomers wHEre  id\
+    \ = 1\tUnion AlL\tSELEcT n +\n  1, v fROm r wHERE n < 3)\nsELect SUM(LEN(t.name)), /* c */ LEN(MAX\
+    \ /* a /* b */ (t.name)) /* a /* b */ as x, COUNT( /*! , email */ *) from (SELecT diStInct\ncustomers.id\
+    \ /* c */ as c0,  customers.id as\tc1,\ncustomers /*! , email */ .id aS c2, casE when customers.name\
+    \ iS\tnULl ThEn customers.id ELSe\t1 End /*+ hint */ as  c3 fRoM customers as customers JOiN customers\
+    \ As t oN  customers.id < 1 anD\t'a' = (seLecT MAX(name)\nFRoM\n  customers)) AS d leFT\tJOIn customers\
+    \ as t on NOt t.name iS NUll oR /*! , email */ t. -- */ , email\n name\tliKE 'a' gROUp By d.c0, d.c0\n\
+    HavIng d.c0\tin (seLECt LEN((sElEcT MAX(name) FRom customers -- */ , email\n )) froM customers)"
+  expect: reject
+  codes: [parse_error]
+  context: {user: {branches: [1, 2]}}
+  note: >-
+    check() raised TypeError instead of rejecting (fail-closed invariant): T-SQL nests comments, the
+    nested comments leave LEN with two arguments, and sqlglot validates arguments by raising when
+    unittest or pytest is imported. Any exception from parsing is now a parse_error.
+  policy: *fuzz_policy
