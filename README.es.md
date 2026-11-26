@@ -47,7 +47,7 @@ pip install --pre sqlguardllm
 **Node.js / TypeScript** 18+: un cliente de `sqlguardllm serve`.
 
 ```bash
-npm install sqlguardllm@alpha
+npm install sqlguardllm
 ```
 
 **.NET** 8 o 10: un cliente de `sqlguardllm serve`, en NuGet desde la 0.5.0-alpha.2.
@@ -284,7 +284,7 @@ Los archivos de política tienen un [JSON Schema](schema/policy.schema.json) par
 
 Un motor, varios clientes. El motor es de Python porque está construido sobre [sqlglot](https://github.com/tobymao/sqlglot), que solo existe en Python, y tres motores en tres lenguajes podrían comportarse distinto, que en una librería de seguridad es lo mismo que un hueco. Los demás lenguajes llaman al mismo motor a través de `sqlguardllm serve`, y cada caso del corpus de ataques tiene que recibir la misma respuesta de Python, del servidor, del cliente de Node.js y del cliente .NET ([conformidad](docs/CONFORMANCE.md)).
 
-- **Node.js / TypeScript:** `npm install sqlguardllm@alpha` ([`clients/node`](clients/node/README.md)): sin dependencias, ESM y CJS, falla cerrado.
+- **Node.js / TypeScript:** `npm install sqlguardllm` ([`clients/node`](clients/node/README.md)): sin dependencias, ESM y CJS, falla cerrado.
 - **.NET:** `dotnet add package SqlGuardLlm --prerelease` ([`clients/dotnet`](clients/dotnet/README.md)), en NuGet desde la 0.5.0-alpha.2: net8.0 y net10.0, falla cerrado.
 - **Cualquier otro lenguaje:** la [API HTTP](docs/SERVER.md), el [servidor MCP](docs/MCP.md) o la CLI.
 

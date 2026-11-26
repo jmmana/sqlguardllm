@@ -55,7 +55,7 @@ In the first terminal, in `guard-demo`:
 
 ```bash
 npm init -y
-npm install sqlguardllm@alpha
+npm install sqlguardllm
 ```
 
 ## 4. Check one allowed and one rejected query

@@ -7,7 +7,7 @@ Usa el paquete de Python para ejecutar el guard en tu aplicación. Usa un client
 | Lenguaje | Instalación | Modo y entorno |
 | --- | --- | --- |
 | [Python](guide-python.md) | `pip install --pre sqlguardllm` | Motor local en el mismo proceso o servidor HTTP. Python 3.10+ en Linux, macOS y Windows. |
-| [Node.js / TypeScript](guide-node.md) | `npm install sqlguardllm@alpha` | Remoto por HTTP. Node.js 18+ en Linux, macOS y Windows. |
+| [Node.js / TypeScript](guide-node.md) | `npm install sqlguardllm` | Remoto por HTTP. Node.js 18+ en Linux, macOS y Windows. |
 | [.NET](guide-dotnet.md) | `dotnet add package SqlGuardLlm --prerelease` cuando se publique | Remoto por HTTP. El cliente en el repositorio es compatible con .NET 8 y .NET 10 en Linux, macOS y Windows. |
 | Java | La publicación en Maven Central [está prevista](https://github.com/jmmana/sqlguardllm/issues/83). | El [primer cliente Java](https://github.com/jmmana/sqlguardllm/issues/80) está previsto para Java 17+ y usa HTTP. Las aplicaciones Java ya pueden usar la API HTTP. |
 

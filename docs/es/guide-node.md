@@ -55,7 +55,7 @@ En la primera terminal, en `guard-demo`:
 
 ```bash
 npm init -y
-npm install sqlguardllm@alpha
+npm install sqlguardllm
 ```
 
 ## 4. Revisa una consulta permitida y una rechazada
