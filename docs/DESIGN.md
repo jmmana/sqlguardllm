@@ -269,7 +269,15 @@ Until then, other languages can already use the [MCP server](#mcp-server) or, fr
 
 ## Performance budget
 
-Target: under **2 ms** median per `check()` for typical analytical queries (one to five joins) on a laptop, measured with `pyperf` in CI from v0.3. Parsing dominates; policy compilation happens once per `Guard`.
+Target: under **2 ms** median per `check()` for typical analytical queries (one to five joins), with a warm `Guard` (the policy is compiled once, when the guard is created).
+
+[`benchmarks/bench_check.py`](../benchmarks/bench_check.py) times 21 representative queries: simple selects, a masked column, row filters, two to five joins (one with every optional limit on), CTEs, subqueries, a `UNION` with window functions, two rejected queries, and a large report. Every call is timed on its own with `time.perf_counter_ns`, 500 per query, interleaved in rounds so noise on a shared machine hits all queries alike; the garbage collector stays on, as in production. It reports the median and the 95th percentile.
+
+- The [Benchmark workflow](../.github/workflows/bench.yml) runs it on GitHub's `ubuntu-latest` with Python 3.12 and writes the table to the job summary. It fails when a typical query's median is over 2 ms, or, on a pull request, when any query's median is more than 25 % slower than on the base branch, both measured on the same runner (fastest of two runs per side). If shared runners turn out too slow for 2 ms, raise `BUDGET_MS` in that workflow and say so here; don't drop queries.
+- The large report (5 CTEs, 10 joins, window functions, 7 filtered table occurrences) is outside "one to five joins". It is reported and compared like the rest, with a ceiling of 5× the budget (10 ms) so a blow-up still fails.
+- Run it locally with `uv run python benchmarks/bench_check.py`.
+
+Measured with sqlglot 30.35 and Python 3.12 on an Apple M4 Pro laptop: 0.14–0.84 ms for the simple, filtered, CTE, subquery and set queries, 1.14 ms for a chain of three CTEs, 1.37 ms for five joins (1.43 ms with every optional limit on), and **5.6 ms for the large report** (p95 9.5 ms). Parsing takes about 40 % of the time and generating the rewritten SQL about 20 %, half of it copying the tree; the rules take the rest.
 
 ## Compatibility
 

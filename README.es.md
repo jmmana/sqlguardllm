@@ -185,7 +185,7 @@ Lo que no hace, y por qué, está en el [modelo de amenazas](docs/THREAT_MODEL.m
 
 ## Con tu stack
 
-sqlguardllm va donde tu app ejecuta el SQL que escribió el modelo. Las recetas planeadas para la v0.3 cubrirán un envoltorio genérico de `execute()`, las herramientas SQL de LangChain y LlamaIndex, Vanna y servidores MCP de bases de datos. Ver [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+sqlguardllm va donde tu app ejecuta el SQL que escribió el modelo. **[Recetas](docs/RECIPES.md)** con código ejecutable y probado (en inglés): un envoltorio genérico de `execute()` (DB-API y SQLAlchemy), LangChain, LlamaIndex, Vanna y MCP. Ver también [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 La herramienta de línea de comandos sirve en CI y para probar políticas. Sale con 0 si la consulta se permite (e imprime el SQL reescrito), 1 si se rechaza (e imprime las violaciones) y 2 ante un error de uso o de la política:
 

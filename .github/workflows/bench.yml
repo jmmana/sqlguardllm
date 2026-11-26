@@ -1,0 +1,67 @@
+name: Benchmark
+
+# Performance budget of Guard.check() (docs/DESIGN.md#performance-budget): the median of every
+# typical query must stay under the budget, and on pull requests no query may get more than
+# 25 % slower than on the base branch. Both branches run on the same runner, interleaved
+# (head, base, base, head), and the fastest median per side is compared.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The budget is 2 ms on a laptop. Shared runners are slower; see the design document before
+  # changing this.
+  BUDGET_MS: "2"
+
+jobs:
+  budget:
+    name: Performance budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: head
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+      - name: Dependencies
+        run: |
+          uv sync --locked --directory head
+          if [ -d base ]; then uv sync --locked --directory base; fi
+      - name: Budget
+        run: |
+          uv run --frozen --directory head python benchmarks/bench_check.py \
+            --budget-ms "$BUDGET_MS" --json "$RUNNER_TEMP/head-1.json" --summary "$GITHUB_STEP_SUMMARY"
+      - name: Regression against the base branch
+        if: github.event_name == 'pull_request' && !cancelled()
+        run: |
+          bench="$GITHUB_WORKSPACE/head/benchmarks/bench_check.py"
+          # The head's script measures the base's package, so both sides time the same queries.
+          for i in 1 2; do
+            if ! uv run --frozen --directory base python "$bench" --no-budget \
+                --json "$RUNNER_TEMP/base-$i.json" > /dev/null; then
+              echo "::warning::The benchmark does not run against the base branch; skipping the comparison."
+              exit 0
+            fi
+          done
+          uv run --frozen --directory head python benchmarks/bench_check.py --no-budget \
+            --json "$RUNNER_TEMP/head-2.json" > /dev/null
+          uv run --frozen --directory head python benchmarks/bench_check.py compare \
+            --base "$RUNNER_TEMP"/base-*.json --head "$RUNNER_TEMP"/head-*.json \
+            --summary "$GITHUB_STEP_SUMMARY"
