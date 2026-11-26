@@ -34,11 +34,11 @@ MODEL = "claude-sonnet-4-6"
 API_VERSION = "2026-10-21"
 MAX_CALLS = 40
 MAX_OUTPUT = 768
-MAX_INPUT = 16384
+MAX_INPUT = 8192
 INPUT_RATE = Decimal("3")
 OUTPUT_RATE = Decimal("15")
 RUN_BUDGET = Decimal("2.50")
-RESERVATION = (MAX_INPUT * INPUT_RATE + MAX_OUTPUT * OUTPUT_RATE) / 1_000_000
+RESERVATION = (MAX_INPUT * Decimal("5") + MAX_OUTPUT * Decimal("25")) / 1_000_000
 SYSTEM = (
     "Translate the user's question into one SQLite SELECT query. Return SQL only. "
     "The authenticated caller is tenant 1. Restrict every physical table to tenant_id=1. "
@@ -299,6 +299,7 @@ def main():
         "max_input_tokens": MAX_INPUT,
         "max_output_tokens": MAX_OUTPUT,
         "max_reserved_usd": str(RESERVATION * MAX_CALLS),
+        "budget_ceiling_per_million": {"input": "5", "output": "25"},
         "user_total_authorized_usd": "10",
         "standard_prices_per_million": {"input": str(INPUT_RATE), "output": str(OUTPUT_RATE)},
         "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",

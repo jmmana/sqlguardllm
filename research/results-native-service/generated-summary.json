@@ -1,0 +1,3 @@
+[
+{"engine":"postgres_service","draws":5000,"unique_sql":3434,"distinct_families":23,"seed":2026112601,"sampling":"with replacement from the published authored grammar; correlated across runtimes","policy_violations":0,"authorized_match":3888,"over_rejected":233,"blocked":685,"execution_error":194,"conditional_zero_event_upper95":0.0005989670023148763}
+]

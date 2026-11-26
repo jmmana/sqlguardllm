@@ -1,124 +1,126 @@
-# sqlguardllm systems study
+# sqlguardllm execution study
 
-This directory contains a manuscript for **author review**, its reproducible
-execution study, and the scripts behind the README demonstrations. It has not
-been submitted to arXiv. No arXiv identifier or peer-review status is claimed.
+The revised manuscript is for **author review**, not an arXiv submission or an
+accepted publication. It includes the original evidence and the expanded
+review-driven evaluation, preserving failures as well as successful results.
 
-- [Paper (PDF)](paper/main.pdf) · [LaTeX source](paper/main.tex) · [References](paper/references.bib)
-- [Raw results and metadata](results/) · [Query templates and fixtures](workload.py)
-- [Submission notes](submission.md) · [Demonstrations and regeneration](../docs/DEMOS.md)
-- [LaTeX upload package](sqlguardllm-arxiv-source.zip)
-- [Resumen en español para el autor](RESUMEN.es.md)
+- [Paper PDF](paper/main.pdf) · [LaTeX](paper/main.tex) · [Source ZIP](sqlguardllm-arxiv-source.zip)
+- [Original measurements](results/) · [Expanded local measurements](results-review/) · [Native PostgreSQL server measurements](results-native-service/)
+- [Resumen en español](RESUMEN.es.md) · [Submission notes](submission.md)
+- [Claude pilot, spending and credential controls](PILOT.md) · [Bilingual demos](../docs/DEMOS.md)
 
-## What was measured
+## Measured scope
 
-48 authored query templates (24 benign, 12 tenant-isolation stress, 12
-forbidden reads) run in two tenant contexts on SQLite 3.53.1, DuckDB 2.0.1,
-and PostgreSQL 19.0 compiled to WebAssembly via PGlite 0.6.0. PostgreSQL/WASM
-is **not a native PostgreSQL server test**. No SQL Server, MySQL, Oracle or
-warehouse server is included in the execution experiment.
+The core study executes 48 authored templates in two tenant contexts on SQLite
+3.53.1, DuckDB 2.0.1, PostgreSQL 19/WASM through PGlite 0.6.0, and native
+PostgreSQL 16.2 in a Docker service. Each allowed result is compared with a
+physically restricted database containing only the caller's records and public
+columns. Bag comparison preserves duplicate rows; capped queries use explicit
+ordering. The candidate fetches a ninth row to expose a missing eight-row cap.
 
-An independent reference database per tenant physically contains only that
-tenant's rows, omits the hidden column, and omits the forbidden table. Allowed
-query results are compared as bags with multiplicity and an eight-row cap.
-Queries that can exceed the cap use explicit ordering. Error outcomes remain
-errors, rather than being counted as successful protection.
+Five Python configurations plus RLS/grants on the two PostgreSQL runtimes give
+**2,112 core observations**. The full guard has 288 authorized matches and 96
+correct blocks across 384 observations. The outermost-WHERE prototype instead
+has 14 mismatches per 96 observations, versus 59 without row filters.
+Native RLS/grants matches the full guard on the original templates.
 
-The 1,248 observations include four diagnostic configurations on three
-runtimes plus native PostgreSQL RLS/column grants in PGlite. These are
-correlated observations over a small, study-authored workload, **not 1,248
-independent attacks**. The workload was designed with knowledge of the library.
-It is separate from the development corpus, not an external held-out benchmark.
+The original counts alone missed material utility failures:
 
-| Full-policy outcome | Observed count |
+| Expanded observation | Count |
 |---|---:|
-| Authorized-query result matches | 216 |
-| Forbidden reads correctly rejected | 72 |
-| Result-policy mismatches | 0 |
-| Allowed queries rejected / execution errors | 0 / 0 |
+| Explicit review probes across the four core runtimes | 280 |
+| Rewritten qualified-column execution errors in those probes | 8 |
+| Allowed natural joins rejected in those probes | 8 |
+| Generated draws per runtime / distinct SQL strings | 5,000 / 3,434 |
+| Generated authorized matches / correct blocks, per runtime | 3,888 / 685 |
+| Generated allowed queries rejected / execution errors, per runtime | 233 / 194 |
+| Measured generated policy mismatches, per runtime | 0 |
+| Selected mutants detected by original templates / combined authored suites | 6 of 7 / 7 of 7 |
 
-Native RLS plus column grants has the same outcome on its 96 PGlite
-observations. This study makes no claim of superiority over native RLS,
-security for arbitrary SQL, or production query-performance overhead.
+The generator is authored, has 23 production families and retains duplicate
+draws. It includes issues already found during probe development. It does not
+remove author bias. The conditional one-sided bound in the paper concerns only
+its fixed with-replacement sampling distribution; runtimes are not pooled to
+inflate N. Errors and over-rejections are utility failures.
 
-The separate development regression run passes 148 cases across ten parser
-dialect labels. Parser tests are not execution certification of those engines.
+An additional native single-user consistency run is archived in `results-review`
+but excluded from core totals. Single-user native planner observations use one
+million synthetic invoices and three indexed query forms; they do not establish
+production overhead. The native server workflow also captures this planner
+probe. The paper states which captured run supplies its reported timings.
 
-## Reproduce the study
+## Reproduce
 
-Run from the repository root with Python 3.12 and Node.js 24. The measured run
-used Python 3.12.14. Use a separate research environment: installing database
-drivers into the normal development environment can change optional-dependency
-assumptions in existing tests.
+Use Linux, Python 3.12 and Node.js 24 in a separate research environment.
+Research drivers can change optional-dependency assumptions in normal tests.
 
 ```bash
 uv venv .venv-research
 uv pip install --python .venv-research/bin/python -r research/requirements.txt
 npm ci --prefix research --ignore-scripts
-.venv-research/bin/python research/evaluate.py
-.venv-research/bin/python research/make_figures.py
+.venv-research/bin/python research/review_eval.py --out /tmp/sqlguard-review
+.venv-research/bin/python research/planner_eval.py --out /tmp/sqlguard-review/planner.json
+```
+
+The default semantic run includes local SQLite, DuckDB, PGlite and native
+PostgreSQL single-user execution. For native client/server reproduction, start
+an isolated PostgreSQL 16.2 service, install `psycopg[binary]==3.2.12` into that
+research environment, then use its **synthetic test** DSN:
+
+```bash
+export SQLGUARD_RESEARCH_PG_DSN=postgresql://postgres:synthetic-study-only@127.0.0.1:5432/postgres
+.venv-research/bin/python research/review_eval.py \
+  --engines postgres_service --out /tmp/sqlguard-native
+.venv-research/bin/python research/planner_eval.py --postgres-service \
+  --out /tmp/sqlguard-native/planner.json
+```
+
+The service backend creates and drops isolated study databases and tenant roles;
+use a disposable research server. The checked-in workflow
+`Research native PostgreSQL` supplies that Docker service and archives results.
+Its password protects synthetic CI data only; it is not an application secret.
+
+For a quick smoke run:
+
+```bash
+.venv-research/bin/python research/review_eval.py --engines sqlite \
+  --generated 50 --mutation-generated 20 --rounds 1 --out /tmp/sqlguard-smoke
+```
+
+To rebuild the revised figures and tables from **checked-in** measurements:
+
+```bash
+.venv-research/bin/python research/make_review_figures.py
+cd research/paper
+latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
+cd ../..
 .venv-research/bin/python research/verify_artifacts.py
 ```
 
-No credentials, Docker, networked database or model API calls are needed.
-Installation downloads the pinned dependencies; the evaluation itself is local.
-Dependency versions are pinned in `requirements.txt` and `package-lock.json`;
-`results/metadata.json` records measured engine versions and source fingerprints.
+The source ZIP includes the ACM class, class source and license. `nonacm` means
+that this formatting claims no ACM venue or acceptance. Latin Modern is used
+as a local fallback if the class's Libertine font package is unavailable.
+`make_figures.py` is retained for the original experiment and writes separate
+`original-figures/` diagnostics; it does not overwrite the revised paper.
 
-For a quick SQLite-only run that preserves the published measurements:
+## Inspect or extend the evidence
 
-```bash
-.venv-research/bin/python research/evaluate.py \
-  --engines sqlite --rounds 3 --warmup 1 --out /tmp/sqlguard-study-smoke
-```
+- `original.json`: all five configurations, two contexts, 48 templates; PostgreSQL also includes RLS/grants.
+- `edges.json`: edge admissions, returned rows and errors. Dangerous probes are admission-only, even under mutations.
+- `generated.json.gz`: every generated draw, SQL, context, outcome and result/error.
+- `generated-summary.json`: draw/unique counts, outcomes and explicitly conditional bound.
+- `mutations.json`, `mutation-detections.json`: survivors and detecting cases, with passing controls.
+- `timing.json`: shuffled warm-call samples, CPU affinity, AST size and template-cluster bootstrap results.
+- `planner.json`: exact direct/rewritten queries, native JSON plans and paired measurements.
+- `metadata.json`: evaluated revision, source fingerprints, versions and timing/generator configuration.
+- `results-native-service/ci-provenance.json`: native workflow run, artifact ID and download digest.
 
-The default run uses five warm-ups and 50 timed checks per case, context,
-runtime and Python configuration. Policies are compiled once. Timing excludes
-database execution, compilation, startup, network and LLM generation. Method
-order is fixed and the host is shared, so these are descriptive measurements.
+Measurements refer to their recorded source revisions. The original `results/`
+record and `evaluate.py` remain available; it contains 1,248 observations and a
+separate 148-case development regression record over ten parser dialect labels.
+That parser corpus is not execution certification of ten database products.
 
-## Inspect the evidence
-
-| File | Contents |
-|---|---|
-| `results/metadata.json` | Versions, timestamp, evaluated base commit, source/workload hashes, timing scope |
-| `results/workload.json` | All 48 versioned templates and declared outcomes for tenant 1 |
-| `results/execution.json` | Every decision, generated SQL, returned rows or error, and outcome |
-| `results/latency.json` | All timed validation samples in nanoseconds and per-case quantiles |
-| `results/regression.json` | Development-corpus decisions, violation codes and checks |
-| `results/summary.json` | Counts and pooled warm-validation quantiles |
-
-Tenant 2 queries are instantiated from the same public templates by
-`workload.cases(2)`. No unreported model-generated attack set is used.
-
-The keyword and read-only-shape configurations intentionally omit access
-control. They illustrate failure modes. `no_row_filters` is an ablation of
-the same library, and native RLS is the established enforcement comparator.
-
-## Build the paper
-
-With a working TeX Live installation:
-
-```bash
-cd research/paper
-latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
-```
-
-The document embeds its bibliography for a self-contained arXiv source build;
-`references.bib` is also provided for reference managers. Figures, measurement
-macros and result tables are generated from the checked-in raw results.
-`main.pdf` is a review artifact, not an accepted or submitted publication.
-
-## Regenerate the media
-
-See [docs/DEMOS.md](../docs/DEMOS.md). The six-scene, 42-second English and
-Spanish videos are captioned visual explanations of captured executions. GIFs
-show the first three scenes in 21 seconds. They are not browser recordings.
-
-## Limitations and next evaluations
-
-External workloads, independent adversarial review, larger and more varied
-schemas, views/UDFs, ambiguous columns, native PostgreSQL and other server
-engines, and end-to-end database overhead remain unmeasured here. Masking,
-aggregate privacy, inference attacks and cost control require separate studies.
-Zero observed failures on this workload does not establish absence of bypasses.
+No paid model calls are required to reproduce the semantic, mutation, timing or
+planner experiments. The prepared Claude pilot has no results until explicitly
+executed; the manuscript makes no LLM accuracy or injection-success claim.
+A Zenodo metadata draft is provided, but no DOI has yet been assigned.

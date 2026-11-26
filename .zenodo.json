@@ -1,0 +1,28 @@
+{
+  "title": "sqlguardllm: execution-oriented policy validation and rewriting artifact",
+  "upload_type": "software",
+  "description": "Reproducibility artifact for a systems manuscript: source, authored SQL workloads, physical tenant oracles, generator, mutations, measured local/native-server observations and captured demos. Code is Apache-2.0; the attributed Spider-derived data subset and adaptation retain CC BY-SA 4.0. No arXiv submission, peer-review status, DOI or model inference result is claimed by this metadata draft.",
+  "creators": [
+    {
+      "name": "Castillo Pinto, Juan Manuel",
+      "affiliation": "WarlockCode S.A.S.",
+      "orcid": "0009-0002-5751-0709"
+    }
+  ],
+  "license": "Apache-2.0",
+  "keywords": [
+    "SQL",
+    "text-to-SQL",
+    "authorization",
+    "row-level security",
+    "query rewriting",
+    "reproducibility"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/jmmana/sqlguardllm",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

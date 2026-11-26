@@ -1,58 +1,46 @@
-# Resumen del artículo para revisión del autor
+# Revisión del artículo de sqlguardllm
 
-**Título:** sqlguardllm: Policy-Driven Validation and Rewriting of LLM-Generated SQL.
+El manuscrito revisado está en `paper/main.pdf`. Es un borrador para revisión
+del autor; no se ha enviado a arXiv ni tiene un DOI de Zenodo asignado.
+Incluye el nombre completo, correo de contacto, afiliación WarlockCode S.A.S.
+y el ORCID facilitado por el autor: https://orcid.org/0009-0002-5751-0709 .
+La afiliación puede ajustarse antes de la publicación externa.
 
-El artículo describe cómo la librería valida el árbol sintáctico del SQL y
-aplica políticas de tablas, columnas, filas y límites. Su pregunta principal
-es si la consulta ejecutada devuelve lo mismo que una base que contiene
-únicamente los datos autorizados para ese usuario.
+La contribución defendible es una evaluación reproducible que separa admitir
+SQL de devolver el resultado autorizado. El oráculo ejecuta la consulta en una
+base físicamente restringida, sin usar el rewriting del guard.
 
-## Evidencia obtenida
+La revisión añade:
 
-Se diseñaron 48 plantillas SQL: 24 consultas legítimas, 12 casos de aislamiento
-entre empresas y 12 lecturas prohibidas. Se probaron con dos empresas sobre
-SQLite y DuckDB nativos y PostgreSQL compilado a WebAssembly mediante PGlite.
-También se comparó el guard con filtros de palabras, validación de forma,
-una versión sin filtros por fila y las políticas nativas de PostgreSQL.
+- PostgreSQL nativo en Docker, además de SQLite, DuckDB y PGlite.
+- El baseline de añadir filtros únicamente al WHERE externo: falla en 14 de
+  96 observaciones por runtime; el guard completo obtiene 72 coincidencias y
+  24 rechazos correctos en las 48 plantillas y dos contextos.
+- 5.000 consultas generadas por runtime, con 23 familias y 3.434 SQL distintos.
+  No se observan violaciones de la política medida, pero **233 consultas válidas
+  se rechazan y 194 fallan al ejecutarse después del rewriting**, por runtime.
+- Casos de nombres calificados, alias, catálogos, funciones de archivo,
+  ordinales, joins, CTEs recursivas, vistas y stars. Las funciones peligrosas se
+  prueban solo como admisión y nunca se ejecutan, tampoco bajo mutaciones.
+- Siete mutaciones dirigidas: las plantillas originales detectan seis; las
+  plantillas y los casos de revisión juntos detectan las siete. La gramática
+  generada detecta cuatro, lo que también demuestra sus límites.
+- Medición aleatorizada, afinidad de CPU, parseo SQLGlot y bootstrap por
+  plantilla; planes nativos sobre un millón de filas sintéticas.
+- Arquitectura con zonas de confianza, ejemplo de rewriting a dos columnas,
+  tabla de capacidades, barras apiladas con conteos, heatmap y ECDF/AST.
+- Literatura Truman/Non-Truman, Oracle VPD, Oso, Cerbos y Supabase RLS.
 
-| Con la política completa | Resultado observado |
-|---|---:|
-| Consultas permitidas con resultado igual a la referencia autorizada | 216 |
-| Lecturas prohibidas rechazadas | 72 |
-| Diferencias respecto a la referencia | 0 |
-| Consultas permitidas rechazadas / errores de ejecución | 0 / 0 |
+La generación sigue siendo obra de los autores y contiene casos problemáticos
+ya conocidos al preparar la evaluación. No elimina el sesgo ni permite afirmar
+seguridad general. La cota estadística se limita expresamente a la distribución
+del generador; no se suman runtimes para inflar el tamaño independiente.
 
-Al desactivar los filtros por usuario aparecieron 59 diferencias por cada
-96 observaciones en cada entorno. Las políticas nativas de PostgreSQL
-coincidieron con el guard en los casos probados. La mediana de validación
-fue de aproximadamente 0,50 a 0,54 milisegundos, sin incluir la ejecución
-de la base de datos. Hay 1.248 observaciones contando las configuraciones
-comparadas; no son 1.248 ataques independientes.
+El piloto real con Claude está preparado con 20 preguntas de Spider y dos
+variantes por pregunta. Su workflow es manual y exclusivo del propietario, usa
+el secreto `ANTHROPIC_API_TOKEN` solo durante la inferencia y limita el gasto
+conforme al máximo autorizado de US$10. Aún no tiene resultados de inferencia;
+el artículo no inventa cifras de accuracy ni éxito de prompt injection.
 
-## Qué significan estos resultados
-
-La evidencia muestra la utilidad de aplicar los permisos por fila además
-de validar que el SQL sea de solo lectura, dentro de la muestra estudiada.
-El artículo no afirma que inventamos el análisis AST ni la seguridad por
-reescritura, que superamos a las políticas nativas de la base o que la
-librería sea invulnerable.
-
-Las consultas fueron diseñadas para este estudio con conocimiento de la
-implementación. Los datos son pequeños y ficticios. Hace falta evaluación
-externa para estimar su comportamiento ante ataques no vistos y cargas
-reales. El experimento del artículo no ejecutó un servidor PostgreSQL nativo,
-SQL Server, MySQL u Oracle; la suite de motores incorporada al repositorio
-es una fuente de evidencia separada.
-
-## Archivos para revisar
-
-- [Artículo completo en inglés, 9 páginas](paper/main.pdf).
-- [Código y datos de los experimentos](README.md).
-- [Paquete LaTeX para arXiv](sqlguardllm-arxiv-source.zip).
-- [Instrucciones y metadatos del envío](submission.md).
-- [Videos, GIF y sus ejecuciones reales](../docs/DEMOS.md).
-
-El manuscrito identifica a **Juan Castillo**, siguiendo `CITATION.cff`.
-No se inventó afiliación, correo ni ORCID. Incluye la declaración de asistencia
-con IA. Está preparado para revisión del autor y todavía no se ha enviado
-a arXiv ni recibido un identificador o evaluación por pares.
+La API de la librería y los vídeos/GIF existentes continúan documentando casos
+permitidos, lecturas restringidas y escrituras rechazadas con salidas reales.
