@@ -53,15 +53,14 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
-      # The ubuntu runner image already ships the Microsoft ODBC Driver 18 for SQL Server.
       - name: Dependencies
         run: uv sync --locked --extra db
       - name: Drivers
-        run: uv pip install "psycopg[binary]" pymysql pyodbc
+        run: uv pip install "psycopg[binary]" pymysql pymssql
       - name: Engine tests
         env:
           SQLGUARD_REQUIRE_ENGINES: "1"
           SQLGUARD_PG_URL: postgresql+psycopg://postgres:test-only@localhost:5432/postgres
           SQLGUARD_MYSQL_URL: mysql+pymysql://root:test-only@127.0.0.1:3306/sg
-          SQLGUARD_MSSQL_URL: mssql+pyodbc://sa:Test-only-1234@localhost:1433/master?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+          SQLGUARD_MSSQL_URL: mssql+pymssql://sa:Test-only-1234@localhost:1433/master
         run: uv run pytest tests/engines -v
