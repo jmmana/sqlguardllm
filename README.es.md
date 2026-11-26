@@ -30,6 +30,8 @@ Tu modelo escribe SQL. **sqlguardllm** se asegura de que solo pueda leer lo perm
 
 ---
 
+Documentación completa: https://jmmana.github.io/sqlguardllm/
+
 ## Pruébalo: entrada, decisión y SQL devuelto
 
 [Pruébalo en el navegador](playground/) (playground, tras el despliegue) · [Ver el video de 42 segundos](docs/assets/demo.es.mp4) · [Ejecutar el ejemplo](examples/readme_demo.py) · [Cómo se hicieron las demos](docs/DEMOS.md)

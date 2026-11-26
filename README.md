@@ -28,6 +28,8 @@ Your model writes SQL. **sqlguardllm** makes sure it can only read what it's all
 
 ---
 
+Full documentation: https://jmmana.github.io/sqlguardllm/
+
 ## Try it: input, decision and returned SQL
 
 [Try it in your browser](playground/) (playground, after deployment) · [Watch the 42-second video](docs/assets/demo.en.mp4) · [Run the example](examples/readme_demo.py) · [How the demos are made](docs/DEMOS.md)
