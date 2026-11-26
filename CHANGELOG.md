@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+
+- Denied functions for Snowflake, BigQuery, ClickHouse and Trino, each list linked to the vendor documentation, with a corpus case for every entry (#16). Contributed by @shiwng in #42.
+
 ## [0.4.0a1] - 2026-11-26
 
 An MCP server: any MCP client (Claude Desktop, Cursor, VS Code, agents) gets a database tool that can't do harm. Install it with `pip install "sqlguardllm[mcp]"`.
@@ -35,7 +39,6 @@ Personal data protection, richer policies and a second security fix. New options
 
 ### Added
 
-- Denied functions for Snowflake, BigQuery, ClickHouse and Trino, with a corpus case for each (#16).
 - Command-line tool: `sqlguardllm check --policy FILE [--context JSON|@file] [--dialect D] [--language es] [--format json] [SQL | -]`, with exit codes 0 (allowed), 1 (rejected) and 2 (usage or policy error). Also `python -m sqlguardllm` (#12).
 - JSON Schema of policy files in `schema/policy.schema.json`, printed by `sqlguardllm schema` and kept in sync by a test; `examples/policy.yaml` points editors to it (#11).
 
