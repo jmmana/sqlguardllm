@@ -4,6 +4,14 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.3.0a1] - 2026-11-26
+
+Personal data protection, richer policies and a second security fix. New options are off by default: existing policies behave the same, except that percentage and `WITH TIES` limits are now capped.
+
+### Security
+
+- **`max_rows` could be bypassed with a percentage or `WITH TIES` limit.** `SELECT TOP 50 PERCENT …` (SQL Server), `FETCH FIRST 50 PERCENT ROWS ONLY` (Oracle) and `FETCH FIRST n ROWS WITH TIES` passed unchanged, because sqlglot 30 keeps those flags in `limit_options`. Such limits are now replaced with a plain limit of `max_rows`. Affects 0.1.0a1 to 0.2.0a2: upgrade. Found while building `Guard.explain()`.
+
 ### Added
 
 - `masked_columns`: a column can be selected but comes back masked (`null`, `redact`, `hash` as SHA-256 hex per dialect, `partial`), even inside functions or `CASE`; using it anywhere outside the select list is `hidden_column`. With the new `schema` option, `*` over such a table is expanded with the masks (#29).
@@ -66,7 +74,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a2...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.3.0a1...HEAD
+[0.3.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a2...v0.3.0a1
 [0.2.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.2.0a1...v0.2.0a2
 [0.2.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a2...v0.2.0a1
 [0.1.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.1.0a1...v0.1.0a2
