@@ -8,6 +8,7 @@ __pycache__/
 htmlcov/
 dist/
 build/
+!clients/dotnet/build/
 *.egg-info/
 site/
 .env
