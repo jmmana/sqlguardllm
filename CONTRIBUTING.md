@@ -87,7 +87,7 @@ The `Release` workflow checks that tag, versions and changelog agree, runs the t
 **Before the first tag that publishes the engine packages (owner, once).** npm Trusted Publishing is configured per package, on npmjs.com, and as far as I could establish it needs the package to exist: I found no "pending publisher" for a name that does not exist yet (PyPI has one, npm does not, as far as I know; check npm's current docs, this may have changed). So the five `sqlguardllm-engine-*` names need a one-time bootstrap:
 
 1. Log in with an account that can publish to the `sqlguardllm-engine-*` names (`npm login`, 2FA on).
-2. For each of the five names, publish a minimal placeholder by hand, for example `0.0.0` with `--tag bootstrap` (a folder with only a `package.json` that has the name, `"version": "0.0.0"`, `"license": "Apache-2.0"`, and `publishConfig.access: public`; `npm publish --access public --tag bootstrap`). This does not touch `latest`. It has no provenance; real releases do.
+2. For each of the five names, publish a minimal placeholder by hand (`sh scripts/bootstrap-npm-engines.sh` does this for all five), for example `0.0.0` with `--tag bootstrap` (a folder with only a `package.json` that has the name, `"version": "0.0.0"`, `"license": "Apache-2.0"`, and `publishConfig.access: public`; `npm publish --access public --tag bootstrap`). This does not touch `latest`. It has no provenance; real releases do.
 3. On npmjs.com, open each of the five packages and the existing `sqlguardllm` → Settings → Trusted Publisher → GitHub Actions: organization or user `jmmana`, repository `sqlguardllm`, workflow filename `release.yml`, environment `npm`.
 4. Make sure the GitHub environment `npm` exists in the repository settings. Then tag as above.
 
