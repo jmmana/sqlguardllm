@@ -26,4 +26,12 @@
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
+  <!-- Engine binaries staged by build/stage-engines.py: engines/<rid>/sqlguardllm-engine/** -> runtimes/<rid>/native/sqlguardllm-engine/** -->
+  <ItemGroup>
+    <None Include="engines/linux-x64/**" Pack="true" PackagePath="runtimes/linux-x64/native/%(RecursiveDir)" />
+    <None Include="engines/linux-arm64/**" Pack="true" PackagePath="runtimes/linux-arm64/native/%(RecursiveDir)" />
+    <None Include="engines/osx-x64/**" Pack="true" PackagePath="runtimes/osx-x64/native/%(RecursiveDir)" />
+    <None Include="engines/osx-arm64/**" Pack="true" PackagePath="runtimes/osx-arm64/native/%(RecursiveDir)" />
+    <None Include="engines/win-x64/**" Pack="true" PackagePath="runtimes/win-x64/native/%(RecursiveDir)" />
+  </ItemGroup>
 </Project>
