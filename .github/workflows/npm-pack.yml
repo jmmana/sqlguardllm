@@ -31,6 +31,8 @@ jobs:
       - run: node npm/fake-engines.mjs "$RUNNER_TEMP/engines"
       - run: node npm/build.mjs --engines "$RUNNER_TEMP/engines" --out npm/dist
       - run: node npm/publish.mjs --out npm/dist --dry-run --pack-dir npm/packed
+      - name: The installed engine still matches its built-in digest (npm drops symlinks)
+        run: node npm/verify-packed.mjs npm/packed
       - name: Every tarball has what it should (and no source, tests or scripts)
         run: |
           set -e

@@ -10,7 +10,7 @@
 // at publish time so the development lockfile does not need packages that are not on the registry yet.
 // Node.js standard library only.
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,6 +36,23 @@ export function digestTree(dir) {
   walk(dir, "");
   lines.sort((a, b) => (a.slice(66) < b.slice(66) ? -1 : a.slice(66) > b.slice(66) ? 1 : 0));
   return sha(lines.join(""));
+}
+
+/**
+ * Copy a folder, turning every symlink into a real copy of what it points to. npm packs files, not
+ * symlinks: one would vanish on install and the engine digest would no longer match. The macOS engine
+ * (PyInstaller, Python.framework) has some. (fs.cpSync({dereference}) still kept them in Node 24.)
+ */
+export function copyResolved(from, to) {
+  mkdirSync(to, { recursive: true });
+  for (const name of readdirSync(from)) {
+    const src = join(from, name);
+    const dst = join(to, name);
+    const st = statSync(src); // follows symlinks
+    if (st.isDirectory()) copyResolved(src, dst);
+    else if (st.isFile()) copyFileSync(src, dst);
+    else throw new Error(`special file in the engine: ${src}`);
+  }
 }
 
 export function platformManifest(key, version, repository) {
@@ -73,7 +90,7 @@ function run(argv) {
     }
     const target = join(out, key);
     mkdirSync(target, { recursive: true });
-    cpSync(join(unpacked, folder), join(target, "engine"), { recursive: true, verbatimSymlinks: true });
+    copyResolved(join(unpacked, folder), join(target, "engine"));
     cpSync(join(root, "LICENSE"), join(target, "LICENSE"));
     writeFileSync(join(target, "package.json"), JSON.stringify(platformManifest(key, pkg.version, pkg.repository), null, 2) + "\n");
     digests.platforms[key] = digestTree(join(target, "engine"));

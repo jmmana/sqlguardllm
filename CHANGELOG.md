@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Fixed
+- **npm: the macOS engine packages could not run.** npm does not keep symlinks in packages, and the macOS engine (Python.framework) has four, so after `npm install` its digest no longer matched the built-in one and the client refused to start it (`engine_digest_mismatch`). The packages now carry real copies instead of symlinks, and CI unpacks every packed platform package and checks the digest of the installed engine, which a file list cannot show. Affects 0.5.0-alpha.5 and 0.5.0-alpha.6 on macOS (Linux and Windows were not affected).
+
+
 ## [0.5.0a6] - 2026-11-27
 
 The NuGet package now carries the engine for five runtimes and the integrations package is published with it; Node and .NET local mode are tested on Linux, macOS and Windows.
