@@ -2,7 +2,7 @@
 
 Official .NET client for [sqlguardllm](https://github.com/jmmana/sqlguardllm), the SQL firewall for LLM apps. It talks to `sqlguardllm serve` (the same engine, over HTTP) so .NET behaves exactly like Python. No runtime dependencies beyond `HttpClient` and `System.Text.Json`. Targets `net8.0` and `net10.0`.
 
-> **Today this package needs a running `sqlguardllm serve`.** An embedded engine, so that the package works with no Python and no server, is planned in [#86](https://github.com/jmmana/sqlguardllm/issues/86).
+> `SqlGuardClient` needs a running `sqlguardllm serve`; `SqlGuardEngine` runs the engine shipped in the package, with no Python and no server (see below).
 
 ```
 dotnet add package SqlGuardLlm
@@ -36,6 +36,17 @@ await using var conn = new NpgsqlConnection(readOnlyConnectionString);   // also
 var rows = await conn.QueryAsync(safeSql);                               // Dapper
 // or plain ADO.NET: using var cmd = conn.CreateCommand(); cmd.CommandText = safeSql; ...
 ```
+
+## Embedded engine (no server)
+
+The package carries the engine for linux-x64, linux-arm64, osx-x64, osx-arm64 and win-x64 under `runtimes/{rid}/native/sqlguardllm-engine/`:
+
+```csharp
+using var guard = await SqlGuardEngine.StartAsync(new { dialect = "postgres", tables = new[] { "invoices" } });
+string safe = await guard.EnforceAsync(sqlFromModel, new Dictionary<string, object?> { ["tenant_id"] = tenantId });
+```
+
+Before it starts, the client recomputes the SHA-256 of every engine file against `engine.sha256` and refuses to run on any mismatch (`SqlGuardException`, code `engine_integrity`); it also refuses an engine whose version or protocol does not match the package. On an unsupported runtime (another OS or CPU, Alpine/musl) it throws `engine_unsupported`, whose message points to remote mode: use `SqlGuardClient` against `sqlguardllm serve`. The hashes ship in the same package as the binaries, so they catch corruption and tampering after install; the supply chain (checksums and attestations of the release) is verified by `scripts/fetch-engine.py` when the package is built. Unix permissions are not kept by NuGet, so the client sets the executable bit on first start: a read-only file system needs it set at image build time.
 
 ## API
 
