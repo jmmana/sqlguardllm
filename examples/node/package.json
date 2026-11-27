@@ -1,0 +1,21 @@
+{
+  "name": "sqlguardllm-node-recipes",
+  "private": true,
+  "type": "module",
+  "description": "Runnable Node.js recipes for sqlguardllm (docs/RECIPES.md)",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node run.mjs",
+    "test": "node --test test/recipes.test.mjs"
+  },
+  "dependencies": {
+    "sqlguardllm": "file:../../clients/node"
+  },
+  "devDependencies": {
+    "@langchain/core": "^1.0.0",
+    "ai": "^5.0.0",
+    "mysql2": "^3.11.0",
+    "pg": "^8.13.0",
+    "zod": "^3.25.0"
+  }
+}

@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 - **.NET integrations (#78).** `SqlGuardLlm.Extensions` (`services.AddSqlGuard(...)` with options bound from configuration, ADO.NET and Dapper helpers, a Microsoft.Extensions.AI `GuardedSqlFunction`), `SqlGuardLlm.EntityFrameworkCore` (a `DbCommandInterceptor` that enforces raw SQL) and `SqlGuardLlm.SemanticKernel` (a function invocation filter), plus runnable examples in `examples/dotnet/`.
+- Node.js recipes (#74) in `examples/node/`: a guarded `sql_db_query` tool for LangChain.js, a guarded `tool()` for the Vercel AI SDK and runners for `pg`, `mysql2` and Prisma `$queryRawUnsafe`, all through `enforce()`, with SQLite and (with `DATABASE_URL`) PostgreSQL tests. See `docs/RECIPES.md`.
 ## [0.5.0a5] - 2026-11-27
 
 First release whose npm package carries the embedded engine: `npm install sqlguardllm` can run it with no Python and no server (`SqlGuard.local`). The .NET package ships the engine as runtime assets with a local mode.
