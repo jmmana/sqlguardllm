@@ -121,9 +121,9 @@ jobs:
         run: |
           set -e
           S=clients/dotnet/smoke; V=$SQLGUARD_PKG_VERSION
-          dotnet publish $S -c Release -r ${{ matrix.rid }} --self-contained -p:PublishTrimmed=true -p:TrimmerSingleWarn=false "-p:WarningsAsErrors=$WARNINGS" -p:SqlGuardLlmVersion=$V -o out-trim
+          dotnet publish $S -c Release -r ${{ matrix.rid }} --self-contained -p:PublishTrimmed=true -p:TrimmerSingleWarn=false "-p:WarningsAsErrors=${WARNINGS//;/%3B}" -p:SqlGuardLlmVersion=$V -o out-trim
           ./out-trim/Smoke
-          dotnet publish $S -c Release -r ${{ matrix.rid }} -p:PublishAot=true "-p:WarningsAsErrors=$WARNINGS" -p:SqlGuardLlmVersion=$V -o out-aot
+          dotnet publish $S -c Release -r ${{ matrix.rid }} -p:PublishAot=true "-p:WarningsAsErrors=${WARNINGS//;/%3B}" -p:SqlGuardLlmVersion=$V -o out-aot
           ./out-aot/Smoke
       - name: Linux container image (no .NET inside)
         if: startsWith(matrix.rid, 'linux')
