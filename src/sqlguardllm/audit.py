@@ -12,6 +12,7 @@ never logged, and SQL appears only as ``include_sql`` says. See docs/AUDIT.md.
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import hashlib
 import importlib
@@ -135,7 +136,7 @@ def redact_sql(sql: str, dialect: str) -> str | None:
                 node.replace(exp.Var(this="?"))
             parts.append(statement.sql(dialect=dialect, comments=False))
         return "; ".join(parts)
-    except Exception:  # noqa: BLE001 - untrusted SQL never makes the audit raise
+    except Exception:
         return None
 
 
@@ -299,7 +300,7 @@ class AuditLog:
                 sql=shown,
             )
             self._sink(event)
-        except Exception as exc:  # noqa: BLE001 - any sink may fail; the guard must not
+        except Exception as exc:
             self._report(exc)
             return False
         return True
@@ -309,14 +310,12 @@ class AuditLog:
             if self._reported or self.strict:
                 return
             self._reported = True
-        try:
+        with contextlib.suppress(Exception):
             print(
                 f"sqlguardllm: audit log failed ({type(exc).__name__}: {_first_line(exc)}); "
                 "decisions are not being recorded",
                 file=sys.stderr,
             )
-        except Exception:  # noqa: BLE001, S110 - stderr itself may be closed
-            pass
 
 
 def as_audit_log(audit: Any) -> AuditLog | None:

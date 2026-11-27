@@ -15,10 +15,9 @@ from typing import Any
 import pytest
 
 from conftest import standard_policy
-from test_cli import run
-
 from sqlguardllm import AuditEvent, AuditLog, Guard, PolicySet, ViolationCode
 from sqlguardllm.audit import context_key_names, policy_fingerprint, redact_sql
+from test_cli import run
 
 CONTEXT = {"user": {"branches": [1, 2]}}
 EMAIL = "ana.perez@example.com"
@@ -163,7 +162,7 @@ def test_otel_sink_with_a_fake_api(monkeypatch: pytest.MonkeyPatch) -> None:
             added.append((name, attributes))
 
     trace = types.ModuleType("opentelemetry.trace")
-    trace.get_current_span = lambda: Span()  # type: ignore[attr-defined]
+    trace.get_current_span = Span  # type: ignore[attr-defined]
     package = types.ModuleType("opentelemetry")
     package.trace = trace  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "opentelemetry", package)
