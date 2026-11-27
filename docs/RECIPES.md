@@ -166,6 +166,28 @@ tools.register_local_tool(
 
 `RunSqlTool` returns a rejected query to the model as `Error executing query: <reasons>`. Without the guard, Vanna's built-in runners commit whatever isn't a `SELECT`. Vanna 0.x (`vanna.legacy`): wrap the function it executes with, `vn.run_sql = guard.wrap(vn.run_sql, context_fn)`, after `vn.connect_to_…()`.
 
+## Node.js
+
+The Node recipes live in [`examples/node/`](../examples/node) and use the [`sqlguardllm` npm package](../clients/node/README.md), in local mode (the embedded engine, no server) or remote mode. They need Node 22.5+ for the SQLite demo. Run `npm install` in that folder, then `npm start` (SQLite) or `DATABASE_URL=postgres://… npm start` (PostgreSQL through `pg`). Tests: `npm test`; frameworks that aren't installed are skipped (`SQLGUARDLLM_RECIPES=1` makes that a failure) and the PostgreSQL test runs only with `DATABASE_URL`.
+
+Everything is in [`guarded-tools.mjs`](../examples/node/guarded-tools.mjs). `guardedQuery(guard, run, getContext)` calls `guard.enforce()` and only then `run()`. A rejected query comes back as `{ ok: false, feedback }` for the model to repair; a failure to reach the guard throws, so nothing runs (fail closed).
+
+```js
+import { SqlGuard } from "sqlguardllm";
+import { guardedQuery, pgRunner } from "./guarded-tools.mjs";
+
+const guard = await SqlGuard.local({ policy });            // once; or new SqlGuard({ baseUrl, token })
+const query = guardedQuery(guard, pgRunner(pool), () => ({ user: { branches: user.branchIds } }));
+```
+
+| Stack | Helper | Notes |
+|---|---|---|
+| LangChain.js | `langchainSqlTool({ tool, z }, guard, run, getContext)` | a `sql_db_query` tool for `createAgent` / LangGraph; `tool` from `@langchain/core/tools` |
+| Vercel AI SDK | `vercelSqlTool({ tool, z }, guard, run, getContext)` | `tool()` from `ai` 5; pass it in `generateText({ tools })` |
+| `pg` | `pgRunner(pool)` | `pool.query(sql)` as a read-only user |
+| `mysql2` | `mysql2Runner(pool)` | `mysql2/promise`; `pool.query`, not `execute`, since the SQL is already final |
+| Prisma | `prismaRunner(prisma)` | `$queryRawUnsafe(sql)` is safe here only because the string was just enforced; never pass it model output directly |
+
 ## MCP
 
 sqlguardllm ships its own MCP server, so Claude Desktop, Cursor, VS Code or any MCP client get a database tool that can't write, see hidden data or escape row filters:

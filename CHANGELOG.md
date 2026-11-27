@@ -4,11 +4,12 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+- Node.js recipes (#74) in `examples/node/`: a guarded `sql_db_query` tool for LangChain.js, a guarded `tool()` for the Vercel AI SDK and runners for `pg`, `mysql2` and Prisma `$queryRawUnsafe`, all through `enforce()`, with SQLite and (with `DATABASE_URL`) PostgreSQL tests. See `docs/RECIPES.md`.
 ## [0.5.0a5] - 2026-11-27
 
 First release whose npm package carries the embedded engine: `npm install sqlguardllm` can run it with no Python and no server (`SqlGuard.local`). The .NET package ships the engine as runtime assets with a local mode.
 
-### Added
 - npm: the release now publishes the five `sqlguardllm-engine-<platform>` packages and then `sqlguardllm` with the embedded engine in its `optionalDependencies`, all with `npm publish --provenance` (#75). The engines are the attested archives of the same run. `clients/node/npm/publish.mjs --dry-run` runs `npm pack` on all six; the new `npm pack (dry run)` workflow runs it on pull requests and uploads the file lists. The one-time owner steps (Trusted Publisher on each new package) are in CONTRIBUTING.md.
 
 ## [0.5.0a4] - 2026-11-27
