@@ -44,7 +44,8 @@ public class LocalTests
         done
         """;
 
-    [Fact] public async Task Explain_returns_the_same_result_type_with_the_raw_json()
+    [Fact]
+    public async Task Explain_returns_the_same_result_type_with_the_raw_json()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start(Echo);
@@ -55,7 +56,8 @@ public class LocalTests
         Assert.Equal(1, r.Raw.GetProperty("extra").GetInt32());
     }
 
-    [Fact] public async Task Local_and_remote_clients_share_one_interface()
+    [Fact]
+    public async Task Local_and_remote_clients_share_one_interface()
     {
         if (OperatingSystem.IsWindows()) return;
         await using ISqlGuard guard = await Start(Echo);
@@ -64,7 +66,8 @@ public class LocalTests
         Assert.NotNull(remote);
     }
 
-    [Fact] public async Task Concurrent_calls_get_their_own_answers_even_when_the_engine_answers_out_of_order()
+    [Fact]
+    public async Task Concurrent_calls_get_their_own_answers_even_when_the_engine_answers_out_of_order()
     {
         if (OperatingSystem.IsWindows()) return;
         // After the handshake the engine reads requests in pairs and answers the second one first.
@@ -82,7 +85,8 @@ public class LocalTests
         foreach (var (i, sql) in await Task.WhenAll(calls)) Assert.Equal($"SELECT {i}", sql);
     }
 
-    [Fact] public async Task A_crash_fails_pending_and_new_calls_then_restarts_with_backoff()
+    [Fact]
+    public async Task A_crash_fails_pending_and_new_calls_then_restarts_with_backoff()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start(Echo);
@@ -99,7 +103,8 @@ public class LocalTests
         Assert.Equal("SELECT 1", await guard.EnforceAsync("SELECT 1"));   // a fresh engine
     }
 
-    [Fact] public async Task Backoff_grows_on_consecutive_crashes_and_resets_after_a_served_call()
+    [Fact]
+    public async Task Backoff_grows_on_consecutive_crashes_and_resets_after_a_served_call()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start(Echo, o => { o.RestartBackoff = TimeSpan.FromMilliseconds(200); o.MaxRestartBackoff = TimeSpan.FromSeconds(2); });
@@ -115,7 +120,8 @@ public class LocalTests
         Assert.Equal("SELECT 2", await guard.EnforceAsync("SELECT 2"));
     }
 
-    [Fact] public async Task A_call_that_times_out_fails_and_the_engine_is_replaced()
+    [Fact]
+    public async Task A_call_that_times_out_fails_and_the_engine_is_replaced()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start(Echo, o => o.Timeout = TimeSpan.FromMilliseconds(400));
@@ -125,7 +131,8 @@ public class LocalTests
         Assert.Equal("SELECT 1", await guard.EnforceAsync("SELECT 1"));
     }
 
-    [Fact] public async Task Cancelling_one_call_does_not_disturb_the_others()
+    [Fact]
+    public async Task Cancelling_one_call_does_not_disturb_the_others()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start(Echo);
@@ -135,7 +142,8 @@ public class LocalTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => guard.CheckAsync("SELECT 2", ct: new CancellationToken(true)));
     }
 
-    [Fact] public async Task Disposing_fails_pending_calls_and_later_calls()
+    [Fact]
+    public async Task Disposing_fails_pending_calls_and_later_calls()
     {
         if (OperatingSystem.IsWindows()) return;
         var guard = await Start(Echo);
@@ -147,7 +155,8 @@ public class LocalTests
         await guard.DisposeAsync();   // idempotent
     }
 
-    [Fact] public async Task Garbage_and_unmatched_answers_fail_closed()
+    [Fact]
+    public async Task Garbage_and_unmatched_answers_fail_closed()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var garbage = await Start("""
@@ -178,7 +187,8 @@ public class LocalTests
         Assert.Equal("bad_response", (await Assert.ThrowsAsync<SqlGuardException>(() => noSql.CheckAsync("SELECT 1"))).Code);
     }
 
-    [Fact] public async Task An_error_answer_throws_with_its_code_and_keeps_the_engine()
+    [Fact]
+    public async Task An_error_answer_throws_with_its_code_and_keeps_the_engine()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start("""
@@ -195,7 +205,8 @@ public class LocalTests
         Assert.Equal("SELECT 1", await guard.EnforceAsync("SELECT 1"));
     }
 
-    [Fact] public async Task A_rejected_query_is_a_result_and_enforce_throws()
+    [Fact]
+    public async Task A_rejected_query_is_a_result_and_enforce_throws()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start("""
@@ -210,7 +221,8 @@ public class LocalTests
         Assert.Equal("write_not_allowed", e.Violations[0].Code);
     }
 
-    [Fact] public async Task Oversized_requests_are_refused_without_hurting_the_engine()
+    [Fact]
+    public async Task Oversized_requests_are_refused_without_hurting_the_engine()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start(Echo);
@@ -219,7 +231,8 @@ public class LocalTests
         Assert.Equal("SELECT 1", await guard.EnforceAsync("SELECT 1"));
     }
 
-    [Fact] public async Task Unsupported_context_values_are_refused()
+    [Fact]
+    public async Task Unsupported_context_values_are_refused()
     {
         if (OperatingSystem.IsWindows()) return;
         await using var guard = await Start(Echo);
@@ -227,26 +240,35 @@ public class LocalTests
         Assert.Equal("SELECT 1", await guard.EnforceAsync("SELECT 1"));
     }
 
-    [Fact] public async Task Options_are_validated()
+    [Fact]
+    public async Task Options_are_validated()
     {
         await Assert.ThrowsAsync<ArgumentException>(() => EngineTests.StartLocal("/nowhere", Rid, "[]"));
         await Assert.ThrowsAsync<ArgumentException>(() => EngineTests.StartLocal("/nowhere", Rid, "{oops"));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => EngineTests.StartLocal("/nowhere", Rid, options: new SqlGuardLocalOptions { PolicyJson = "{}", Timeout = TimeSpan.Zero }));
     }
 
-    [Fact] public async Task Public_entry_point_fails_closed_without_a_packaged_engine()
+    [Fact]
+    public async Task Public_entry_point_fails_closed_without_a_packaged_engine()
     {
         // The test output folder carries no runtimes/{rid}/native/sqlguardllm-engine.
         var e = await Assert.ThrowsAsync<SqlGuardException>(() => SqlGuard.CreateLocalAsync(new SqlGuardLocalOptions { PolicyJson = "{}" }));
         Assert.Equal("engine_unsupported", e.Code);
     }
 
-    [Fact] public void Wire_encodes_context_without_reflection()
+    [Fact]
+    public void Wire_encodes_context_without_reflection()
     {
         var ctx = new Dictionary<string, object?>
         {
-            ["tenant"] = "a\nb", ["n"] = 7, ["big"] = 5_000_000_000L, ["f"] = 1.5, ["ok"] = true, ["none"] = null,
-            ["list"] = new object?[] { 1, "x", null }, ["names"] = new[] { "p", "q" },
+            ["tenant"] = "a\nb",
+            ["n"] = 7,
+            ["big"] = 5_000_000_000L,
+            ["f"] = 1.5,
+            ["ok"] = true,
+            ["none"] = null,
+            ["list"] = new object?[] { 1, "x", null },
+            ["names"] = new[] { "p", "q" },
             ["obj"] = new Dictionary<string, object?> { ["k"] = JsonDocument.Parse("""{"a":[1]}""").RootElement.Clone() },
         };
         var body = Encoding.UTF8.GetString(Wire.HttpBody("SELECT 1", ctx));
