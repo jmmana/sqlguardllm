@@ -44,20 +44,20 @@ export type Policy = {
 };
 
 /** Values for the {context.path} placeholders of the row filters. */
-export type WireContext =(null | Record<string, unknown>);
+export type WireContext = (null | Record<string, unknown>);
 
-export type WireCheckRequest ={
+export type WireCheckRequest = {
   sql: string;
   context?: WireContext;
 };
 
-export type WireViolation ={
+export type WireViolation = {
   code: string;
   message: string;
   detail: string;
 };
 
-export type WireCheckResult ={
+export type WireCheckResult = {
   ok: boolean;
   sql: (string | null);
   tables: string[];
@@ -65,7 +65,7 @@ export type WireCheckResult ={
   violations: WireViolation[];
 };
 
-export type WireExplainResult ={
+export type WireExplainResult = {
   ok: boolean;
   sql: (string | null);
   tables: string[];
@@ -79,18 +79,18 @@ export type WireExplainResult ={
   text: string;
 };
 
-export type WireErrorBody ={
+export type WireErrorBody = {
   code: string;
   message: string;
 };
 
-export type WireHttpError ={
+export type WireHttpError = {
   error: WireErrorBody;
 };
 
-export type WireId =(string | number);
+export type WireId = (string | number);
 
-export type WireRequest ={
+export type WireRequest = {
   id: WireId;
   type: "hello";
 } | {
@@ -116,7 +116,7 @@ export type WireRequest ={
   type: "shutdown";
 };
 
-export type WireResponse ={
+export type WireResponse = {
   id: WireId;
   type: "hello";
   protocol: 1;

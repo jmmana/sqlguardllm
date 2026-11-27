@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SqlGuard } from "../src/index";
+import { SqlGuard, resolveEngine } from "../src/index";
 
 const root = resolve(__dirname, "../../..");
 const required = process.env.SQLGUARD_REQUIRE_CONFORMANCE === "1";
@@ -34,6 +34,37 @@ function start(group: Group): Promise<{ proc: ChildProcess; url: string }> {
     proc.on("exit", (code) => fail(new Error(`server exited ${code}: ${err}`)));
   });
 }
+
+// Local mode: SQLGUARD_ENGINE_CMD is the engine command (e.g. "uv run sqlguardllm engine --stdio"); without it the
+// packaged platform engine is used, if installed.
+function localEngine(): string[] | undefined {
+  if (process.env.SQLGUARD_ENGINE_CMD) return process.env.SQLGUARD_ENGINE_CMD.split(" ");
+  try {
+    return [resolveEngine(), "--stdio"];
+  } catch {
+    return undefined;
+  }
+}
+const engine = localEngine();
+if (!engine && required) throw new Error("SQLGUARD_REQUIRE_CONFORMANCE=1 but no local engine is available");
+
+describe.skipIf(!engine)("conformance (local mode)", () => {
+  for (const group of groups) {
+    it(`${group.name} (${group.cases.length} cases)`, async () => {
+      const client = await SqlGuard.local({ policy: group.policy as Record<string, unknown>, engine: engine! });
+      try {
+        for (const c of group.cases) {
+          const r = await client.check(c.sql, c.context);
+          const codes = [...new Set(r.violations.map((v) => v.code))].sort();
+          expect({ ok: r.ok, sql: r.sql, codes }, c.id).toEqual(c.expected);
+          expect(r.ok, c.id).toBe(c.expect === "allow");
+        }
+      } finally {
+        await client.close();
+      }
+    }, 60_000);
+  }
+});
 
 describe.skipIf(!available)("conformance", () => {
   for (const group of groups) {

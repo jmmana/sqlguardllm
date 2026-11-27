@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 import pkg from "../package.json";
 import { resolveEngine } from "./engine";
-import type { Policy, WireRequest } from "./generated";
+import type { Policy } from "./generated";
 import { SqlGuardError } from "./index";
 
 const PROTOCOL = 1;
@@ -51,6 +51,7 @@ export class LocalEngine {
   private starting: Promise<string> | undefined;
   private pending = new Map<number, Pending>();
   private nextId = 1;
+  private engineVersion = "";
   private failures = 0;
   private retryAt = 0;
   private closed = false;
@@ -129,6 +130,7 @@ export class LocalEngine {
     if (hello.type !== "hello" || hello.protocol !== PROTOCOL || !compatibleVersion(hello.engine_version, pkg.version)) {
       throw fail("engine_version_mismatch", `engine ${String(hello.engine_version)} (protocol ${String(hello.protocol)}) does not match sqlguardllm ${pkg.version} (protocol ${PROTOCOL})`);
     }
+    this.engineVersion = hello.engine_version as string;
     const loaded = await this.send({ type: "load_policy", ...body });
     if (loaded.type !== "load_policy" || typeof loaded.handle !== "string") throw fail("bad_response", "unexpected engine response to load_policy");
     return loaded.handle;
@@ -178,7 +180,7 @@ export class LocalEngine {
     this.pending.clear();
   }
 
-  private send(req: Omit<WireRequest, "id"> | Record<string, unknown>): Promise<Record<string, unknown>> {
+  private send(req: Record<string, unknown>): Promise<Record<string, unknown>> {
     const proc = this.proc;
     if (!proc?.stdin?.writable) return Promise.reject(fail("engine_crashed", "the engine is not running"));
     const id = this.nextId++;
@@ -212,24 +214,17 @@ export class LocalEngine {
   /** Version the engine reported; starts it if needed. */
   async version(): Promise<string> {
     await this.ready();
-    return pkg.version;
+    return this.engineVersion;
   }
 
   /** Stop the engine; later calls fail. Safe to call twice. */
   async close(): Promise<void> {
     if (this.closed) return;
-    const proc = this.proc;
-    const exited = proc && proc.exitCode === null ? new Promise<void>((r) => proc.once("exit", () => r())) : undefined;
-    if (proc?.stdin?.writable) {
-      // Polite shutdown; the engine also exits on stdin EOF.
-      proc.stdin.end(JSON.stringify({ id: 0, type: "shutdown" }) + "\n");
-    }
     this.closed = true;
-    const timer = exited ? setTimeout(() => proc?.kill(), 1000) : undefined;
+    const proc = this.proc;
     this.kill(fail("closed", "the engine was closed"));
-    if (exited) {
-      await exited;
-      clearTimeout(timer);
+    if (proc && proc.exitCode === null && proc.signalCode === null) {
+      await new Promise<void>((done) => proc.once("exit", () => done()));
     }
   }
 }
