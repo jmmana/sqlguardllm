@@ -75,6 +75,7 @@ Codes are part of the public API and **stable across minor versions**. Messages 
 | `too_complex` | The query exceeds `max_joins`, `max_subquery_depth` or `forbid_cartesian` |
 | `missing_required_filter` | A table in `required_filters` is read without a predicate on one of its columns |
 | `aggregate_required` | A table in `aggregate_only` is read without aggregating (raw columns, `*`, or window functions) |
+| `audit_failure` | Only with `AuditLog(strict=True)`: the decision could not be recorded, so an allowed query is rejected ([audit log](AUDIT.md)) |
 
 ## Pipeline
 
