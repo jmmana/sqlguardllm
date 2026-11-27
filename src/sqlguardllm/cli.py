@@ -9,6 +9,7 @@
     sqlguardllm serve --policy policy.yaml --port 8787
     sqlguardllm engine --stdio
     sqlguardllm mcp --policy policy.yaml --db sqlite:///demo.db --context @context.json
+    sqlguardllm check --policy policy.yaml --audit-log audit.jsonl "SELECT …"   # opt-in audit
 
 Exit codes: 0 allowed, 1 rejected, 2 usage or policy error. ``test`` returns 1 when a case
 fails and ``lint --strict`` when there are warnings.
@@ -27,6 +28,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from sqlguardllm import __version__
+from sqlguardllm.audit import AuditLog
 from sqlguardllm.guard import Guard
 from sqlguardllm.lint import DEFAULT_MAX_ROWS_THRESHOLD, format_report, lint_file
 from sqlguardllm.messages import LANGUAGES
@@ -42,6 +44,23 @@ EXIT_ERROR = 2
 
 class _UsageError(Exception):
     """A problem with the arguments, the policy or the context: exit code 2."""
+
+
+def _add_audit_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--audit-log",
+        default=None,
+        metavar="PATH|-",
+        help="record every decision as JSON Lines in this file, or on stderr with - "
+        "(default: nothing is logged; see docs/AUDIT.md)",
+    )
+    parser.add_argument(
+        "--audit-sql",
+        choices=("none", "redacted", "raw"),
+        default="redacted",
+        help="SQL in audit events: none, redacted (literals replaced by ?, default) or raw "
+        "(may contain personal data); ignored without --audit-log",
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -69,6 +88,7 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--language", choices=LANGUAGES, default="en", help="message language")
     check.add_argument("--format", choices=("text", "json"), default="text", help="output format")
     check.add_argument("--pretty", action="store_true", help="pretty-print the rewritten SQL")
+    _add_audit_options(check)
 
     schema = commands.add_parser("schema", help="print the JSON Schema of policy files")
     schema_kind = schema.add_mutually_exclusive_group()
@@ -125,6 +145,7 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="refuse queries whose EXPLAIN row estimate exceeds this (PostgreSQL and MySQL only)",
     )
+    _add_audit_options(mcp)
 
     serve = commands.add_parser(
         "serve",
@@ -153,6 +174,8 @@ def _parser() -> argparse.ArgumentParser:
     engine.add_argument("--stdio", action="store_true", required=True, help="use stdin/stdout")
 
     test = commands.add_parser("test",help="run declared cases against a policy or policy set")
+    _add_audit_options(serve)
+    test = commands.add_parser("test", help="run declared cases against a policy or policy set")
     test.add_argument("cases", type=Path, help="case file (.yaml or .json)")
     test.add_argument("--policy", required=True, type=Path, help="policy or policy-set file")
     test.add_argument("--format", choices=("text", "junit"), default="text", help="output format")
@@ -191,6 +214,16 @@ def _read_context(raw: str | None) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         raise _UsageError("--context must be a JSON object")
     return value
+
+
+def _audit_log(args: argparse.Namespace) -> AuditLog | None:
+    """The audit log the flags ask for; without ``--audit-log`` there is none."""
+    if not args.audit_log:
+        return None
+    try:
+        return AuditLog(args.audit_log, include_sql=args.audit_sql)
+    except OSError as exc:
+        raise _UsageError(f"cannot open the audit log: {exc}") from exc
 
 
 def _read_sql(raw: str, stdin: TextIO) -> str:
@@ -277,6 +310,7 @@ def _mcp(args: argparse.Namespace) -> int:
         ) from exc
     policy = _load_role(args.policy, args.role) if args.role else _load_policy(args.policy, None)
     context = _read_context(args.context)
+    audit = _audit_log(args)
     url = args.db or os.environ.get("DATABASE_URL")
     if not url:
         raise _UsageError("no database: pass --db URL or set DATABASE_URL")
@@ -291,6 +325,8 @@ def _mcp(args: argparse.Namespace) -> int:
             timeout=args.timeout,
             max_cost=args.max_cost,
             max_plan_rows=args.max_plan_rows,
+            audit=audit,
+            role=args.role,
         )
     except PolicyError as exc:
         raise _UsageError(f"invalid policy {args.policy}: {exc}") from None
@@ -311,8 +347,9 @@ def _serve(args: argparse.Namespace, stderr: TextIO) -> int:
             raise _UsageError(f"--token-env: the environment variable {args.token_env} is empty")
     if not 0 <= args.port <= 65535:
         raise _UsageError("--port must be between 0 and 65535")
+    audit = _audit_log(args)
     try:
-        guard = Guard(policy, language=args.language)
+        guard = Guard(policy, language=args.language, audit=audit, role=args.role)
         server = make_server(guard, args.host, args.port, token)
     except PolicyError as exc:
         raise _UsageError(f"invalid policy {args.policy}: {exc}") from None
@@ -337,8 +374,9 @@ def _check(args: argparse.Namespace, stdin: TextIO, stdout: TextIO) -> int:
     policy = _load_policy(args.policy, args.dialect)
     context = _read_context(args.context)
     sql = _read_sql(args.sql, stdin)
+    audit = _audit_log(args)
     try:
-        guard = Guard(policy, language=args.language, pretty=args.pretty)
+        guard = Guard(policy, language=args.language, pretty=args.pretty, audit=audit)
     except PolicyError as exc:
         raise _UsageError(f"invalid policy {args.policy}: {exc}") from exc
     result = guard.check(sql, context)

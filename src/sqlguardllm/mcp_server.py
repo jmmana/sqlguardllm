@@ -45,6 +45,7 @@ from sqlguardllm import __version__
 from sqlguardllm._compiled import Compiled
 from sqlguardllm._cost import CostEstimate, explain_statement, parse_plan_cost
 from sqlguardllm._names import TableName, find, norm, parse_table_entry
+from sqlguardllm.audit import AuditEvent, AuditLog
 from sqlguardllm.guard import Guard
 from sqlguardllm.messages import violation
 from sqlguardllm.policy import Policy
@@ -639,6 +640,8 @@ def create_server(
     max_cost: float | None = None,
     max_plan_rows: float | None = None,
     estimator: Estimator | None = None,
+    audit: AuditLog | Callable[[AuditEvent], None] | None = None,
+    role: str | None = None,
 ) -> MCPServer[Any]:
     """Build the MCP server: four read-only tools over ``database``, guarded by ``policy``.
 
@@ -653,6 +656,9 @@ def create_server(
             this. Ignored, with a warning, on other engines. Fails closed if the estimate fails.
         max_plan_rows: Same, for the planner's row estimate.
         estimator: Replaces the ``EXPLAIN`` estimate; meant for tests.
+        audit: Record every decision of the ``query`` tool (see docs/AUDIT.md). ``None``
+            (default) records nothing. ``explain_query`` is not a decision and is not recorded.
+        role: Role name for the audit events.
 
     Raises:
         PolicyError: If the policy is invalid.
@@ -670,7 +676,7 @@ def create_server(
             raise ValueError(f"{label} must be a number")
         if not math.isfinite(limit) or limit <= 0:
             raise ValueError(f"{label} must be a positive number")
-    guard = Guard(policy, language=language)
+    guard = Guard(policy, language=language, audit=audit, role=role)
     owned = isinstance(database, str)
     engine = _create_engine(database) if isinstance(database, str) else database
 

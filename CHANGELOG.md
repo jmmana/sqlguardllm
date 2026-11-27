@@ -6,6 +6,7 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 - `sqlguardllm engine --stdio`: the engine as a child process over newline-delimited JSON (protocol version 1: `hello`, `load_policy`, `check`, `explain`, `shutdown`), with the same `check` and `explain` bodies as the HTTP server, described by `schema/protocol/protocol.schema.json` and `docs/PROTOCOL.md`. The conformance corpus runs over it (#68).
+- Opt-in audit log of every decision, off by default (#65). `Guard(policy, audit=AuditLog(...))` or any callable taking an `AuditEvent`; sinks for a JSON Lines file, stderr, `logging` and OpenTelemetry (`sqlguardllm[otel]`). Events carry the timestamp, id, version, policy fingerprint, role, outcome, violation codes, tables, normalised-SQL fingerprint, duration and the names of the context keys, never their values. `include_sql` is `redacted` (default, literals replaced by `?`), `none` or `raw`. A failing sink never allows a rejected query; with `strict=True` it rejects the query with the new code `audit_failure`. CLI `check`, `serve` and `mcp` get `--audit-log PATH|-` and `--audit-sql`. See `docs/AUDIT.md`.
 
 ## [0.5.0a3] - 2026-11-26
 

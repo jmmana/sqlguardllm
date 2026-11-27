@@ -225,6 +225,14 @@ ALTER ROLE sqlguard_reader SET default_transaction_read_only = on;
 ALTER ROLE sqlguard_reader SET statement_timeout = '30s';
 ```
 
+## Audit log
+
+Off by default. `--audit-log PATH|-` records every decision of the `query` tool as JSON Lines in a file or, with `-`, on stderr (stdout is the MCP protocol); `--audit-sql {none,redacted,raw}` says how much SQL the events carry (default `redacted`: literals replaced by `?`). The model never sees the log and context values are never in it. `explain_query` is not recorded. In Python, pass `audit=` to `create_server()`. See [Audit log](AUDIT.md).
+
+```json
+"args": ["mcp", "--policy", "policy.yaml", "--db", "sqlite:///demo.db", "--audit-log", "audit.jsonl"]
+```
+
 ## How it protects you
 
 - **The model only writes SQL; the guard decides what runs.** Every query goes through `Guard.enforce()`: one `SELECT`, allowlisted tables, no hidden columns, no denied functions, masks and minimum group sizes applied, the user's row filters injected into every read of a filtered table, and the row limit. What runs is SQL regenerated from the checked tree, never the model's string. The [attack gallery](ATTACK_GALLERY.md) lists what that stops.
