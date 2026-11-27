@@ -28,6 +28,7 @@ POLICY = {
     "max_rows": 100,
 }
 CTX = {"user": {"branches": [1, 2]}}
+SQL = "SELECT id FROM invoices"
 
 
 def _validate(instance: Any, name: str) -> None:
@@ -50,8 +51,8 @@ def test_hello_and_responses_match_the_schema() -> None:
     responses = _session(
         {"id": "a", "type": "hello"},
         {"id": 1, "type": "load_policy", "policy": POLICY},
-        {"id": 2, "type": "check", "handle": "p1", "sql": "SELECT id FROM invoices", "context": CTX},
-        {"id": 3, "type": "explain", "handle": "p1", "sql": "SELECT id FROM invoices", "context": CTX},
+        {"id": 2, "type": "check", "handle": "p1", "sql": SQL, "context": CTX},
+        {"id": 3, "type": "explain", "handle": "p1", "sql": SQL, "context": CTX},
         {"id": 4, "type": "shutdown"},
     )
     assert [r["id"] for r in responses] == ["a", 1, 2, 3, 4]
@@ -139,7 +140,11 @@ def test_policy_set_with_role() -> None:
         ('{"id": 3, "type": "load_policy"}', "invalid_request", 3),
         ('{"id": 4, "type": "load_policy", "policy": {"dialect": "nope"}}', "invalid_policy", 4),
         ('{"id": 5, "type": "load_policy", "policy": []}', "invalid_policy", 5),
-        ('{"id": 6, "type": "load_policy", "policy_set": {"base": {}}, "role": "x"}', "invalid_policy", 6),
+        (
+            '{"id": 6, "type": "load_policy", "policy_set": {"base": {}}, "role": "x"}',
+            "invalid_policy",
+            6,
+        ),
         ("[" * 100000, "malformed_message", None),
     ],
 )
@@ -156,7 +161,8 @@ def test_bad_check_arguments() -> None:
     engine = Engine()
     handle = _load(engine)
     for extra in ({"sql": 1}, {"sql": "SELECT 1", "context": [1]}, {}):
-        response = engine.handle_line(json.dumps({"id": 1, "type": "check", "handle": handle} | extra))
+        request = {"id": 1, "type": "check", "handle": handle} | extra
+        response = engine.handle_line(json.dumps(request))
         assert response["error"]["code"] == "invalid_request"
 
 
@@ -194,7 +200,8 @@ def test_max_size_message_boundary_in_bytes() -> None:
 def test_stdout_is_ascii_json_lines_and_blank_lines_are_ignored() -> None:
     out = io.StringIO()
     request = {"id": 1, "type": "check", "handle": "p1", "sql": "SELECT 'ñ' FROM invoices"}
-    stdin = io.StringIO('{"id": 0, "type": "load_policy", "policy": ' + json.dumps(POLICY) + "}\n\n")
+    load = {"id": 0, "type": "load_policy", "policy": POLICY}
+    stdin = io.StringIO(json.dumps(load) + "\n\n")
     stdin.seek(0, 2)
     stdin.write(json.dumps(request | {"context": CTX}) + "\n")
     stdin.seek(0)

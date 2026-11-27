@@ -78,7 +78,7 @@ class Engine:
             return self._dispatch(id_, request)
         except _Reject as exc:
             return _error(id_, exc.code, exc.message)
-        except Exception:  # noqa: BLE001 - fail closed on any internal error
+        except Exception:  # fail closed on any internal error
             return _error(id_, "engine_error", "internal engine error")
 
     def _dispatch(self, id_: Any, request: dict[str, Any]) -> dict[str, Any]:

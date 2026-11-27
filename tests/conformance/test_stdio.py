@@ -1,4 +1,4 @@
-"""Every corpus case over the stdio engine (a real child process) must equal the in-process answer."""
+"""Every corpus case over the stdio engine (a child process) must equal the in-process answer."""
 
 from __future__ import annotations
 
@@ -16,7 +16,9 @@ GROUPS: list[dict[str, Any]] = DATA["groups"]
 
 
 @pytest.fixture(params=GROUPS, ids=[g["name"] for g in GROUPS])
-def engine(request: pytest.FixtureRequest) -> Iterator[tuple[dict[str, Any], subprocess.Popen[str]]]:
+def engine(
+    request: pytest.FixtureRequest,
+) -> Iterator[tuple[dict[str, Any], subprocess.Popen[str]]]:
     proc = subprocess.Popen(
         [sys.executable, "-m", "sqlguardllm", "engine", "--stdio"],
         stdin=subprocess.PIPE,
