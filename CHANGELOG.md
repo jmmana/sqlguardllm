@@ -4,6 +4,9 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+- Node.js recipes (#74) in `examples/node/`: a guarded `sql_db_query` tool for LangChain.js, a guarded `tool()` for the Vercel AI SDK and runners for `pg`, `mysql2` and Prisma `$queryRawUnsafe`, all through `enforce()`, with SQLite and (with `DATABASE_URL`) PostgreSQL tests. See `docs/RECIPES.md`.
+
 ## [0.5.0a4] - 2026-11-27
 
 Security release: upgrade if you use `dialect="duckdb"` with hidden or masked columns. It also brings the embedded-engine groundwork (engine protocol, standalone binaries, npm and NuGet engine packages), the opt-in audit log and the LLM red team.
