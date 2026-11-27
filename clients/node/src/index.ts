@@ -1,4 +1,7 @@
-export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
+export { detectPlatform, digestTree, resolveEngine } from "./engine";
+export type { EngineEnv, PlatformInfo, ResolveEngineOptions } from "./engine";
+
+export type Fetch =(input: string, init?: RequestInit) => Promise<Response>;
 
 export interface Violation { code: string; message: string; detail: string }
 export interface CheckResult {
