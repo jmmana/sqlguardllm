@@ -1,0 +1,105 @@
+name: LLM red team
+
+# Defensive testing (research/redteam/README.md): Claude writes attacks against our own guard over
+# a synthetic schema; every query goes through the guard and the allowed ones run only on the
+# disposable service containers below, with canary data. Only a schedule and a manual run, only
+# on main, never on a pull request. The job never pushes: the dataset is a workflow artifact that
+# a maintainer reviews and commits to research/redteam/.
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      max_attacks:
+        description: Attacks to ask for (1 to 50)
+        required: false
+        default: "50"
+      token_budget:
+        description: Hard output-token budget, thinking included (1024 to 64000)
+        required: false
+        default: "32000"
+      max_usd:
+        description: Per-run ceiling in USD; the run refuses to start above it (at most 5)
+        required: false
+        default: "2.00"
+      preflight:
+        description: Only count tokens and print the estimate (free)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: redteam
+  cancel-in-progress: false
+
+jobs:
+  redteam:
+    name: Red team
+    if: github.repository == 'jmmana/sqlguardllm' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test-only
+          MYSQL_DATABASE: sg
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -ptest-only" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Test-only-1234"
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Test-only-1234 -Q 'SELECT 1'"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Dependencies
+        run: uv sync --locked --extra db
+      - name: Drivers
+        run: uv pip install "psycopg[binary]" pymysql pymssql
+      - name: Generate attacks and judge them
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          MAX_ATTACKS: ${{ inputs.max_attacks || '50' }}
+          TOKEN_BUDGET: ${{ inputs.token_budget || '32000' }}
+          MAX_USD: ${{ inputs.max_usd || '2.00' }}
+          PREFLIGHT: ${{ inputs.preflight && '--preflight-only' || '' }}
+          SQLGUARD_PG_URL: postgresql+psycopg://postgres:test-only@localhost:5432/postgres
+          SQLGUARD_MYSQL_URL: mysql+pymysql://root:test-only@127.0.0.1:3306/sg
+          SQLGUARD_MSSQL_URL: mssql+pymssql://sa:Test-only-1234@localhost:1433/master
+        run: |
+          uv run python research/redteam/run.py --output-dir "$RUNNER_TEMP/redteam" \
+            --max-attacks "$MAX_ATTACKS" --token-budget "$TOKEN_BUDGET" --max-usd "$MAX_USD" \
+            $PREFLIGHT
+      - name: Keep the dataset for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redteam-${{ github.run_id }}
+          path: ${{ runner.temp }}/redteam
+          if-no-files-found: ignore
+          retention-days: 30
