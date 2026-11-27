@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>SqlGuardLlm.EntityFrameworkCore</PackageId>
+    <Version>0.5.0-alpha.4</Version>
+    <Authors>jmmana</Authors>
+    <Description>EF Core DbCommandInterceptor that sends raw SQL (FromSql, SqlQuery, ExecuteSql) through sqlguardllm before it reaches the database.</Description>
+    <PackageTags>sql;llm;security;firewall;sqlguardllm;efcore</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/jmmana/sqlguardllm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jmmana/sqlguardllm</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.11" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SqlGuardLlm.Extensions/SqlGuardLlm.Extensions.csproj" />
+  </ItemGroup>
+</Project>
