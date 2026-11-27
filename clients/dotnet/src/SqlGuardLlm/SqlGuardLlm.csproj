@@ -8,7 +8,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsTrimmable>true</IsTrimmable>
-    <IsAotCompatible>true</IsAotCompatible>    <PackageId>SqlGuardLlm</PackageId>
+    <IsAotCompatible>true</IsAotCompatible>
     <PackageId>SqlGuardLlm</PackageId>
     <Version>0.5.0-alpha.4</Version>
     <Authors>jmmana</Authors>
