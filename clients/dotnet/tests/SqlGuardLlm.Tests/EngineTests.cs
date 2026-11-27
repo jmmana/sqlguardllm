@@ -10,7 +10,7 @@ public class EngineTests
     private static string Sha(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 
     /// <summary>An app folder with runtimes/linux-x64/native/sqlguardllm-engine/{exe,_internal/lib,engine.sha256}.</summary>
-    private static (string app, string exe) Fake(string script = "#!/bin/sh\nexit 0\n")
+    internal static (string app, string exe) Fake(string script = "#!/bin/sh\nexit 0\n")
     {
         // Under the test output folder, not /tmp: /tmp is often mounted noexec.
         var app = Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "engine-tests", Guid.NewGuid().ToString("N"))).FullName;
@@ -20,6 +20,12 @@ public class EngineTests
         File.WriteAllText(Path.Combine(dir, "_internal", "lib.so"), "lib");
         File.WriteAllText(Path.Combine(dir, "engine.sha256"), $"{Sha(script)}  sqlguardllm-engine\n{Sha("lib")}  _internal/lib.so\n");
         return (app, Path.Combine(dir, "sqlguardllm-engine"));
+    }
+
+    internal static Task<SqlGuardLocal> StartLocal(string app, string rid, string policy = "{}", SqlGuardLocalOptions? options = null)
+    {
+        options ??= new SqlGuardLocalOptions { PolicyJson = policy };
+        return SqlGuardLocal.CreateAsync(options, () => EngineLocator.Resolve(rid, app), default);
     }
 
     [Fact] public void Verify_accepts_matching_files()
@@ -34,7 +40,7 @@ public class EngineTests
         var marker = Path.Combine(Path.GetTempPath(), "sg-ran-" + Guid.NewGuid());
         var (app, exe) = Fake();
         File.WriteAllText(exe, $"#!/bin/sh\ntouch {marker}\n");   // tampered after packing
-        var e = await Assert.ThrowsAsync<SqlGuardException>(() => SqlGuardEngine.StartAsync(new { }, Rid, app, null, default));
+        var e = await Assert.ThrowsAsync<SqlGuardException>(() => StartLocal(app, Rid));
         Assert.Equal("engine_integrity", e.Code);
         Assert.Contains("mismatch", e.Message);
         Assert.False(File.Exists(marker));
@@ -44,7 +50,7 @@ public class EngineTests
     {
         var (app, exe) = Fake();
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(exe)!, "_internal", "lib.so"), "evil");
-        var e = await Assert.ThrowsAsync<SqlGuardException>(() => SqlGuardEngine.StartAsync(new { }, Rid, app, null, default));
+        var e = await Assert.ThrowsAsync<SqlGuardException>(() => StartLocal(app, Rid));
         Assert.Equal("engine_integrity", e.Code);
     }
 
@@ -52,11 +58,11 @@ public class EngineTests
     {
         var (app, exe) = Fake();
         File.Delete(Path.Combine(Path.GetDirectoryName(exe)!, "_internal", "lib.so"));
-        Assert.Equal("engine_integrity", (await Assert.ThrowsAsync<SqlGuardException>(() => SqlGuardEngine.StartAsync(new { }, Rid, app, null, default))).Code);
+        Assert.Equal("engine_integrity", (await Assert.ThrowsAsync<SqlGuardException>(() => StartLocal(app, Rid))).Code);
 
         var (app2, exe2) = Fake();
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(exe2)!, "engine.sha256"), $"{Sha("lib")}  _internal/lib.so\n");
-        Assert.Equal("engine_integrity", (await Assert.ThrowsAsync<SqlGuardException>(() => SqlGuardEngine.StartAsync(new { }, Rid, app2, null, default))).Code);
+        Assert.Equal("engine_integrity", (await Assert.ThrowsAsync<SqlGuardException>(() => StartLocal(app2, Rid))).Code);
     }
 
     [Fact] public void Manifest_cannot_point_outside_the_folder()
@@ -70,7 +76,7 @@ public class EngineTests
     [Fact] public async Task Runtime_without_engine_names_remote_mode()
     {
         var app = Directory.CreateTempSubdirectory("sgempty").FullName;
-        var e = await Assert.ThrowsAsync<SqlGuardException>(() => SqlGuardEngine.StartAsync(new { }, "freebsd-x64", app, null, default));
+        var e = await Assert.ThrowsAsync<SqlGuardException>(() => StartLocal(app, "freebsd-x64"));
         Assert.Equal("engine_unsupported", e.Code);
         Assert.Contains("remote mode", e.Message);
         Assert.Contains("SqlGuardClient", e.Message);
@@ -85,7 +91,7 @@ public class EngineTests
     [InlineData("2.0.0", 1, 0, false)]
     [InlineData("garbage", 0, 5, false)]
     [InlineData(null, 0, 5, false)]
-    public void Lockstep(string? v, int major, int minor, bool ok) => Assert.Equal(ok, SqlGuardEngine.LockstepOk(v, major, minor));
+    public void Lockstep(string? v, int major, int minor, bool ok) => Assert.Equal(ok, EngineLocator.LockstepOk(v, major, minor));
 
     [Fact] public async Task Talks_to_a_verified_engine_over_stdio()
     {
@@ -101,7 +107,7 @@ public class EngineTests
             done
             """.Replace("\r", "");
         var (app, _) = Fake(script + "\n");
-        using var engine = await SqlGuardEngine.StartAsync(new { dialect = "postgres" }, Rid, app, null, default);
+        await using var engine = await StartLocal(app, Rid, """{"dialect":"postgres"}""");
         Assert.Equal("SELECT 1 LIMIT 10", await engine.EnforceAsync("SELECT 1"));
     }
 
@@ -109,7 +115,7 @@ public class EngineTests
     {
         if (OperatingSystem.IsWindows()) return;
         var (app, _) = Fake("#!/bin/sh\nread l\necho '{\"id\":1,\"type\":\"hello\",\"protocol\":2,\"engine_version\":\"0.5.0\"}'\ncat >/dev/null\n");
-        var e = await Assert.ThrowsAsync<SqlGuardException>(() => SqlGuardEngine.StartAsync(new { }, Rid, app, null, default));
+        var e = await Assert.ThrowsAsync<SqlGuardException>(() => StartLocal(app, Rid));
         Assert.Equal("engine_version", e.Code);
     }
 }
