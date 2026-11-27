@@ -37,6 +37,14 @@ var rows = await conn.QueryAsync(safeSql);                               // Dapp
 // or plain ADO.NET: using var cmd = conn.CreateCommand(); cmd.CommandText = safeSql; ...
 ```
 
+## Integrations
+
+Separate packages, so the core keeps no dependencies. See [docs/RECIPES.md](../../docs/RECIPES.md#net) and [`examples/dotnet`](../../examples/dotnet).
+
+- `SqlGuardLlm.Extensions`: `services.AddSqlGuard(configuration.GetSection("SqlGuard"))` (or `AddSqlGuard(o => ...)`, or `AddSqlGuard(localGuard)`), `AddSqlGuardContext(sp => ...)`, ADO.NET (`GuardAsync`, `CreateGuardedCommandAsync`, `ExecuteGuardedReaderAsync`) and Dapper (`QueryGuardedAsync`) helpers, and `GuardedSqlFunction`, a Microsoft.Extensions.AI `AIFunction`.
+- `SqlGuardLlm.EntityFrameworkCore`: `optionsBuilder.UseSqlGuard(guard)`, a `DbCommandInterceptor` that enforces raw SQL (`FromSql*`, `SqlQuery*`, `ExecuteSql*`).
+- `SqlGuardLlm.SemanticKernel`: `SqlGuardFunctionFilter`, an `IFunctionInvocationFilter`.
+
 ## Embedded engine (no server)
 
 The package carries the engine for linux-x64, linux-arm64, osx-x64, osx-arm64 and win-x64 under `runtimes/{rid}/native/sqlguardllm-engine/`:

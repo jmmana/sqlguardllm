@@ -11,6 +11,7 @@ Put sqlguardllm in front of the SQL execution of your stack. Every recipe is a r
 | LlamaIndex | [`llamaindex_sql.py`](../examples/llamaindex_sql.py) | llama-index-core 0.14 | `SQLDatabase.run_sql()` |
 | Vanna | [`vanna_runner.py`](../examples/vanna_runner.py) | vanna 2.0 | a `SqlRunner` for `RunSqlTool` |
 | MCP | [docs/MCP.md](MCP.md) | sqlguardllm 0.4 | the built-in server, `sqlguardllm mcp` |
+| .NET | [`examples/dotnet`](../examples/dotnet) | net8.0+ (ASP.NET Core, EF Core 8, Dapper, Semantic Kernel, Microsoft.Extensions.AI) | [`AddSqlGuard`, interceptor, filter, `AIFunction`](#net) |
 
 Versions checked on 2026-11-26 with langchain 1.5.2, langchain-core 1.8.5, langchain-community 0.4.2, llama-index-core 0.14.26, vanna 2.0.2 and SQLAlchemy 2.1.9. The [Recipes workflow](../.github/workflows/recipes.yml) runs them against these ranges.
 
@@ -197,6 +198,25 @@ uvx --from "sqlguardllm[mcp]" sqlguardllm mcp --policy policy.yaml --db "$DATABA
 ```
 
 Client configuration, roles and the user context are in [docs/MCP.md](MCP.md). Writing your own MCP server instead? Call `guard.enforce()` in its query tool with the context of the authenticated caller, as in the generic wrapper.
+
+## .NET
+
+Three NuGet packages on top of `SqlGuardLlm`; [`examples/dotnet`](../examples/dotnet) runs all of them against SQLite, tested with a fake guard (no server, no network).
+
+```csharp
+// ASP.NET Core: options bound from configuration ("SqlGuard": { "BaseUrl": "...", "Token": "..." })
+builder.Services.AddSqlGuard(builder.Configuration.GetSection("SqlGuard"));
+builder.Services.AddSqlGuardContext(sp => new Dictionary<string, object?> { ["tenant_id"] = sp.GetRequiredService<ICurrentUser>().TenantId });
+```
+
+| Integration | Package | How |
+|---|---|---|
+| Dapper / ADO.NET | `SqlGuardLlm.Extensions` | `conn.QueryGuardedAsync<T>(guard, sql)`, `command.GuardAsync(guard)`, `conn.CreateGuardedCommandAsync(guard, sql)` |
+| EF Core | `SqlGuardLlm.EntityFrameworkCore` | `options.UseSqlGuard(guard)`: `FromSql`, `SqlQuery` and `ExecuteSql` go through the guard and run the rewritten SQL; LINQ and `SaveChanges` are untouched unless `EnforceAll = true` |
+| Microsoft.Extensions.AI | `SqlGuardLlm.Extensions` | `new GuardedSqlFunction(guard, (sql, ct) => run(sql), context)`: an `AIFunction` that runs only guard-approved SQL and returns the violations to the model |
+| Semantic Kernel | `SqlGuardLlm.SemanticKernel` | `kernel.FunctionInvocationFilters.Add(new SqlGuardFunctionFilter(guard))`: checks the `sql` argument of any function and rewrites it |
+
+A rejected query never runs; a guard failure (server down, timeout) throws `SqlGuardException` and nothing runs either. The EF Core interceptor's synchronous paths block on the guard call.
 
 ---
 
