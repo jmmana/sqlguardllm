@@ -4,6 +4,9 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+- npm: the release now publishes the five `sqlguardllm-engine-<platform>` packages and then `sqlguardllm` with the embedded engine in its `optionalDependencies`, all with `npm publish --provenance` (#75). The engines are the attested archives of the same run. `clients/node/npm/publish.mjs --dry-run` runs `npm pack` on all six; the new `npm pack (dry run)` workflow runs it on pull requests and uploads the file lists. The one-time owner steps (Trusted Publisher on each new package) are in CONTRIBUTING.md.
+
 ## [0.5.0a4] - 2026-11-27
 
 Security release: upgrade if you use `dialect="duckdb"` with hidden or masked columns. It also brings the embedded-engine groundwork (engine protocol, standalone binaries, npm and NuGet engine packages), the opt-in audit log and the LLM red team.

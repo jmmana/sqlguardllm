@@ -102,3 +102,13 @@ describe("resolveEngine", () => {
     expect(e?.message).toContain("remote mode");
   });
 });
+
+describe("publish script", () => {
+  it("merges optionalDependencies without touching the rest", async () => {
+    // @ts-expect-error plain ESM script without types
+    const { withOptionalDependencies } = await import("../npm/publish.mjs");
+    const merged = withOptionalDependencies({ name: "x", version: "1.0.0" }, mainOptionalDependencies("1.0.0"));
+    expect(merged.name).toBe("x");
+    expect(Object.keys(merged.optionalDependencies)).toHaveLength(Object.keys(platforms).length);
+  });
+});
