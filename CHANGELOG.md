@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0a6] - 2026-11-27
+
+The NuGet package now carries the engine for five runtimes and the integrations package is published with it; Node and .NET local mode are tested on Linux, macOS and Windows.
+
 ### Fixed
 - Node.js: a program that ends with a top-level `await guard.close()` on a local-mode guard exited with an unsettled await (code 13), because the engine process is unref'd and nothing kept the event loop alive while `close()` waited for it to exit. `close()` now keeps the loop alive until the engine exits (at most 2 s).
 - .NET: `dotnet pack` failed with NU5123 once the engines were staged, and a RID-specific publish (`dotnet publish -r <rid>`, self-contained, single-file, container images) failed with NETSDK1152 or lost the engine folder, because the SDK flattens native assets. The package now ships `build/SqlGuardLlm.targets`, which keeps the `sqlguardllm-engine/` folder intact next to the app (#76).
@@ -168,7 +172,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a5...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a6...HEAD
+[0.5.0a6]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a5...v0.5.0a6
 [0.5.0a5]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...v0.5.0a5
 [0.5.0a4]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...v0.5.0a4
 [0.5.0a3]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...v0.5.0a3
