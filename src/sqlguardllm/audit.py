@@ -20,7 +20,6 @@ import logging
 import os
 import sys
 import threading
-import time
 import uuid
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -318,11 +317,6 @@ class AuditLog:
             )
         except Exception:  # noqa: BLE001, S110 - stderr itself may be closed
             pass
-
-
-def monotonic_ms() -> float:
-    """A clock in milliseconds for measuring durations."""
-    return time.perf_counter() * 1000.0
 
 
 def as_audit_log(audit: Any) -> AuditLog | None:

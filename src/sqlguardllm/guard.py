@@ -15,8 +15,8 @@ from sqlglot.errors import SqlglotError
 from sqlglot.optimizer.scope import Scope, traverse_scope
 
 from sqlguardllm._compiled import Compiled, RowFilter
-from sqlguardllm.audit import AuditEvent, AuditLog, as_audit_log, policy_fingerprint
 from sqlguardllm._names import TableName, find, norm, parse_column_entry, parse_table_entry
+from sqlguardllm.audit import AuditEvent, AuditLog, as_audit_log, policy_fingerprint
 from sqlguardllm.data.denied_functions import default_denylist
 from sqlguardllm.explain import Explanation, protections, read_columns
 from sqlguardllm.messages import LANGUAGES, violation
