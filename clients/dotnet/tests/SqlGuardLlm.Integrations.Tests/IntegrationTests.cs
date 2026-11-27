@@ -79,8 +79,14 @@ public class IntegrationTests
     {
         await using var c = await Db(); var g = new FakeGuard();
         await using (var r = await c.ExecuteGuardedReaderAsync(g, "SELECT Id FROM invoices", Ctx)) { Assert.True(await r.ReadAsync()); }
-        Assert.Equal("SELECT Id FROM invoices LIMIT 10", g.Seen[0]); // seen text is the input; rewritten text ran (LIMIT parsed by SQLite)
+        Assert.Equal("SELECT Id FROM invoices", g.Seen[0]);
         Assert.Same(Ctx, g.Contexts[0]);
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "SELECT Id FROM invoices";
+            await cmd.GuardAsync(g, Ctx);
+            Assert.Equal("SELECT Id FROM invoices LIMIT 10", cmd.CommandText);
+        }
         await Assert.ThrowsAsync<GuardViolationException>(() => c.CreateGuardedCommandAsync(g, "DELETE FROM invoices"));
         using var count = c.CreateCommand(); count.CommandText = "SELECT COUNT(*) FROM invoices";
         Assert.Equal(3L, count.ExecuteScalar());
@@ -88,10 +94,28 @@ public class IntegrationTests
 
     [Fact] public async Task GuardAsync_refuses_stored_procedures()
     {
-        await using var c = await Db(); using var cmd = c.CreateCommand();
-        cmd.CommandText = "sp"; cmd.CommandType = System.Data.CommandType.StoredProcedure;
-        var e = await Assert.ThrowsAsync<SqlGuardException>(() => cmd.GuardAsync(new FakeGuard()));
+        var g = new FakeGuard();
+        var e = await Assert.ThrowsAsync<SqlGuardException>(() => new ProcCommand().GuardAsync(g));
         Assert.Equal("unsupported_command", e.Code);
+        Assert.Empty(g.Seen);
+    }
+
+    private sealed class ProcCommand : DbCommand
+    {
+        public override string CommandText { get; set; } = "sp";
+        public override int CommandTimeout { get; set; }
+        public override System.Data.CommandType CommandType { get; set; } = System.Data.CommandType.StoredProcedure;
+        public override bool DesignTimeVisible { get; set; }
+        public override System.Data.UpdateRowSource UpdatedRowSource { get; set; }
+        protected override DbConnection? DbConnection { get; set; }
+        protected override DbParameterCollection DbParameterCollection => throw new NotSupportedException();
+        protected override DbTransaction? DbTransaction { get; set; }
+        public override void Cancel() { }
+        public override int ExecuteNonQuery() => throw new NotSupportedException();
+        public override object? ExecuteScalar() => throw new NotSupportedException();
+        public override void Prepare() { }
+        protected override DbParameter CreateDbParameter() => throw new NotSupportedException();
+        protected override DbDataReader ExecuteDbDataReader(System.Data.CommandBehavior behavior) => throw new NotSupportedException();
     }
 
     [Fact] public async Task Dapper_helper_enforces()

@@ -24,7 +24,7 @@
     <None Include="../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.54.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.71.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../SqlGuardLlm.Extensions/SqlGuardLlm.Extensions.csproj" />

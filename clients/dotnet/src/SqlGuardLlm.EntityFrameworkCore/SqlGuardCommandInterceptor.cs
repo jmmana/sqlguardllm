@@ -72,4 +72,9 @@ public static class SqlGuardDbContextOptionsExtensions
         ArgumentNullException.ThrowIfNull(builder);
         return builder.AddInterceptors(new SqlGuardCommandInterceptor(guard, options));
     }
+
+    /// <inheritdoc cref="UseSqlGuard(DbContextOptionsBuilder, ISqlGuard, SqlGuardInterceptorOptions?)"/>
+    public static DbContextOptionsBuilder<TContext> UseSqlGuard<TContext>(this DbContextOptionsBuilder<TContext> builder, ISqlGuard guard, SqlGuardInterceptorOptions? options = null)
+        where TContext : DbContext
+        => (DbContextOptionsBuilder<TContext>)UseSqlGuard((DbContextOptionsBuilder)builder, guard, options);
 }
