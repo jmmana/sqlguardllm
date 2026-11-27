@@ -4,6 +4,9 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+- `sqlguardllm engine --stdio`: the engine as a child process over newline-delimited JSON (protocol version 1: `hello`, `load_policy`, `check`, `explain`, `shutdown`), with the same `check` and `explain` bodies as the HTTP server, described by `schema/protocol/protocol.schema.json` and `docs/PROTOCOL.md`. The conformance corpus runs over it (#68).
+
 ## [0.5.0a3] - 2026-11-26
 
 Security release: upgrade if you use `dialect="mysql"` with hidden or masked columns.

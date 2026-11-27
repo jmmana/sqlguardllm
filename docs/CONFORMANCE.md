@@ -4,6 +4,7 @@ Python, the HTTP server and every official client must give exactly the same ans
 
 - `tests/conformance/export_corpus.py` writes `conformance/cases.json`: the non-pending corpus cases grouped by policy (the corpus `standard_policy` plus its overrides), each with the in-process `Guard.check` answer (`ok`, `sql`, sorted violation `codes`).
 - `tests/conformance/test_http.py` serves each group over HTTP and compares with that answer, and checks `cases.json` is up to date.
+- `tests/conformance/test_stdio.py` runs each group through a real `sqlguardllm engine --stdio` child process ([PROTOCOL.md](PROTOCOL.md)) and compares with the same answer.
 - `clients/node/test/conformance.test.ts` and `clients/dotnet/tests/SqlGuardLlm.Tests/ConformanceTests.cs` start a real `sqlguardllm serve` per group (port 0) and compare the client's result with the same expectations.
 - The `Conformance` workflow runs all three with `SQLGUARD_REQUIRE_CONFORMANCE=1`.
 

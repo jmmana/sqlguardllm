@@ -42,6 +42,7 @@ nav:
       - Recipes: RECIPES.md
       - MCP server: MCP.md
       - HTTP server and clients: SERVER.md
+      - Engine stdio protocol: PROTOCOL.md
 hooks:
   - scripts/mkdocs_hooks.py
 plugins:
