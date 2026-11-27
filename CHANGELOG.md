@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0a4] - 2026-11-27
+
+Security release: upgrade if you use `dialect="duckdb"` with hidden or masked columns. It also brings the embedded-engine groundwork (engine protocol, standalone binaries, npm and NuGet engine packages), the opt-in audit log and the LLM red team.
+
 ### Security
 - **On DuckDB, hidden and masked columns could be read with `COLUMNS('regex')` or `COLUMNS(lambda)`.** DuckDB picks the columns by pattern at run time, and the guard did not treat it as a star, so `SELECT COLUMNS('.*') FROM customers` returned a hidden column. `COLUMNS()` is now refused whenever the query can see a table with hidden or masked columns (also inside an aggregate). Affects every release with `dialect="duckdb"`. Found by the LLM red team (#63).
 
@@ -145,7 +149,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...HEAD
+[0.5.0a4]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...v0.5.0a4
 [0.5.0a3]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...v0.5.0a3
 [0.5.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...v0.5.0a2
 [0.5.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.4.0a1...v0.5.0a1

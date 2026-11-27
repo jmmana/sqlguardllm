@@ -47,7 +47,7 @@ pip install --pre sqlguardllm
 sqlguardllm serve --policy policy.json --port 8787 --language es
 ```
 
-Imprime una línea como `sqlguardllm 0.5.0a3 listening on http://127.0.0.1:8787 (no token)` y sigue ejecutándose: deja esa terminal abierta. Solo escucha en tu equipo. Antes de exponerlo a otros equipos, configura un [token](../SERVER.md#token). Todavía no hay una imagen de Docker publicada; puedes construir una con el [Dockerfile](../SERVER.md#docker) del repositorio. `--language es` hace que los mensajes de las violaciones salgan en español.
+Imprime una línea como `sqlguardllm 0.5.0a4 listening on http://127.0.0.1:8787 (no token)` y sigue ejecutándose: deja esa terminal abierta. Solo escucha en tu equipo. Antes de exponerlo a otros equipos, configura un [token](../SERVER.md#token). Todavía no hay una imagen de Docker publicada; puedes construir una con el [Dockerfile](../SERVER.md#docker) del repositorio. `--language es` hace que los mensajes de las violaciones salgan en español.
 
 ## 3. Instala el cliente
 
