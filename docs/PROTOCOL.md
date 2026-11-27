@@ -61,3 +61,50 @@ A rejected query is a normal `check` response with `"ok": false`. Protocol failu
 - Removing or changing the meaning of a field, a message type or an error code needs protocol version 2.
 - Violation codes are stable across minor versions, as everywhere else in sqlguardllm.
 - The engine rejects unknown request types with `unknown_type` and ignores unknown request fields.
+
+## Standalone engine binaries
+
+Packages for languages without Python ship the engine as a prebuilt executable that speaks this protocol (`<engine> --stdio`). It contains only sqlguardllm, sqlglot and the Python standard library (no `yaml`, `sqlalchemy`, `mcp` or OpenTelemetry), opens no network connection and never starts a shell. It is built with PyInstaller in one-dir mode by `scripts/build-engine.py`: a one-file build unpacks itself on every start and took about 4 s on macOS arm64, a one-dir build starts in about 0.1 s (`benchmarks/engine-binaries.json`).
+
+Every GitHub Release `vX.Y.Z` has these assets, built from the release commit on one native runner each:
+
+| Platform | Asset | Built on |
+|---|---|---|
+| Linux x64 (glibc) | `sqlguardllm-engine-linux-x64.tar.gz` | `ubuntu-24.04` |
+| Linux arm64 (glibc) | `sqlguardllm-engine-linux-arm64.tar.gz` | `ubuntu-24.04-arm` |
+| macOS arm64 | `sqlguardllm-engine-macos-arm64.tar.gz` | `macos-15` |
+| macOS x64 | `sqlguardllm-engine-macos-x64.tar.gz` | `macos-15-intel` |
+| Windows x64 | `sqlguardllm-engine-windows-x64.zip` | `windows-2022` |
+| (all) | `SHA256SUMS` | |
+
+Each archive holds one folder, `sqlguardllm-engine-<platform>/`, with the executable `sqlguardllm-engine` (`sqlguardllm-engine.exe` on Windows) and its `_internal/` files; keep them together. `SHA256SUMS` is the output of `sha256sum`, one line per archive, `<64 hex digits><two spaces><asset name>`, and lists exactly the five archives. Alpine and other musl Linux are not built: use the remote mode (`sqlguardllm serve`) there until a musl build is measured.
+
+Binaries are not code-signed or notarised. On macOS a downloaded archive may carry the quarantine attribute; packages that unpack it themselves do not set it.
+
+### Fetch and verify
+
+```
+python scripts/fetch-engine.py 0.5.0            # all five platforms into ./engines
+python scripts/fetch-engine.py 0.5.0 --platform linux-x64 --out vendor/engine
+```
+
+The script (standard library only; this is what the Node, .NET and Java packaging jobs run) downloads `SHA256SUMS` and the archives of release `v0.5.0` and exits 1 on any failure: an asset missing from the release or from `SHA256SUMS`, a checksum mismatch, a failed `gh attestation verify` (run when `gh` is installed; `--require-attestation` also fails when it is not), a path outside the target folder in an archive, or, for the platform of the machine running it, an engine whose `hello` does not report exactly that version and protocol 1. It unpacks an archive only after it verified. Packaging jobs must not catch these failures.
+
+By hand:
+
+```
+gh release download v0.5.0 -R jmmana/sqlguardllm -p 'sqlguardllm-engine-*' -p SHA256SUMS
+sha256sum --check --ignore-missing SHA256SUMS        # macOS: shasum -a 256 -c
+gh attestation verify sqlguardllm-engine-linux-x64.tar.gz -R jmmana/sqlguardllm
+```
+
+The attestation is a signed SLSA build provenance (`actions/attest-build-provenance`): it ties the archive to the `release.yml` run, the tag and the commit that produced it. A checksum alone only proves the download is intact; verify the attestation when the binary is about to be shipped or run in a sensitive place.
+
+### Versions move in lockstep
+
+The engine, the PyPI package and every language package share one version, checked by the release workflow (`pyproject.toml`, `clients/node/package.json` and the .csproj must agree with the tag, and each binary's `hello` must report the version of its commit). A client that launches an engine must send `hello` first and refuse to continue, treating every check as a rejection, unless:
+
+- `protocol` equals the protocol version the client implements (1), and
+- `engine_version` has the same major version as the client's own (before 1.0, the same minor version too: `0.5.x` clients accept `0.5.y` engines).
+
+A packaging job that bundles the engine fetches exactly its own version. An engine with a different major or protocol version is never used, even if it answers.

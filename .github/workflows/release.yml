@@ -63,9 +63,53 @@ jobs:
           name: dist
           path: dist/
 
+  # The five engine binaries, built and conformance-tested on their own native runners from this
+  # same commit (engine-binaries.yml). Nothing is published unless all of them pass.
+  engines:
+    name: Engine binaries
+    needs: build
+    permissions:
+      contents: read
+    uses: ./.github/workflows/engine-binaries.yml
+
+  # Checksums and signed build provenance for the binaries. The only job with id-token and
+  # attestations write; it cannot publish anything.
+  attest:
+    name: Checksums and provenance attestations
+    needs: [build, engines]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: engine-*
+          merge-multiple: true
+          path: engine-all/
+      - name: SHA256SUMS of the release archives (five platforms, nothing else)
+        run: |
+          set -e
+          mkdir engine-release
+          cp engine-all/sqlguardllm-engine-* engine-release/
+          test "$(find engine-release -type f | wc -l)" -eq 5
+          cd engine-release
+          sha256sum sqlguardllm-engine-* > SHA256SUMS
+          cat SHA256SUMS
+      # actions/attest-build-provenance v4.2.2, pinned by commit SHA.
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
+        with:
+          subject-path: engine-release/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-release
+          path: engine-release/
+          if-no-files-found: error
+
   publish:
     name: Publish to PyPI
-    needs: build
+    needs: [build, engines]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -81,7 +125,7 @@ jobs:
 
   npm:
     name: Publish the Node.js client to npm
-    needs: build
+    needs: [build, engines]
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -112,7 +156,7 @@ jobs:
 
   nuget:
     name: Publish the .NET client to NuGet
-    needs: build
+    needs: [build, engines]
     runs-on: ubuntu-latest
     environment:
       name: nuget
@@ -172,7 +216,7 @@ jobs:
 
   github-release:
     name: GitHub release
-    needs: [build, smoke]
+    needs: [build, smoke, attest]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -182,6 +226,10 @@ jobs:
         with:
           name: dist
           path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-release
+          path: engine-release/
       - name: Create the release from the changelog
         env:
           GH_TOKEN: ${{ github.token }}
@@ -190,4 +238,4 @@ jobs:
           awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on {print}' CHANGELOG.md > notes.md
           prerelease=""
           if echo "$VERSION" | grep -qE '(a|b|rc)[0-9]+$'; then prerelease="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" dist/* --title "sqlguardllm $VERSION" --notes-file notes.md $prerelease
+          gh release create "$GITHUB_REF_NAME" dist/* engine-release/* --title "sqlguardllm $VERSION" --notes-file notes.md $prerelease
