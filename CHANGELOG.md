@@ -4,9 +4,18 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Fixed
+- Node.js: a program that ends with a top-level `await guard.close()` on a local-mode guard exited with an unsettled await (code 13), because the engine process is unref'd and nothing kept the event loop alive while `close()` waited for it to exit. `close()` now keeps the loop alive until the engine exits (at most 2 s).
+- .NET: `dotnet pack` failed with NU5123 once the engines were staged, and a RID-specific publish (`dotnet publish -r <rid>`, self-contained, single-file, container images) failed with NETSDK1152 or lost the engine folder, because the SDK flattens native assets. The package now ships `build/SqlGuardLlm.targets`, which keeps the `sqlguardllm-engine/` folder intact next to the app (#76).
+- The NuGet release job pushed `SqlGuardLlm` without the engines (nothing staged them) and did not push the integration packages (#76, #79).
+
 ### Added
+- .NET release and CI (#76, #77, #79): `clients/dotnet/build/stage-engines.py` (it was documented but missing) stages the attested engine archives with an `engine.sha256` manifest and fails when the package passes 150 MB; `clients/dotnet/Directory.Build.props` holds one version for the four packages, with SourceLink, deterministic builds and `.snupkg` symbols for all of them, and `release.yml` checks it against the engine release, verifies the engine archives, packs and pushes `SqlGuardLlm`, `SqlGuardLlm.Extensions`, `SqlGuardLlm.EntityFrameworkCore` and `SqlGuardLlm.SemanticKernel`, after a consumer project restored the packed package and started its engine. `dotnet-client.yml` now runs the unit tests and the whole conformance corpus in local mode on Linux, macOS and Windows (a missing engine fails instead of skipping), and a `package` job builds the engine of each platform, packs, and runs `clients/dotnet/smoke` with `dotnet run`, `dotnet publish -r <rid>` (framework-dependent, self-contained single-file, trimmed and Native AOT with trimming and AOT warnings as errors), a tampered-engine check and, on Linux, a container image.
+- Node.js recipes (#74): the `Recipes` workflow has a `node-recipes` job that runs `examples/node` with the real engine in local mode on SQLite and on a PostgreSQL 16 service container. `examples/node/run.mjs` and the tests accept `SQLGUARD_ENGINE_CMD`.
+- Node.js and .NET guides, quickstart pointers, package chooser and READMEs (English and Spanish) now describe the embedded engine (`SqlGuard.local`, `SqlGuard.CreateLocalAsync`) as the default path and the server as the remote mode.
 - **.NET integrations (#78).** `SqlGuardLlm.Extensions` (`services.AddSqlGuard(...)` with options bound from configuration, ADO.NET and Dapper helpers, a Microsoft.Extensions.AI `GuardedSqlFunction`), `SqlGuardLlm.EntityFrameworkCore` (a `DbCommandInterceptor` that enforces raw SQL) and `SqlGuardLlm.SemanticKernel` (a function invocation filter), plus runnable examples in `examples/dotnet/`.
 - Node.js recipes (#74) in `examples/node/`: a guarded `sql_db_query` tool for LangChain.js, a guarded `tool()` for the Vercel AI SDK and runners for `pg`, `mysql2` and Prisma `$queryRawUnsafe`, all through `enforce()`, with SQLite and (with `DATABASE_URL`) PostgreSQL tests. See `docs/RECIPES.md`.
+
 ## [0.5.0a5] - 2026-11-27
 
 First release whose npm package carries the embedded engine: `npm install sqlguardllm` can run it with no Python and no server (`SqlGuard.local`). The .NET package ships the engine as runtime assets with a local mode.

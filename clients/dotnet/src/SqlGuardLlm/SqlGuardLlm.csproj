@@ -10,30 +10,27 @@
     <IsTrimmable>true</IsTrimmable>
     <IsAotCompatible>true</IsAotCompatible>
     <PackageId>SqlGuardLlm</PackageId>
-    <Version>0.5.0-alpha.5</Version>
     <Authors>jmmana</Authors>
-    <Description>Official .NET client for sqlguardllm, a SQL firewall for LLM apps. Talks to `sqlguardllm serve` over HTTP and fails closed.</Description>
+    <Description>Official .NET client for sqlguardllm, a SQL firewall for LLM apps. Runs the embedded engine in-process (no Python, no server) or talks to `sqlguardllm serve` over HTTP, and fails closed.</Description>
     <PackageTags>sql;llm;security;firewall;text-to-sql;sqlguardllm</PackageTags>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/jmmana/sqlguardllm</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jmmana/sqlguardllm</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/SqlGuardLlm.targets" Pack="true" PackagePath="build/" />
   </ItemGroup>
   <!-- Engine binaries staged by build/stage-engines.py: engines/<rid>/sqlguardllm-engine/** -> runtimes/<rid>/native/sqlguardllm-engine/** -->
   <ItemGroup>
-    <None Include="engines/linux-x64/**" Pack="true" PackagePath="runtimes/linux-x64/native/%(RecursiveDir)" />
-    <None Include="engines/linux-arm64/**" Pack="true" PackagePath="runtimes/linux-arm64/native/%(RecursiveDir)" />
-    <None Include="engines/osx-x64/**" Pack="true" PackagePath="runtimes/osx-x64/native/%(RecursiveDir)" />
-    <None Include="engines/osx-arm64/**" Pack="true" PackagePath="runtimes/osx-arm64/native/%(RecursiveDir)" />
-    <None Include="engines/win-x64/**" Pack="true" PackagePath="runtimes/win-x64/native/%(RecursiveDir)" />
+    <None Include="engines/linux-x64/**" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+    <None Include="engines/linux-arm64/**" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
+    <None Include="engines/osx-x64/**" Pack="true" PackagePath="runtimes/osx-x64/native/" />
+    <None Include="engines/osx-arm64/**" Pack="true" PackagePath="runtimes/osx-arm64/native/" />
+    <None Include="engines/win-x64/**" Pack="true" PackagePath="runtimes/win-x64/native/" />
   </ItemGroup>
 </Project>

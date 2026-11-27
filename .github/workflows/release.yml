@@ -40,9 +40,13 @@ jobs:
           if [ "$npm_version" != "$node_version" ]; then
             echo "clients/node/package.json has $node_version, expected $npm_version"; exit 1
           fi
-          dotnet_version=$(sed -nE 's#.*<Version>(.*)</Version>.*#\1#p' clients/dotnet/src/SqlGuardLlm/SqlGuardLlm.csproj)
+          # The four .NET packages share one version, in clients/dotnet/Directory.Build.props.
+          dotnet_version=$(sed -nE 's#.*<Version>(.*)</Version>.*#\1#p' clients/dotnet/Directory.Build.props)
           if [ "$npm_version" != "$dotnet_version" ]; then
-            echo "SqlGuardLlm.csproj has $dotnet_version, expected $npm_version"; exit 1
+            echo "clients/dotnet/Directory.Build.props has $dotnet_version, expected $npm_version"; exit 1
+          fi
+          if grep -rq '<Version>' clients/dotnet/src --include=*.csproj; then
+            echo "a .csproj under clients/dotnet/src sets its own <Version>; it must come from Directory.Build.props"; exit 1
           fi
           # Before 1.0 every release is a prerelease, so `latest` (what `npm install sqlguardllm`
           # and the npm page use) follows the newest one. From 1.0 on, prereleases get their own tag.
@@ -176,9 +180,13 @@ jobs:
           TAG: ${{ needs.build.outputs.npm_tag }}
         run: node npm/publish.mjs --out npm/dist --tag "$TAG"
 
+  # The four packages (SqlGuardLlm with the five engines as runtimes/{rid}/native assets, then the three integration
+  # packages that depend on it), same version, symbols (.snupkg) with them. The engines are the attested archives of
+  # this same run, verified before anything is unpacked. Before the push, the packed package is restored by a consumer
+  # project and the engine of this runner is started from it (SHA-256 check included).
   nuget:
-    name: Publish the .NET client to NuGet
-    needs: [build, engines]
+    name: Publish the .NET packages to NuGet
+    needs: [build, engines, attest]
     runs-on: ubuntu-latest
     environment:
       name: nuget
@@ -186,9 +194,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    defaults:
-      run:
-        working-directory: clients/dotnet
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -196,18 +201,49 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-release
+          path: engine-release/
+      - name: Verify the engine archives (attestation, then checksums), unpack and stage them
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -e
+          for f in engine-release/*; do
+            gh attestation verify "$f" --repo "$GITHUB_REPOSITORY"
+          done
+          python3 scripts/fetch-engine.py "$VERSION" --base-url engine-release --no-attestation --out engines
+          python3 clients/dotnet/build/stage-engines.py --engines engines
       - run: dotnet build -c Release
+        working-directory: clients/dotnet
       - run: dotnet test -c Release --no-build
-      - run: dotnet pack src/SqlGuardLlm -c Release --no-build -o out
+        working-directory: clients/dotnet
+      - name: Pack (deterministic, SourceLink, symbols) and check size and contents
+        env:
+          NPM_VERSION: ${{ needs.build.outputs.npm_version }}
+        run: |
+          set -e
+          for p in SqlGuardLlm SqlGuardLlm.Extensions SqlGuardLlm.EntityFrameworkCore SqlGuardLlm.SemanticKernel; do
+            dotnet pack "clients/dotnet/src/$p" -c Release --no-build -o clients/dotnet/out
+            test -f "clients/dotnet/out/$p.$NPM_VERSION.nupkg"
+            test -f "clients/dotnet/out/$p.$NPM_VERSION.snupkg"
+          done
+          python3 clients/dotnet/build/stage-engines.py --check-nupkg "clients/dotnet/out/SqlGuardLlm.$NPM_VERSION.nupkg"
+      - name: Consumer check, restoring the packed package and starting its engine
+        env:
+          NPM_VERSION: ${{ needs.build.outputs.npm_version }}
+        run: dotnet run --project clients/dotnet/smoke -c Release -p:SqlGuardLlmVersion="$NPM_VERSION"
       # Exchanges the job's OIDC token for an API key that lives one hour.
       - name: NuGet login (Trusted Publishing)
         id: login
         uses: NuGet/login@v1
         with:
           user: ${{ vars.NUGET_USER }}
-      - name: Push (the .snupkg symbols go with it)
+      - name: Push the four packages (each .snupkg goes with its .nupkg)
         run: >-
-          dotnet nuget push "out/*.nupkg"
+          dotnet nuget push "clients/dotnet/out/*.nupkg"
           --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate

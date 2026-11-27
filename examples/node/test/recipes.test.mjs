@@ -3,11 +3,12 @@
 // The guard is the real client talking to a stand-in server (a fake `fetch`) that applies the demo
 // policy in miniature, so no engine binary is needed. Framework recipes are skipped when the framework
 // isn't installed; SQLGUARDLLM_RECIPES=1 turns a missing framework into a failure. PostgreSQL runs
-// when DATABASE_URL is set.
+// when DATABASE_URL is set. With SQLGUARD_ENGINE_CMD (the engine command, e.g. "uv run sqlguardllm engine --stdio")
+// the last tests use the REAL engine in local mode, on SQLite and, with DATABASE_URL, on PostgreSQL.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { SqlGuard } from "sqlguardllm";
-import { ALLOWED_SQL, CONTEXT, HIDDEN_COLUMN_SQL, WRITE_SQL, createDemoDatabase, sqliteRunner } from "../demo-data.mjs";
+import { ALLOWED_SQL, CONTEXT, HIDDEN_COLUMN_SQL, POLICY, SCRIPT, WRITE_SQL, createDemoDatabase, sqliteRunner } from "../demo-data.mjs";
 import { guardedQuery, langchainSqlTool, mysql2Runner, pgRunner, prismaRunner, vercelSqlTool } from "../guarded-tools.mjs";
 
 const violation = (code, message) => ({ code, message, detail: "" });
@@ -124,5 +125,54 @@ test("PostgreSQL through pg", async (t) => {
     assert.equal((await query(WRITE_SQL)).ok, false);
   } finally {
     await pool.end();
+  }
+});
+
+// The real engine (local mode) with the real demo policy, executing on a real database. CI sets SQLGUARD_ENGINE_CMD.
+const engineCmd = process.env.SQLGUARD_ENGINE_CMD?.split(" ");
+
+async function realGuard(t, policy) {
+  if (!engineCmd) {
+    if (process.env.SQLGUARDLLM_RECIPES === "1") throw new Error("SQLGUARDLLM_RECIPES=1 but SQLGUARD_ENGINE_CMD is not set");
+    t.skip("SQLGUARD_ENGINE_CMD is not set");
+    return null;
+  }
+  return SqlGuard.local({ policy, engine: engineCmd, timeoutMs: 60_000 });
+}
+
+async function exerciseRealGuard(guard, run) {
+  const query = guardedQuery(guard, run, () => CONTEXT);
+  const ok = await query(ALLOWED_SQL);
+  assert.equal(ok.ok, true);
+  assert.equal(Number(ok.rows[0].revenue), 350); // invoice 12 (branch 3) is filtered out by the row filter
+  const hidden = await query(HIDDEN_COLUMN_SQL);
+  assert.equal(hidden.ok, false);
+  assert.match(hidden.feedback, /email/);
+  assert.equal((await query(WRITE_SQL)).ok, false);
+}
+
+test("real engine on SQLite", async (t) => {
+  const guard = await realGuard(t, POLICY);
+  if (!guard) return;
+  try {
+    await exerciseRealGuard(guard, sqliteRunner(createDemoDatabase()));
+  } finally {
+    await guard.close();
+  }
+});
+
+test("real engine on PostgreSQL through pg", async (t) => {
+  if (!process.env.DATABASE_URL) return t.skip("DATABASE_URL is not set");
+  const guard = await realGuard(t, { ...POLICY, dialect: "postgres" });
+  if (!guard) return;
+  const pg = (await import("pg")).default;
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL }); // one connection: the tables are TEMP
+  await client.connect();
+  try {
+    await client.query(SCRIPT.replace(/CREATE TABLE/g, "CREATE TEMP TABLE"));
+    await exerciseRealGuard(guard, pgRunner(client));
+  } finally {
+    await guard.close();
+    await client.end();
   }
 });

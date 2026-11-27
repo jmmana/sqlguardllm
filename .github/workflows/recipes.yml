@@ -38,3 +38,47 @@ jobs:
           --with "llama-index-core>=0.14,<0.15"
           --with "vanna>=2.0,<2.1"
           python -m pytest tests/test_examples.py -W ignore::DeprecationWarning
+
+  # The Node.js recipes (examples/node: LangChain.js, Vercel AI SDK, pg, mysql2, Prisma), with the real engine in local
+  # mode, executing on SQLite (node:sqlite) and on a PostgreSQL 16 service container.
+  node-recipes:
+    name: Node.js recipes
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres # throwaway container of this job, not a secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Engine from this checkout
+        run: uv sync --locked
+      - name: Build the Node client the recipes import
+        working-directory: clients/node
+        run: |
+          npm ci
+          npm run build
+      - name: Recipes (a missing framework fails instead of skipping)
+        working-directory: examples/node
+        env:
+          SQLGUARDLLM_RECIPES: "1"
+          SQLGUARD_ENGINE_CMD: uv run --project ${{ github.workspace }} sqlguardllm engine --stdio
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+        run: |
+          npm install
+          npm test
+      - name: The runnable demo (npm start) with the real engine, on SQLite
+        working-directory: examples/node
+        env:
+          SQLGUARD_ENGINE_CMD: uv run --project ${{ github.workspace }} sqlguardllm engine --stdio
+        run: node run.mjs

@@ -2,7 +2,7 @@
 
 [Read in English](../quickstart.md) · [Elige un paquete](packages.md)
 
-Esta página es para Python. Para **Node.js / TypeScript** o **.NET**, sigue las guías paso a paso de [Node.js](guide-node.md) y [.NET](guide-dotnet.md): instalan el cliente, inician `sqlguardllm serve` y revisan el mismo tipo de consultas. La [guía de Python](guide-python.md) hace lo mismo con un archivo de política.
+Esta página es para Python. Para **Node.js / TypeScript** o **.NET**, sigue las guías paso a paso de [Node.js](guide-node.md) y [.NET](guide-dotnet.md): instalan el paquete, que lleva el motor (sin Python ni servidor), y revisan el mismo tipo de consultas; el modo remoto con `sqlguardllm serve` es la última sección de cada una. La [guía de Python](guide-python.md) hace lo mismo con un archivo de política.
 
 ```bash
 pip install --pre sqlguardllm
