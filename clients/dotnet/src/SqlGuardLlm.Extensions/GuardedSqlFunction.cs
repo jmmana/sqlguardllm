@@ -5,7 +5,7 @@ namespace SqlGuardLlm;
 
 /// <summary>
 /// A Microsoft.Extensions.AI tool the model calls with <c>{"sql": "..."}</c>. The SQL is checked by the guard first and
-/// <paramref name="execute"/> only ever receives the rewritten, safe SQL. A rejected query is NOT run: the model gets
+/// the <c>execute</c> delegate only ever receives the rewritten, safe SQL. A rejected query is NOT run: the model gets
 /// <c>{"ok": false, "violations": [...]}</c> so it can correct itself. If the guard fails (server down, timeout) the
 /// <see cref="SqlGuardException"/> propagates: fail closed.
 /// </summary>

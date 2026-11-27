@@ -34,7 +34,7 @@ public sealed class SqlGuardCommandInterceptor : DbCommandInterceptor
     }
 
     private bool Applies(CommandEventData e)
-        => _options.EnforceAll || e.CommandSource is CommandSource.FromSqlQuery or CommandSource.ExecuteSql;
+        => _options.EnforceAll || e.CommandSource is CommandSource.FromSqlQuery or CommandSource.ExecuteSqlRaw;
 
     private async ValueTask GuardAsync(DbCommand command, CommandEventData e, CancellationToken ct)
     {
