@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace SqlGuardLlm;
 
@@ -132,13 +133,17 @@ public sealed class SqlGuardClient : ISqlGuard, IDisposable
         using var req = new HttpRequestMessage(method, new Uri(_options.BaseUrl, path.TrimStart('/')));
         if (!string.IsNullOrEmpty(_options.Token))
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.Token);
-        if (body is not null) req.Content = new StringContent(JsonSerializer.Serialize(body, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.Never }), System.Text.Encoding.UTF8, "application/json"); // a known length: the server rejects chunked bodies
+        if (body is not null)
+        {
+            req.Content = new ByteArrayContent(body); // a known length: the server rejects chunked bodies
+            req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
+        }
         try
         {
             using var resp = await _http.SendAsync(req, cts.Token).ConfigureAwait(false);
             var text = await resp.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode) throw HttpError((int)resp.StatusCode, text);
-            var result = JsonSerializer.Deserialize<T>(text, Json);
+            var result = JsonSerializer.Deserialize(text, type);
             if (result is null) throw new SqlGuardException("bad_response", "Empty response from server.", (int)resp.StatusCode);
             return result;
         }

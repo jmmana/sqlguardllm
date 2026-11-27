@@ -35,7 +35,7 @@ internal static class Wire
         return buffer.WrittenSpan.ToArray();
     }
 
-    /// <summary>One stdio request line (without the newline). <paramref name="fields"/> writes the fields after <c>id</c> and <c>type</c>.</summary>
+    /// <summary>One stdio request line, newline included. <paramref name="fields"/> writes the fields after <c>id</c> and <c>type</c>.</summary>
     public static byte[] EngineRequest(long id, string type, Action<Utf8JsonWriter> fields)
     {
         var buffer = new ArrayBufferWriter<byte>();
@@ -47,6 +47,8 @@ internal static class Wire
             fields(w);
             w.WriteEndObject();
         }
+        buffer.GetSpan(1)[0] = (byte)'\n';
+        buffer.Advance(1);
         return buffer.WrittenSpan.ToArray();
     }
 
