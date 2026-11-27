@@ -89,10 +89,18 @@ def test_redacted_removes_literals_and_context_values_never_appear(tmp_path: Pat
     guard = Guard(standard_policy(), audit=AuditLog(path))
     sql = f"SELECT id FROM invoices WHERE note = '{EMAIL}' AND customer_id = 48213 -- {EMAIL}"
     assert guard.check(sql, {"user": {"branches": [7771, 7772], "name": "Zoe"}}).ok
-    text = path.read_text(encoding="utf-8")
+    (event,) = _events(path)
+    # Hex digests, ids, timestamps and durations are random-looking digits: a short number like 7772
+    # can appear in them by chance, so the leak check looks only at the fields that could carry data.
+    readable = {
+        k: v
+        for k, v in event.items()
+        if k
+        not in {"policy_fingerprint", "sql_fingerprint", "event_id", "timestamp", "duration_ms"}
+    }
+    text = json.dumps(readable)
     for secret in (EMAIL, "48213", "7771", "7772", "Zoe"):
         assert secret not in text
-    (event,) = _events(path)
     assert event["sql"] == "SELECT id FROM invoices WHERE note = ? AND customer_id = ?"
     assert event["context_keys"] == ["user.branches", "user.name"]
 
