@@ -4,9 +4,12 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0a7] - 2026-11-27
+
+Fixes the macOS engine packages on npm (they could not run after `npm install`); see Fixed.
+
 ### Fixed
 - **npm: the macOS engine packages could not run.** npm does not keep symlinks in packages, and the macOS engine (Python.framework) has four, so after `npm install` its digest no longer matched the built-in one and the client refused to start it (`engine_digest_mismatch`). The packages now carry real copies instead of symlinks, and CI unpacks every packed platform package and checks the digest of the installed engine, which a file list cannot show. Affects 0.5.0-alpha.5 and 0.5.0-alpha.6 on macOS (Linux and Windows were not affected).
-
 
 ## [0.5.0a6] - 2026-11-27
 
@@ -176,7 +179,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a6...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a7...HEAD
+[0.5.0a7]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a6...v0.5.0a7
 [0.5.0a6]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a5...v0.5.0a6
 [0.5.0a5]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...v0.5.0a5
 [0.5.0a4]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...v0.5.0a4
