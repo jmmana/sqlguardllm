@@ -57,7 +57,8 @@
               "invalid_context",
               "too_complex",
               "missing_required_filter",
-              "aggregate_required"
+              "aggregate_required",
+              "audit_failure"
             ]
           },
           "sql_contains": {

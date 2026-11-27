@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
+from sqlguardllm.audit import AuditEvent, AuditLog
 from sqlguardllm.explain import Explanation
 from sqlguardllm.guard import Guard
 from sqlguardllm.policy import FunctionPolicy, Policy
@@ -26,6 +27,8 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree wi
 
 # Public package exports. Keep the list in sync with docs/api.md.
 __all__ = [
+    "AuditEvent",
+    "AuditLog",
     "CheckResult",
     "Explanation",
     "FunctionPolicy",

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Collection, Mapping
+from collections.abc import Callable, Collection, Mapping
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from sqlguardllm.audit import AuditEvent, AuditLog
 from sqlguardllm.guard import Guard
 from sqlguardllm.policy import Policy, read_mapping
 from sqlguardllm.result import PolicyError
@@ -112,17 +113,29 @@ class PolicySet:
             raise PolicyError(f"unknown role {role!r}")
         return policy
 
-    def guard(self, role: str, *, language: str = "en", pretty: bool = False) -> Guard:
-        """A :class:`Guard` for ``role``, compiled once and cached per language and ``pretty``."""
+    def guard(
+        self,
+        role: str,
+        *,
+        language: str = "en",
+        pretty: bool = False,
+        audit: AuditLog | Callable[[AuditEvent], None] | None = None,
+    ) -> Guard:
+        """A :class:`Guard` for ``role``, compiled once and cached per language and ``pretty``.
+
+        With ``audit`` the Guard is new each time (it is not cached) and its events carry the
+        role name.
+        """
         key = (role, language, pretty)
-        guard = self._guards.get(key)
+        guard = self._guards.get(key) if audit is None else None
         if guard is None:
             policy = self.for_role(role)
             try:
-                guard = Guard(policy, language=language, pretty=pretty)
+                guard = Guard(policy, language=language, pretty=pretty, audit=audit, role=role)
             except PolicyError as exc:
                 raise PolicyError(f"role {role!r}: {exc}") from exc
-            self._guards[key] = guard
+            if audit is None:
+                self._guards[key] = guard
         return guard
 
     def _resolve(self, name: str, chain: tuple[str, ...]) -> Policy:

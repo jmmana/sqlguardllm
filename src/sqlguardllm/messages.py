@@ -67,6 +67,10 @@ _TEMPLATES: dict[ViolationCode, dict[str, str]] = {
         "en": "Reading {detail} requires a filter on one of those columns",
         "es": "Leer {detail} exige un filtro sobre una de esas columnas",
     },
+    ViolationCode.AUDIT_FAILURE: {
+        "en": "The decision could not be written to the audit log, so the query was rejected",
+        "es": "No se pudo registrar la decisión en el log de auditoría, así que se rechazó",
+    },
 }
 
 
