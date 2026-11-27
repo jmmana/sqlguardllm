@@ -90,8 +90,8 @@ def test_redacted_removes_literals_and_context_values_never_appear(tmp_path: Pat
     sql = f"SELECT id FROM invoices WHERE note = '{EMAIL}' AND customer_id = 48213 -- {EMAIL}"
     assert guard.check(sql, {"user": {"branches": [7771, 7772], "name": "Zoe"}}).ok
     (event,) = _events(path)
-    # Hex digests, ids, timestamps and durations are random-looking digits: a short number like 7772
-    # can appear in them by chance, so the leak check looks only at the fields that could carry data.
+    # Hex digests, ids, timestamps and durations are random-looking digits: a short number like
+    # 7772 can appear in them by chance, so the leak check looks only at fields that carry data.
     readable = {
         k: v
         for k, v in event.items()
