@@ -1,8 +1,8 @@
 <div align="center">
 
-[![PyPI](https://img.shields.io/pypi/v/sqlguardllm?include_prereleases&label=PyPI&color=10B981)](https://pypi.org/project/sqlguardllm/)
-[![npm](https://img.shields.io/npm/v/sqlguardllm/alpha?label=npm&color=CB3837)](https://www.npmjs.com/package/sqlguardllm)
-[![NuGet](https://img.shields.io/nuget/vpre/SqlGuardLlm?label=NuGet&color=004880)](https://www.nuget.org/packages/SqlGuardLlm)
+[![PyPI](https://img.shields.io/badge/PyPI-pip_install-10B981)](https://pypi.org/project/sqlguardllm/)
+[![npm](https://img.shields.io/badge/npm-npm_install-CB3837)](https://www.npmjs.com/package/sqlguardllm)
+[![NuGet](https://img.shields.io/badge/NuGet-dotnet_add-004880)](https://www.nuget.org/packages/SqlGuardLlm)
 [![Docs](https://img.shields.io/badge/docs-jmmana.github.io%2Fsqlguardllm-3B82F6)](https://jmmana.github.io/sqlguardllm/)
 
 [![English](https://img.shields.io/badge/English-1F2937?style=for-the-badge)](README.md)
