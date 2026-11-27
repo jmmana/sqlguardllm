@@ -1,6 +1,6 @@
 {
   "name": "sqlguardllm",
-  "version": "0.5.0-alpha.6",
+  "version": "0.5.0-alpha.7",
   "description": "Official Node.js/TypeScript client for the sqlguardllm SQL firewall server",
   "license": "Apache-2.0",
   "repository": {
