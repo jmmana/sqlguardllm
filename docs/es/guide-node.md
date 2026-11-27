@@ -4,8 +4,8 @@
 
 El paquete de npm `sqlguardllm` es un cliente pequeño y sin dependencias. El motor se ejecuta en `sqlguardllm serve`, un servidor HTTP junto a tu aplicación, así que Node.js recibe exactamente las mismas respuestas que Python. Necesitas Node.js 18 o posterior, y Python 3.10 o posterior para el servidor.
 
-!!! note "Hoy el cliente necesita un servidor en marcha"
-    Un motor embebido, para que `npm install sqlguardllm` funcione sin Python y sin servidor, está previsto en [#85](https://github.com/jmmana/sqlguardllm/issues/85).
+!!! note "Modo local o modo remoto"
+    `npm install sqlguardllm` también instala el motor de tu plataforma (linux x64/arm64, macOS x64/arm64, Windows x64), así que `await SqlGuard.local({ policyPath: "policy.json" })` ejecuta el guard sin Python y sin servidor (consulta el [README del paquete](https://github.com/jmmana/sqlguardllm/tree/main/clients/node#local-mode)). Esta guía usa el modo remoto, más abajo. Si tu plataforma no tiene paquete de motor (por ejemplo Alpine/musl), o usas Deno, un navegador o un entorno edge, usa el modo remoto con un servidor en marcha.
 
 ## 1. Escribe una política
 
