@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0a5] - 2026-11-27
+
+First release whose npm package carries the embedded engine: `npm install sqlguardllm` can run it with no Python and no server (`SqlGuard.local`). The .NET package ships the engine as runtime assets with a local mode.
+
 ### Added
 - npm: the release now publishes the five `sqlguardllm-engine-<platform>` packages and then `sqlguardllm` with the embedded engine in its `optionalDependencies`, all with `npm publish --provenance` (#75). The engines are the attested archives of the same run. `clients/node/npm/publish.mjs --dry-run` runs `npm pack` on all six; the new `npm pack (dry run)` workflow runs it on pull requests and uploads the file lists. The one-time owner steps (Trusted Publisher on each new package) are in CONTRIBUTING.md.
 
@@ -153,7 +157,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a5...HEAD
+[0.5.0a5]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...v0.5.0a5
 [0.5.0a4]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...v0.5.0a4
 [0.5.0a3]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...v0.5.0a3
 [0.5.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...v0.5.0a2
