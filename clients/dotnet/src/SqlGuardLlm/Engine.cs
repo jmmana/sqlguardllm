@@ -64,7 +64,7 @@ internal static class EngineLocator
             if (!full.StartsWith(root, StringComparison.Ordinal)) throw Refuse($"path outside the engine folder: {rel}");
             if (!File.Exists(full)) throw Refuse($"missing file {rel}");
             string actual;
-            using (var s = File.OpenRead(full)) actual = Convert.ToHexStringLower(SHA256.HashData(s));
+            using (var s = File.OpenRead(full)) actual = Convert.ToHexString(SHA256.HashData(s));
             if (!string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase)) throw Refuse($"SHA-256 mismatch for {rel}");
             if (rel == exe) listed = true;
         }

@@ -7,12 +7,13 @@ public class EngineTests
 {
     private const string Rid = "linux-x64";
 
-    private static string Sha(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+    private static string Sha(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 
     /// <summary>An app folder with runtimes/linux-x64/native/sqlguardllm-engine/{exe,_internal/lib,engine.sha256}.</summary>
     private static (string app, string exe) Fake(string script = "#!/bin/sh\nexit 0\n")
     {
-        var app = Directory.CreateTempSubdirectory("sgengine").FullName;
+        // Under the test output folder, not /tmp: /tmp is often mounted noexec.
+        var app = Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "engine-tests", Guid.NewGuid().ToString("N"))).FullName;
         var dir = Path.Combine(app, "runtimes", Rid, "native", "sqlguardllm-engine");
         Directory.CreateDirectory(Path.Combine(dir, "_internal"));
         File.WriteAllText(Path.Combine(dir, "sqlguardllm-engine"), script);
