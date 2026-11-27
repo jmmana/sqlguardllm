@@ -1,0 +1,5 @@
+# Bypasses found by the LLM red team (research/redteam), kept as corpus cases for ever.
+# A run writes candidates to <date>/redteam_cases.yaml; a maintainer triages them (expect,
+# codes or the safe rewrite, remove `pending`), appends them here and opens a bug issue.
+# The policy is tests/fuzz/fuzz_schema.py FUZZ_POLICY on top of tests/conftest.py standard_policy.
+[]
