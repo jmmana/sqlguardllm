@@ -7,6 +7,7 @@
     sqlguardllm test examples/policy-tests.yaml --policy examples/policy.yaml
     sqlguardllm lint --policy examples/roles.yaml --strict
     sqlguardllm serve --policy policy.yaml --port 8787
+    sqlguardllm engine --stdio
     sqlguardllm mcp --policy policy.yaml --db sqlite:///demo.db --context @context.json
     sqlguardllm check --policy policy.yaml --audit-log audit.jsonl "SELECT …"   # opt-in audit
 
@@ -166,6 +167,13 @@ def _parser() -> argparse.ArgumentParser:
         "request except /v1/health (the token is never read from the command line)",
     )
     _add_audit_options(serve)
+    engine = commands.add_parser(
+        "engine",
+        help="run the embedded engine as a child process (newline-delimited JSON on stdio)",
+        description="Protocol version 1; see docs/PROTOCOL.md. Exits on stdin EOF or shutdown.",
+    )
+    engine.add_argument("--stdio", action="store_true", required=True, help="use stdin/stdout")
+
     test = commands.add_parser("test", help="run declared cases against a policy or policy set")
     test.add_argument("cases", type=Path, help="case file (.yaml or .json)")
     test.add_argument("--policy", required=True, type=Path, help="policy or policy-set file")
@@ -412,6 +420,10 @@ def main(
             return _mcp(args)
         if args.command == "serve":
             return _serve(args, stderr)
+        if args.command == "engine":
+            from sqlguardllm.engine_stdio import run  # noqa: PLC0415 - only needed here
+
+            return run(stdin, stdout, stderr)
         return _check(args, stdin, stdout)
     except _UsageError as exc:
         print(f"sqlguardllm: error: {exc}", file=stderr)
