@@ -1,0 +1,96 @@
+name: Engine binaries
+
+# Builds the standalone engine (`sqlguardllm engine --stdio`) on its own native runner for each
+# platform and accepts a binary only if `hello` and the full conformance corpus pass over stdio
+# against the unpacked release archive. Also called by release.yml, which then attests and
+# publishes exactly these artifacts. No secrets, read-only token.
+on:
+  pull_request:
+    paths:
+      - "src/sqlguardllm/**"
+      - "scripts/build-engine.py"
+      - "scripts/engine_main.py"
+      - "scripts/bench-engine.py"
+      - "scripts/fetch-engine.py"
+      - "tests/conformance/**"
+      - "conformance/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/engine-binaries.yml"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engine-binaries-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYINSTALLER: "6.22.3"
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux-x64, os: ubuntu-24.04 }
+          - { platform: linux-arm64, os: ubuntu-24.04-arm }
+          - { platform: macos-arm64, os: macos-15 }
+          - { platform: macos-x64, os: macos-15-intel }
+          - { platform: windows-x64, os: windows-2022 }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Test dependencies (only the tests use them, the binary does not)
+        run: uv sync --locked
+      - name: Build (PyInstaller one-dir, packed into the release archive)
+        run: uv run --isolated --no-dev --with "pyinstaller==$PYINSTALLER" python scripts/build-engine.py --out dist-engine
+      - name: Unpack the archive that would be released
+        run: |
+          set -e
+          archive=$(ls dist-engine/sqlguardllm-engine-${{ matrix.platform }}.*)
+          echo "Archive: $archive"
+          mkdir unpacked
+          uv run python -c "import shutil,sys; shutil.unpack_archive(sys.argv[1], sys.argv[2])" "$archive" unpacked
+          rm -rf dist-engine/sqlguardllm-engine-${{ matrix.platform }}
+          ls unpacked/*
+      - name: hello and the full conformance corpus over stdio, against the binary
+        env:
+          SQLGUARD_ENGINE_BIN: ${{ github.workspace }}/unpacked/sqlguardllm-engine-${{ matrix.platform }}
+        run: uv run pytest tests/conformance/test_stdio.py -v
+      - name: Runs in an empty network namespace and bundles no ssl (Linux)
+        if: startsWith(matrix.platform, 'linux')
+        run: |
+          set -e
+          bin=unpacked/sqlguardllm-engine-${{ matrix.platform }}/sqlguardllm-engine
+          echo '{"id": 1, "type": "hello"}' | sudo unshare --net "$bin" --stdio | grep -q '"protocol": 1'
+          # The binary carries no shell and no network-client module of the standard library.
+          if find unpacked \( -iname '*_ssl*' -o -iname 'libssl*' \) | grep -q .; then
+            echo "ssl is bundled"; exit 1
+          fi
+      - name: Measure (size, cold start, peak memory), one-dir and one-file
+        run: |
+          set -e
+          uv run python scripts/bench-engine.py unpacked/sqlguardllm-engine-${{ matrix.platform }} --label onedir --json bench-onedir.json
+          uv run --isolated --no-dev --with "pyinstaller==$PYINSTALLER" python scripts/build-engine.py --mode onefile --out dist-onefile
+          uv run python scripts/bench-engine.py "$(ls dist-onefile/sqlguardllm-engine-${{ matrix.platform }}*)" --label onefile --json bench-onefile.json
+          mkdir -p dist-engine/bench
+          cp bench-onedir.json "dist-engine/bench/${{ matrix.platform }}-onedir.json"
+          cp bench-onefile.json "dist-engine/bench/${{ matrix.platform }}-onefile.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-${{ matrix.platform }}
+          path: dist-engine/
+          if-no-files-found: error
+          retention-days: 14

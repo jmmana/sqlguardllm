@@ -1,0 +1,14 @@
+{
+  "tool": "PyInstaller 6.22.3, Python 3.12",
+  "targets": { "cold_start_s": 1.0, "size_mb": 40 },
+  "method": "scripts/bench-engine.py: 10 fresh processes, spawn to first hello response; size of the one-dir folder or the one-file binary; peak RSS of the process tree (ru_maxrss). Release asset = one-dir folder packed as .tar.gz/.zip.",
+  "decision": "one-dir. One-file is 9.6 MB but unpacks itself on every start: about 4 s on macOS arm64, far over the 1 s target. One-dir starts in about 0.13 s and is 33.8 MB unpacked (under 40 MB), 9.5 MB as the release archive. Nuitka was not measured: PyInstaller one-dir already meets every target on the platform that could be measured locally.",
+  "results": {
+    "macos-arm64-local": {
+      "machine": "Apple M-series, 12 cores, macOS 26 (Darwin 25.5), local",
+      "onedir": { "size_mb": 33.8, "archive_mb": 9.5, "cold_start_median_s": 0.125, "cold_start_max_s": 0.13, "peak_rss_mb": 51.0 },
+      "onefile": { "size_mb": 9.6, "cold_start_median_s": 4.032, "cold_start_max_s": 4.446, "peak_rss_mb": 51.7 }
+    }
+  },
+  "ci": "per-platform numbers of the five native runners are uploaded as bench/<platform>-<mode>.json inside each engine-<platform> artifact of the Engine binaries workflow; see the pull request for the run that recorded them"
+}
