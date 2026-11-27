@@ -4,6 +4,14 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0a4] - 2026-11-27
+
+Security release: upgrade if you use `dialect="duckdb"` with hidden or masked columns. It also brings the embedded-engine groundwork (engine protocol, standalone binaries, npm and NuGet engine packages), the opt-in audit log and the LLM red team.
+
+### Security
+- **On DuckDB, hidden and masked columns could be read with `COLUMNS('regex')` or `COLUMNS(lambda)`.** DuckDB picks the columns by pattern at run time, and the guard did not treat it as a star, so `SELECT COLUMNS('.*') FROM customers` returned a hidden column. `COLUMNS()` is now refused whenever the query can see a table with hidden or masked columns (also inside an aggregate). Affects every release with `dialect="duckdb"`. Found by the LLM red team (#63).
+
+
 ### Added
 - .NET: local mode (#77). `await using var guard = await SqlGuard.CreateLocalAsync(options)` runs the packaged engine behind the same API and result types as `SqlGuardClient` (both implement the new `ISqlGuard`: `CheckAsync`, `EnforceAsync`, `ExplainAsync`). It is thread-safe (concurrent calls share one engine process, answers matched by request id), takes a `CancellationToken` on every call, has a per-call timeout and is `IAsyncDisposable`. If the engine crashes or a call times out, pending calls fail closed, calls during the backoff fail with `engine_restarting`, and the next call restarts a re-verified engine with exponential backoff. JSON is source-generated and the library is annotated for trimming and Native AOT. It replaces `SqlGuardEngine` from #76 (`SqlGuardEngine.StartAsync(policy)` becomes `SqlGuard.CreateLocalAsync(new SqlGuardLocalOptions { PolicyJson = ... })`). The conformance corpus also runs in local mode (`SQLGUARD_ENGINE_CMD`).
 - LLM red team (#63): `research/redteam/run.py` asks Claude (`claude-opus-5-5`, adaptive thinking, structured outputs, server-side fallback) for attacks against the guard, with a fixed defensive-purpose prompt (`prompt.md`, sha256 recorded). Every query is kept in `research/redteam/<date>/attacks.jsonl` with model, prompt and policy hashes, version, git sha, verdict and per-engine outcome, judged by the fuzzing canary oracle on SQLite, DuckDB, PostgreSQL, MySQL and SQL Server; duplicates are fingerprinted and counted, bypasses become pending cases for `tests/corpus/redteam.yaml`. A run is capped (at most 50 attacks, a hard token budget, a per-run USD ceiling checked against a free token count first); a refusal is recorded, not a failure. `--rescore <dir>` re-judges a stored dataset without the API. Weekly and manual workflow `.github/workflows/redteam.yml` on `main` only.
@@ -142,7 +150,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...HEAD
+[0.5.0a4]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...v0.5.0a4
 [0.5.0a3]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...v0.5.0a3
 [0.5.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...v0.5.0a2
 [0.5.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.4.0a1...v0.5.0a1

@@ -3130,7 +3130,7 @@ wheels = [
 
 [[package]]
 name = "sqlguardllm"
-version = "0.5.0a3"
+version = "0.5.0a4"
 source = { editable = "." }
 dependencies = [
     { name = "sqlglot" },

@@ -1,0 +1,60 @@
+- id: redteam-duckdb-9fad7683
+  dialect: duckdb
+  sql: SELECT COLUMNS('.*') FROM customers
+  expect: reject
+  context:
+    user:
+      branches:
+      - 1
+      - 2
+  policy:
+    row_filters:
+      invoices: branch_id IN ({user.branches})
+      invoice_lines: branch_id IN ({user.branches})
+      branches: id IN ({user.branches})
+    masked_columns:
+      customers.phone: redact
+      products.supplier: partial
+      invoice_lines.discount_code: 'null'
+    max_rows: 7
+    schema:
+      branches:
+      - id
+      - name
+      - region
+      - tag
+      customers:
+      - id
+      - name
+      - segment
+      - city
+      - email
+      - tax_id
+      - phone
+      products:
+      - id
+      - name
+      - category
+      - price
+      - supplier
+      invoices:
+      - id
+      - branch_id
+      - customer_id
+      - total
+      - status
+      - issued_at
+      - tag
+      invoice_lines:
+      - id
+      - invoice_id
+      - product_id
+      - branch_id
+      - quantity
+      - amount
+      - discount_code
+      - tag
+  pending: 'found by the LLM red team (hidden_or_masked on duckdb); triage: set expect and codes (or the
+    safe rewrite), remove pending'
+  note: 'columns() star expansion | canary in the output: [''CANARY_HIDDEN_TAX_001'', ''CANARY_HIDDEN_TAX_002'',
+    ''CANARY_HIDDEN_TAX_003'']'

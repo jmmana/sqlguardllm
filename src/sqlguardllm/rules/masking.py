@@ -118,6 +118,10 @@ def plan_masks(scopes: list[Scope], compiled: Compiled) -> tuple[MaskPlan, list[
         expression = scope.expression
 
         if isinstance(expression, exp.Select):
+            if any(True for _ in expression.find_all(exp.Columns)) and local:
+                # COLUMNS('regex') picks columns at run time: it can't be masked, so it is refused.
+                tables = ", ".join(str(t) for t, _ in local.values())
+                details.append(f"COLUMNS() over {tables} (masked columns)")
             for projection in expression.expressions:
                 star = isinstance(projection, exp.Star)
                 qualified_star = isinstance(projection, exp.Column) and isinstance(
