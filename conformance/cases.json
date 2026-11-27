@@ -1372,6 +1372,81 @@
      "id": "duckdb-read-csv-table",
      "not_contains": [],
      "sql": "SELECT * FROM read_csv('/etc/passwd')"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "duckdb-columns-regex-hidden",
+     "not_contains": [],
+     "sql": "SELECT COLUMNS('.*') FROM customers"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "duckdb-columns-lambda-hidden",
+     "not_contains": [],
+     "sql": "SELECT COLUMNS(c -> c LIKE '%a%') FROM customers"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "duckdb-columns-inside-aggregate-hidden",
+     "not_contains": [],
+     "sql": "SELECT MAX(COLUMNS('.*')) FROM customers"
     }
    ],
    "name": "g07-duckdb",

@@ -105,6 +105,10 @@ def check_columns(scopes: list[Scope], compiled: Compiled) -> list[Violation]:
                     )
                     if qualifier in visible:
                         details.append(f"{projection.table}.*")
+            # DuckDB COLUMNS('regex') / COLUMNS(lambda) picks columns by pattern at run time, so it
+            # can read any hidden column of a visible table: treat it like a star.
+            if any(True for _ in expression.find_all(exp.Columns)) and local:
+                details.append(f"COLUMNS() over {', '.join(str(t) for t, _ in local.values())}")
             for join in expression.args.get("joins") or []:
                 for ident in join.args.get("using") or []:
                     if norm(ident, compiled.dialect).casefold() in all_hidden:

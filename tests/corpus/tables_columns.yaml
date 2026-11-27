@@ -134,3 +134,19 @@
   dialect: postgres
   sql: SELECT name AS email FROM customers ORDER BY email
   expect: allow
+- id: duckdb-columns-regex-hidden
+  dialect: duckdb
+  sql: SELECT COLUMNS('.*') FROM customers
+  expect: reject
+  codes: [hidden_column]
+  note: Found by the LLM red team (#63, first run, 2026-11-27). DuckDB COLUMNS() picks columns by pattern at run time, so it read the hidden columns like a star would.
+- id: duckdb-columns-lambda-hidden
+  dialect: duckdb
+  sql: SELECT COLUMNS(c -> c LIKE '%a%') FROM customers
+  expect: reject
+  codes: [hidden_column]
+- id: duckdb-columns-inside-aggregate-hidden
+  dialect: duckdb
+  sql: SELECT MAX(COLUMNS('.*')) FROM customers
+  expect: reject
+  codes: [hidden_column]

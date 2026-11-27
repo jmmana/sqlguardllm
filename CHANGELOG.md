@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Security
+- **On DuckDB, hidden and masked columns could be read with `COLUMNS('regex')` or `COLUMNS(lambda)`.** DuckDB picks the columns by pattern at run time, and the guard did not treat it as a star, so `SELECT COLUMNS('.*') FROM customers` returned a hidden column. `COLUMNS()` is now refused whenever the query can see a table with hidden or masked columns (also inside an aggregate). Affects every release with `dialect="duckdb"`. Found by the LLM red team (#63).
+
+
 ### Added
 - LLM red team (#63): `research/redteam/run.py` asks Claude (`claude-opus-5-5`, adaptive thinking, structured outputs, server-side fallback) for attacks against the guard, with a fixed defensive-purpose prompt (`prompt.md`, sha256 recorded). Every query is kept in `research/redteam/<date>/attacks.jsonl` with model, prompt and policy hashes, version, git sha, verdict and per-engine outcome, judged by the fuzzing canary oracle on SQLite, DuckDB, PostgreSQL, MySQL and SQL Server; duplicates are fingerprinted and counted, bypasses become pending cases for `tests/corpus/redteam.yaml`. A run is capped (at most 50 attacks, a hard token budget, a per-run USD ceiling checked against a free token count first); a refusal is recorded, not a failure. `--rescore <dir>` re-judges a stored dataset without the API. Weekly and manual workflow `.github/workflows/redteam.yml` on `main` only.
 - .NET: the engine as runtime assets of the NuGet package (#76). `SqlGuardEngine.StartAsync(policy)` runs the packaged `runtimes/{rid}/native/sqlguardllm-engine/` for linux-x64, linux-arm64, osx-x64, osx-arm64 and win-x64 over the stdio protocol, after recomputing the SHA-256 of every file against `engine.sha256` (a mismatch, a missing file or a wrong engine version or protocol refuses to run). An unsupported runtime (other OS or CPU, musl) fails with `engine_unsupported`, which names remote mode (`SqlGuardClient`). `clients/dotnet/build/stage-engines.py` stages the output of `fetch-engine.py` and fails when the `.nupkg` passes 150 MB.
