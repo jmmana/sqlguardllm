@@ -166,6 +166,7 @@ def _parser() -> argparse.ArgumentParser:
         help="name of an environment variable holding a bearer token required on every "
         "request except /v1/health (the token is never read from the command line)",
     )
+    _add_audit_options(serve)
     engine = commands.add_parser(
         "engine",
         help="run the embedded engine as a child process (newline-delimited JSON on stdio)",
@@ -173,8 +174,6 @@ def _parser() -> argparse.ArgumentParser:
     )
     engine.add_argument("--stdio", action="store_true", required=True, help="use stdin/stdout")
 
-    test = commands.add_parser("test",help="run declared cases against a policy or policy set")
-    _add_audit_options(serve)
     test = commands.add_parser("test", help="run declared cases against a policy or policy set")
     test.add_argument("cases", type=Path, help="case file (.yaml or .json)")
     test.add_argument("--policy", required=True, type=Path, help="policy or policy-set file")
