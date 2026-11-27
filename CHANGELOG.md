@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0a3] - 2026-11-26
+
+Security release: upgrade if you use `dialect="mysql"` with hidden or masked columns.
+
 ### Security
 - **On MySQL, hidden and masked columns could be read by writing the column name in another case.** MySQL ignores the case of column names, quoted or not, but sqlglot's MySQL dialect is case-sensitive (because MySQL table names can be), so with `customers.email` hidden `SELECT EMAIL FROM customers` was allowed, and a masked `PHONE` was neither masked nor refused outside the select list. Hidden and masked columns are now matched case-insensitively in every dialect, which can only reject or mask more. Affects 0.1.0a1 to 0.5.0a2 with `dialect="mysql"`: upgrade. Found by the new fuzzer (#62).
 
@@ -129,7 +133,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...HEAD
+[0.5.0a3]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...v0.5.0a3
 [0.5.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...v0.5.0a2
 [0.5.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.4.0a1...v0.5.0a1
 [0.4.0a1]: https://github.com/jmmana/sqlguardllm/compare/v0.3.0a1...v0.4.0a1

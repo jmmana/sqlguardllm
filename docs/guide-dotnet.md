@@ -47,7 +47,7 @@ pip install --pre sqlguardllm
 sqlguardllm serve --policy policy.json --port 8787
 ```
 
-It prints a line like `sqlguardllm 0.5.0a2 listening on http://127.0.0.1:8787 (no token)` and keeps running: leave that terminal open. It only listens on your machine. Before exposing it to other hosts, set a [token](SERVER.md#token). There is no published Docker image yet; you can build one from the repository's [Dockerfile](SERVER.md#docker).
+It prints a line like `sqlguardllm 0.5.0a3 listening on http://127.0.0.1:8787 (no token)` and keeps running: leave that terminal open. It only listens on your machine. Before exposing it to other hosts, set a [token](SERVER.md#token). There is no published Docker image yet; you can build one from the repository's [Dockerfile](SERVER.md#docker).
 
 ## 3. Install the client
 
