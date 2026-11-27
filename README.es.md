@@ -28,7 +28,7 @@ Tu modelo escribe SQL. **sqlguardllm** se asegura de que solo pueda leer lo perm
 </div>
 
 > [!NOTE]
-> **Estado: alfa.** La versión `0.5.0a4` está en [PyPI](https://pypi.org/project/sqlguardllm/) (`pip install sqlguardllm`, `import sqlguardllm`), con las reglas de [docs/DESIGN.md](docs/DESIGN.md), límites opcionales de complejidad y un corpus de desarrollo de 148 casos. La API puede cambiar antes de la 1.0; los códigos de violación son estables. Dale ⭐ para seguir el avance y opina en [Discussions](https://github.com/jmmana/sqlguardllm/discussions).
+> **Estado: alfa.** La versión `0.5.0a5` está en [PyPI](https://pypi.org/project/sqlguardllm/) (`pip install sqlguardllm`, `import sqlguardllm`), con las reglas de [docs/DESIGN.md](docs/DESIGN.md), límites opcionales de complejidad y un corpus de desarrollo de 148 casos. La API puede cambiar antes de la 1.0; los códigos de violación son estables. Dale ⭐ para seguir el avance y opina en [Discussions](https://github.com/jmmana/sqlguardllm/discussions).
 >
 > La documentación técnica está en inglés para llegar a más desarrolladores. Los issues y PR en español son bienvenidos.
 

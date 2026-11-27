@@ -6,6 +6,11 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ### Added
 - Node.js recipes (#74) in `examples/node/`: a guarded `sql_db_query` tool for LangChain.js, a guarded `tool()` for the Vercel AI SDK and runners for `pg`, `mysql2` and Prisma `$queryRawUnsafe`, all through `enforce()`, with SQLite and (with `DATABASE_URL`) PostgreSQL tests. See `docs/RECIPES.md`.
+## [0.5.0a5] - 2026-11-27
+
+First release whose npm package carries the embedded engine: `npm install sqlguardllm` can run it with no Python and no server (`SqlGuard.local`). The .NET package ships the engine as runtime assets with a local mode.
+
+- npm: the release now publishes the five `sqlguardllm-engine-<platform>` packages and then `sqlguardllm` with the embedded engine in its `optionalDependencies`, all with `npm publish --provenance` (#75). The engines are the attested archives of the same run. `clients/node/npm/publish.mjs --dry-run` runs `npm pack` on all six; the new `npm pack (dry run)` workflow runs it on pull requests and uploads the file lists. The one-time owner steps (Trusted Publisher on each new package) are in CONTRIBUTING.md.
 
 ## [0.5.0a4] - 2026-11-27
 
@@ -16,6 +21,7 @@ Security release: upgrade if you use `dialect="duckdb"` with hidden or masked co
 
 
 ### Added
+- .NET: local mode (#77). `await using var guard = await SqlGuard.CreateLocalAsync(options)` runs the packaged engine behind the same API and result types as `SqlGuardClient` (both implement the new `ISqlGuard`: `CheckAsync`, `EnforceAsync`, `ExplainAsync`). It is thread-safe (concurrent calls share one engine process, answers matched by request id), takes a `CancellationToken` on every call, has a per-call timeout and is `IAsyncDisposable`. If the engine crashes or a call times out, pending calls fail closed, calls during the backoff fail with `engine_restarting`, and the next call restarts a re-verified engine with exponential backoff. JSON is source-generated and the library is annotated for trimming and Native AOT. It replaces `SqlGuardEngine` from #76 (`SqlGuardEngine.StartAsync(policy)` becomes `SqlGuard.CreateLocalAsync(new SqlGuardLocalOptions { PolicyJson = ... })`). The conformance corpus also runs in local mode (`SQLGUARD_ENGINE_CMD`).
 - LLM red team (#63): `research/redteam/run.py` asks Claude (`claude-opus-5-5`, adaptive thinking, structured outputs, server-side fallback) for attacks against the guard, with a fixed defensive-purpose prompt (`prompt.md`, sha256 recorded). Every query is kept in `research/redteam/<date>/attacks.jsonl` with model, prompt and policy hashes, version, git sha, verdict and per-engine outcome, judged by the fuzzing canary oracle on SQLite, DuckDB, PostgreSQL, MySQL and SQL Server; duplicates are fingerprinted and counted, bypasses become pending cases for `tests/corpus/redteam.yaml`. A run is capped (at most 50 attacks, a hard token budget, a per-run USD ceiling checked against a free token count first); a refusal is recorded, not a failure. `--rescore <dir>` re-judges a stored dataset without the API. Weekly and manual workflow `.github/workflows/redteam.yml` on `main` only.
 - .NET: the engine as runtime assets of the NuGet package (#76). `SqlGuardEngine.StartAsync(policy)` runs the packaged `runtimes/{rid}/native/sqlguardllm-engine/` for linux-x64, linux-arm64, osx-x64, osx-arm64 and win-x64 over the stdio protocol, after recomputing the SHA-256 of every file against `engine.sha256` (a mismatch, a missing file or a wrong engine version or protocol refuses to run). An unsupported runtime (other OS or CPU, musl) fails with `engine_unsupported`, which names remote mode (`SqlGuardClient`). `clients/dotnet/build/stage-engines.py` stages the output of `fetch-engine.py` and fails when the `.nupkg` passes 150 MB.
 - Standalone engine binaries for linux-x64, linux-arm64, macos-arm64, macos-x64 and windows-x64 (#69): PyInstaller one-dir builds of `engine --stdio` (sqlguardllm, sqlglot and the standard library only) built by `scripts/build-engine.py` on a native runner each and accepted only after `hello` and the full conformance corpus pass over stdio (`.github/workflows/engine-binaries.yml`, also on every pull request touching the engine). Size, cold start and memory in `benchmarks/engine-binaries.json`.
@@ -152,7 +158,8 @@ First alpha. Installed with `pip install sqlguardllm` and imported as `import sq
 - Table functions are rejected, even harmless ones like `generate_series`.
 - No command-line tool yet (planned for v0.2).
 
-[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...HEAD
+[Unreleased]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a5...HEAD
+[0.5.0a5]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a4...v0.5.0a5
 [0.5.0a4]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a3...v0.5.0a4
 [0.5.0a3]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a2...v0.5.0a3
 [0.5.0a2]: https://github.com/jmmana/sqlguardllm/compare/v0.5.0a1...v0.5.0a2

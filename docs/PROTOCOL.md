@@ -24,7 +24,7 @@ Every request has an `id` (string or integer) and a `type`; the response echoes 
 
 ```
 → {"id": 1, "type": "hello"}
-← {"id": 1, "type": "hello", "protocol": 1, "engine_version": "0.5.0a4", "dialects": ["bigquery", …]}
+← {"id": 1, "type": "hello", "protocol": 1, "engine_version": "0.5.0a5", "dialects": ["bigquery", …]}
 → {"id": 2, "type": "load_policy", "policy": {"dialect": "postgres", "tables": ["invoices"]}}
 ← {"id": 2, "type": "load_policy", "handle": "p1"}
 → {"id": 3, "type": "check", "handle": "p1", "sql": "SELECT id FROM invoices", "context": null}
