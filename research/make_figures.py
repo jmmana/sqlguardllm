@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "research/results"
-PAPER = ROOT / "research/paper"
+PAPER = ROOT / "research/original-figures"
 LABELS = {
     "keyword_filter": "Keyword filter",
     "read_only_shape": "Read-only shape",

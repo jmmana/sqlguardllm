@@ -1,0 +1,182 @@
+[
+  {
+    "engine": "sqlite",
+    "tenant": 1,
+    "id": "edge_left_join_null",
+    "kind": "edge_allowed",
+    "sql": "SELECT i.id, b.name FROM invoices i LEFT JOIN branches b ON b.id=i.branch_id ORDER BY i.id",
+    "expected": "allow",
+    "execute": true,
+    "family": "left_join_null",
+    "allow_view": false,
+    "method": "outer_where",
+    "ok": true,
+    "sql_out": "SELECT i.id, b.name FROM invoices AS i LEFT JOIN branches AS b ON b.id = i.branch_id WHERE i.tenant_id = 1 AND b.tenant_id = 1 ORDER BY i.id LIMIT 8",
+    "codes": [],
+    "rows": [
+      [
+        1001,
+        "Branch 1-2"
+      ],
+      [
+        1002,
+        "Branch 1-1"
+      ],
+      [
+        1003,
+        "Branch 1-2"
+      ],
+      [
+        1004,
+        "Branch 1-1"
+      ],
+      [
+        1005,
+        "Branch 1-2"
+      ],
+      [
+        1006,
+        "Branch 1-1"
+      ]
+    ],
+    "executed": true,
+    "outcome": "result_mismatch"
+  },
+  {
+    "engine": "sqlite",
+    "tenant": 1,
+    "id": "edge_left_join_null",
+    "kind": "edge_allowed",
+    "sql": "SELECT i.id, b.name FROM invoices i LEFT JOIN branches b ON b.id=i.branch_id ORDER BY i.id",
+    "expected": "allow",
+    "execute": true,
+    "family": "left_join_null",
+    "allow_view": false,
+    "method": "sqlguardllm",
+    "ok": true,
+    "sql_out": "SELECT i.id, b.name FROM (SELECT * FROM invoices WHERE tenant_id = 1) AS i LEFT JOIN (SELECT * FROM branches WHERE tenant_id = 1) AS b ON b.id = i.branch_id ORDER BY i.id LIMIT 8",
+    "codes": [],
+    "rows": [
+      [
+        1001,
+        "Branch 1-2"
+      ],
+      [
+        1002,
+        "Branch 1-1"
+      ],
+      [
+        1003,
+        "Branch 1-2"
+      ],
+      [
+        1004,
+        "Branch 1-1"
+      ],
+      [
+        1005,
+        "Branch 1-2"
+      ],
+      [
+        1006,
+        "Branch 1-1"
+      ],
+      [
+        1007,
+        null
+      ]
+    ],
+    "executed": true,
+    "outcome": "authorized_match"
+  },
+  {
+    "engine": "sqlite",
+    "tenant": 2,
+    "id": "edge_left_join_null",
+    "kind": "edge_allowed",
+    "sql": "SELECT i.id, b.name FROM invoices i LEFT JOIN branches b ON b.id=i.branch_id ORDER BY i.id",
+    "expected": "allow",
+    "execute": true,
+    "family": "left_join_null",
+    "allow_view": false,
+    "method": "outer_where",
+    "ok": true,
+    "sql_out": "SELECT i.id, b.name FROM invoices AS i LEFT JOIN branches AS b ON b.id = i.branch_id WHERE i.tenant_id = 2 AND b.tenant_id = 2 ORDER BY i.id LIMIT 8",
+    "codes": [],
+    "rows": [
+      [
+        2001,
+        "Branch 2-2"
+      ],
+      [
+        2002,
+        "Branch 2-1"
+      ],
+      [
+        2003,
+        "Branch 2-2"
+      ],
+      [
+        2004,
+        "Branch 2-1"
+      ],
+      [
+        2005,
+        "Branch 2-2"
+      ],
+      [
+        2006,
+        "Branch 2-1"
+      ]
+    ],
+    "executed": true,
+    "outcome": "result_mismatch"
+  },
+  {
+    "engine": "sqlite",
+    "tenant": 2,
+    "id": "edge_left_join_null",
+    "kind": "edge_allowed",
+    "sql": "SELECT i.id, b.name FROM invoices i LEFT JOIN branches b ON b.id=i.branch_id ORDER BY i.id",
+    "expected": "allow",
+    "execute": true,
+    "family": "left_join_null",
+    "allow_view": false,
+    "method": "sqlguardllm",
+    "ok": true,
+    "sql_out": "SELECT i.id, b.name FROM (SELECT * FROM invoices WHERE tenant_id = 2) AS i LEFT JOIN (SELECT * FROM branches WHERE tenant_id = 2) AS b ON b.id = i.branch_id ORDER BY i.id LIMIT 8",
+    "codes": [],
+    "rows": [
+      [
+        2001,
+        "Branch 2-2"
+      ],
+      [
+        2002,
+        "Branch 2-1"
+      ],
+      [
+        2003,
+        "Branch 2-2"
+      ],
+      [
+        2004,
+        "Branch 2-1"
+      ],
+      [
+        2005,
+        "Branch 2-2"
+      ],
+      [
+        2006,
+        "Branch 2-1"
+      ],
+      [
+        2007,
+        null
+      ]
+    ],
+    "executed": true,
+    "outcome": "authorized_match"
+  }
+]

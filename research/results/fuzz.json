@@ -1,0 +1,95 @@
+{
+  "complete": true,
+  "duration_s": 161.6,
+  "engines": {
+    "duckdb": {
+      "allowed": 11986,
+      "checked": 20000,
+      "engine_errors": 3011,
+      "engine_ignored_limit": 22,
+      "executed": 8975,
+      "hit_max_rows": 2926,
+      "invariant_failures": {
+        "fail_closed": 0,
+        "foreign_rows": 0,
+        "hidden_or_masked": 0,
+        "idempotence": 0,
+        "max_rows": 0,
+        "non_interference": 0
+      },
+      "nondeterministic": 0,
+      "rejected": 8014,
+      "rejected_by_code": {
+        "hidden_column": 6714,
+        "parse_error": 1193,
+        "table_not_allowed": 211
+      },
+      "returned_rows": 25258,
+      "unrenderable": 0
+    },
+    "sqlite": {
+      "allowed": 12592,
+      "checked": 19988,
+      "engine_errors": 2392,
+      "engine_ignored_limit": 0,
+      "executed": 10200,
+      "hit_max_rows": 3132,
+      "invariant_failures": {
+        "fail_closed": 0,
+        "foreign_rows": 0,
+        "hidden_or_masked": 0,
+        "idempotence": 0,
+        "max_rows": 0,
+        "non_interference": 0
+      },
+      "nondeterministic": 0,
+      "rejected": 7396,
+      "rejected_by_code": {
+        "hidden_column": 7287,
+        "table_not_allowed": 218
+      },
+      "returned_rows": 27190,
+      "unrenderable": 12
+    }
+  },
+  "examples": 20000,
+  "examples_requested": 20000,
+  "invariant_failures": {
+    "fail_closed": 0,
+    "foreign_rows": 0,
+    "hidden_or_masked": 0,
+    "idempotence": 0,
+    "max_rows": 0,
+    "non_interference": 0
+  },
+  "packages": {
+    "duckdb": "2.0.1",
+    "hypothesis": "6.170.17",
+    "sqlglot": "30.35.0",
+    "sqlguardllm": "0.5.0a7"
+  },
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "profile": "deep",
+  "python": "3.12.13",
+  "replay": "SQLGUARD_FUZZ_PROFILE=deep SQLGUARD_FUZZ_SEED=20261127 SQLGUARD_FUZZ_EXAMPLES=20000 SQLGUARD_FUZZ_ENGINES=sqlite,duckdb uv run pytest tests/fuzz -m fuzz",
+  "roles": {
+    "east": {
+      "user": {
+        "branches": [
+          3
+        ]
+      }
+    },
+    "north": {
+      "user": {
+        "branches": [
+          1,
+          2
+        ]
+      }
+    }
+  },
+  "seed": 20261127,
+  "sqlite": "3.54.1",
+  "timestamp_utc": "2026-11-27T15:10:44+00:00"
+}

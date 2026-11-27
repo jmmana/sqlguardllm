@@ -1,0 +1,18 @@
+\begin{tabular}{lr}
+\toprule
+Red-team run 1 & Queries \\
+\midrule
+Generated (kept) & 46 \\
+Rejected by the guard & 25 \\
+Allowed, canary oracle clean & 20 \\
+Allowed, canary in output (bypass) & 1 \\
+Duplicates (same normalised SQL) & 0 \\
+Rejected by rule (queries): &  \\
+\quad hidden\_column & 13 \\
+\quad denied\_function & 6 \\
+\quad table\_not\_allowed & 4 \\
+\quad not\_a\_query & 2 \\
+\quad write\_operation & 2 \\
+\quad parse\_error & 1 \\
+\bottomrule
+\end{tabular}

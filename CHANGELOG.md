@@ -4,6 +4,10 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Changed
+- Paper: expanded evaluation with canary fuzzing and the first LLM red-team run, with the full query dataset (`research/redteam/2026-11-27/`, `research/results/fuzz.json`) hashed in `research/artifact-sha256.json`; tables and figure from `research/make_adversarial.py` (#64, supersedes #61).
+- The `redteam.yml`, `research.yml` and `claude-pilot.yml` workflows run on manual dispatch only: no schedule and no pull-request trigger; the paid pilot also needs a typed confirmation.
+
 ## [0.5.0a7] - 2026-11-27
 
 Fixes the macOS engine packages on npm (they could not run after `npm install`); see Fixed.

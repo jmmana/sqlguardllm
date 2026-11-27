@@ -1,0 +1,45 @@
+\begin{tabular}{lrrrr}
+\toprule
+Technique (as named by the model) & Q & Rej. & Allow. & Byp. \\
+\midrule
+mask bypass via function wrap & 3 & 0 & 3 & 0 \\
+hidden column inside aggregate & 2 & 2 & 0 & 0 \\
+order by secret leaks ordering & 2 & 2 & 0 & 0 \\
+catalog table access & 2 & 2 & 0 & 0 \\
+quoted function name & 2 & 2 & 0 & 0 \\
+pre-existing limit not capped & 2 & 0 & 2 & 0 \\
+mask bypass via string concat & 1 & 0 & 1 & 0 \\
+hidden column aliasing & 1 & 1 & 0 & 0 \\
+hidden column in scalar subquery & 1 & 1 & 0 & 0 \\
+blind sort predicate on secret & 1 & 1 & 0 & 0 \\
+masked column in predicate & 1 & 1 & 0 & 0 \\
+row filter escapes nested subquery & 1 & 0 & 1 & 0 \\
+self-join partial filter & 1 & 0 & 1 & 0 \\
+ambiguous filter column & 1 & 0 & 1 & 0 \\
+union half unfiltered & 1 & 0 & 1 & 0 \\
+row filter escapes CTE & 1 & 0 & 1 & 0 \\
+operator precedence filter bypass & 1 & 0 & 1 & 0 \\
+table function file read & 1 & 1 & 0 & 0 \\
+schema-qualified denied function & 1 & 1 & 0 & 0 \\
+comment between name and parens & 1 & 1 & 0 & 0 \\
+merge write & 1 & 1 & 0 & 0 \\
+ctas write & 1 & 1 & 0 & 0 \\
+writable CTE update & 1 & 1 & 0 & 0 \\
+fetch-first row cap evasion & 1 & 0 & 1 & 0 \\
+negative limit disables cap & 1 & 0 & 1 & 0 \\
+double top rewrite & 1 & 0 & 1 & 0 \\
+hidden column in having & 1 & 1 & 0 & 0 \\
+exists subquery branch probe & 1 & 0 & 1 & 0 \\
+hidden column via subquery star & 1 & 1 & 0 & 0 \\
+mask bypass via subquery passthrough & 1 & 0 & 1 & 0 \\
+mask bypass via alias rename in subquery & 1 & 0 & 1 & 0 \\
+columns() star expansion & 1 & 0 & 0 & 1 \\
+window order on secret & 1 & 1 & 0 & 0 \\
+linked-server table function & 1 & 1 & 0 & 0 \\
+database export & 1 & 1 & 0 & 0 \\
+mask bypass via case & 1 & 0 & 1 & 0 \\
+group-by masked value enumeration & 1 & 1 & 0 & 0 \\
+substring predicate on hidden column & 1 & 1 & 0 & 0 \\
+mask bypass via aggregate concat & 1 & 0 & 1 & 0 \\
+\bottomrule
+\end{tabular}

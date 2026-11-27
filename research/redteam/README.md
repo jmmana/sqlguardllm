@@ -41,7 +41,7 @@ ANTHROPIC_API_KEY=... uv run python research/redteam/run.py --output-dir /tmp/rt
 uv run python research/redteam/run.py --rescore research/redteam/<date>
 ```
 
-In CI it is `.github/workflows/redteam.yml`: weekly and on demand, on `main` only, `contents: read`, the secret passed as `ANTHROPIC_API_KEY` to the generation step only, never pushing. The dataset is a workflow artifact.
+In CI it is `.github/workflows/redteam.yml`: on manual dispatch only (no schedule), on `main` only, `contents: read`, the secret passed as `ANTHROPIC_API_KEY` to the generation step only, never pushing. The dataset is a workflow artifact.
 
 ## After a run
 

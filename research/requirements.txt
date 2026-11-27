@@ -5,3 +5,4 @@ duckdb==2.0.1
 PyYAML==6.0.4
 matplotlib==3.11.2
 Pillow==13.0.0
+pgserver==0.1.4

@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
+import subprocess
 import zipfile
 from collections import Counter
 from pathlib import Path
 
+import make_adversarial
 from evaluate import summarize
 from workload import manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "research/results"
+REDTEAM = ROOT / "research/redteam/2026-11-27"
 
 
 def main() -> None:
@@ -21,9 +25,13 @@ def main() -> None:
         for name in ("metadata", "execution", "latency", "summary", "regression", "workload")
     }
     digest = hashlib.sha256()
-    for file in sorted((ROOT / "src/sqlguardllm").rglob("*.py")):
-        digest.update(str(file.relative_to(ROOT)).encode())
-        digest.update(file.read_bytes())
+    revision = data["metadata"]["base_commit"]
+    paths = subprocess.check_output(
+        ["git", "ls-tree", "-r", "--name-only", revision, "src/sqlguardllm"], text=True
+    ).splitlines()
+    for path in sorted(p for p in paths if p.endswith(".py")):
+        digest.update(path.encode())
+        digest.update(subprocess.check_output(["git", "show", f"{revision}:{path}"]))
     assert digest.hexdigest() == data["metadata"]["engine_source_sha256"]
     assert (
         hashlib.sha256((ROOT / "research/workload.py").read_bytes()).hexdigest()
@@ -40,15 +48,89 @@ def main() -> None:
     }
     assert all(row["outcome"] == "pass" for row in data["regression"])
     assert len(data["regression"]) == 148
-    paper = ROOT / "research/paper"
-    files = [
-        "main.tex",
-        "measurements.tex",
-        "results-table.tex",
-        "outcomes.pdf",
-        "latency.pdf",
-        "references.bib",
+    core = {"sqlite", "duckdb", "postgres_pglite", "postgres_service"}
+    expanded = []
+    generated = []
+    for folder in ("results-review", "results-native-service"):
+        directory = ROOT / "research" / folder
+        expanded.extend(
+            r for r in json.loads((directory / "original.json").read_text()) if r["engine"] in core
+        )
+        draws = json.loads(gzip.decompress((directory / "generated.json.gz").read_bytes()))
+        generated.extend(r for r in draws if r["engine"] in core)
+        for row in json.loads((directory / "edges.json").read_text()):
+            if not row["execute"]:
+                assert not row.get("executed")
+    assert len(expanded) == 2112
+    assert Counter(r["outcome"] for r in expanded if r["method"] == "sqlguardllm") == {
+        "authorized_match": 288,
+        "blocked": 96,
+    }
+    assert all(
+        "permission denied" in r.get("error", "").lower()
+        for r in expanded
+        if r["method"] == "native_rls_columns" and r["outcome"] == "blocked"
+    )
+    assert len(generated) == 20000
+    for engine in core:
+        selected = [r for r in generated if r["engine"] == engine]
+        assert len(selected) == 5000
+        assert len({r["sql"] for r in selected}) == 3434
+        assert Counter(r["outcome"] for r in selected) == {
+            "authorized_match": 3888,
+            "blocked": 685,
+            "over_rejected": 233,
+            "execution_error": 194,
+        }
+    timing = json.loads((ROOT / "research/results-review/timing.json").read_text())
+    assert all(r["template_clusters"] == 48 for r in timing["bootstrap"])
+    planner = json.loads((ROOT / "research/results-native-service/planner.json").read_text())
+    assert planner["rows"] == 1000000 and len(planner["observations"]) == 90
+    assert all(r["index_conditions"] and not r["subquery_scan"] for r in planner["summaries"])
+    # Adversarial evidence: canary-fuzzing statistics and the stored red-team dataset.
+    fuzz = json.loads((RESULTS / "fuzz.json").read_text())
+    assert fuzz["complete"] and fuzz["examples"] == fuzz["examples_requested"]
+    assert sum(fuzz["invariant_failures"].values()) == sum(
+        sum(e["invariant_failures"].values()) for e in fuzz["engines"].values()
+    )
+    for e in fuzz["engines"].values():
+        assert e["allowed"] + e["rejected"] == e["checked"]
+        assert e["executed"] + e["engine_errors"] == e["allowed"]
+        assert sum(e["rejected_by_code"].values()) >= e["rejected"]  # one count per violation
+    rt_manifest = json.loads((REDTEAM / "manifest.json").read_text())
+    attacks = [
+        json.loads(line) for line in (REDTEAM / "attacks.jsonl").read_text().splitlines() if line
     ]
+    status = Counter(a["status"] for a in attacks)
+    assert len(attacks) == rt_manifest["generated"] == 46
+    assert status["rejected"] == rt_manifest["rejected"]
+    assert status["allowed"] == rt_manifest["allowed"] and status["bypass"] == len(
+        rt_manifest["bypasses"]
+    )
+    assert Counter(a["technique"].lower() for a in attacks) == Counter(rt_manifest["by_technique"])
+    assert {a["prompt_sha256"] for a in attacks} == {rt_manifest["prompt_sha256"]}
+    prompt = (ROOT / "research/redteam/prompt.md").read_bytes()
+    assert hashlib.sha256(prompt).hexdigest() == rt_manifest["prompt_sha256"]
+    assert abs(rt_manifest["cost_usd"] - rt_manifest["cost_microusd"] / 1e6) < 1e-9
+    for name in ("rescore.json", "rescore-0.5.0a7.json"):
+        rescore = json.loads((REDTEAM / name).read_text())
+        assert rescore["bypasses"] == [] and rescore["invariant_failures"] == []
+        assert rescore["totals"]["generated"] == len(attacks)
+    make_adversarial.main()  # rebuild macros, tables and figure from the files above
+    paper = ROOT / "research/paper"
+    files = sorted(
+        {
+            *(p.name for p in paper.glob("*.tex")),
+            "architecture.pdf",
+            "outcomes.pdf",
+            "latency.pdf",
+            "heatmap.pdf",
+            "redteam.pdf",
+            "acmart.cls",
+            "ACM-LICENSE.txt",
+            "references.bib",
+        }
+    )
     archive = ROOT / "research/sqlguardllm-arxiv-source.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as output:
         for name in files:
@@ -68,6 +150,13 @@ def main() -> None:
         str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in [
             *(RESULTS.glob("*.json")),
+            *(ROOT / "research/results-review").glob("*.json*"),
+            *(ROOT / "research/results-native-service").glob("*.json*"),
+            *(p for p in REDTEAM.iterdir() if p.is_file()),
+            ROOT / "research/redteam/prompt.md",
+            ROOT / "research/redteam/prompt.sha256",
+            ROOT / "research/redteam/run.py",
+            ROOT / "research/datasets/spider-pilot.json",
             *(paper / name for name in files),
             paper / "main.pdf",
             *media,
@@ -77,7 +166,8 @@ def main() -> None:
     (ROOT / "research/artifact-sha256.json").write_text(
         json.dumps(hashes, indent=2, sort_keys=True) + "\n"
     )
-    print(f"Verified {len(data['execution'])} execution observations, 148 regression cases")
+    print(f"Verified {len(data['execution'])} original and {len(expanded)} revised observations")
+    print("Verified 20,000 core generated draws, preserved utility failures and native plans")
     print(f"Prepared {archive.name} ({archive.stat().st_size:,} bytes)")
 
 
