@@ -1,6 +1,6 @@
 {
   "name": "sqlguardllm",
-  "version": "0.5.0-alpha.4",
+  "version": "0.5.0-alpha.5",
   "description": "Official Node.js/TypeScript client for the sqlguardllm SQL firewall server",
   "license": "Apache-2.0",
   "repository": {
@@ -45,7 +45,7 @@
     "build": "tsup",
     "build:engines": "node npm/build.mjs --engines ../../engines",
     "gen:types": "node scripts/gen-types.mjs",
-    "typecheck":"tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "prepublishOnly": "npm run typecheck && npm run build && npm test"
   },

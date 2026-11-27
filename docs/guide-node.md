@@ -4,8 +4,8 @@
 
 The npm package `sqlguardllm` is a small client with no dependencies. The engine runs in `sqlguardllm serve`, an HTTP server next to your application, so Node.js gets exactly the same answers as Python. You need Node.js 18 or later, and Python 3.10 or later for the server.
 
-!!! note "Today the client needs a running server"
-    An embedded engine, so that `npm install sqlguardllm` works with no Python and no server, is planned in [#85](https://github.com/jmmana/sqlguardllm/issues/85).
+!!! note "Local mode or remote mode"
+    `npm install sqlguardllm` also installs the engine for your platform (linux x64/arm64, macOS x64/arm64, Windows x64), so `await SqlGuard.local({ policyPath: "policy.json" })` runs the guard with no Python and no server (see the [package README](https://github.com/jmmana/sqlguardllm/tree/main/clients/node#local-mode)). This guide uses the remote mode below. If your platform has no engine package (for example Alpine/musl), or you run on Deno, a browser or an edge runtime, use the remote mode with a running server.
 
 ## 1. Write a policy
 
@@ -47,7 +47,7 @@ pip install --pre sqlguardllm
 sqlguardllm serve --policy policy.json --port 8787
 ```
 
-It prints a line like `sqlguardllm 0.5.0a4 listening on http://127.0.0.1:8787 (no token)` and keeps running: leave that terminal open. It only listens on your machine. Before exposing it to other hosts, set a [token](SERVER.md#token). There is no published Docker image yet; you can build one from the repository's [Dockerfile](SERVER.md#docker).
+It prints a line like `sqlguardllm 0.5.0a5 listening on http://127.0.0.1:8787 (no token)` and keeps running: leave that terminal open. It only listens on your machine. Before exposing it to other hosts, set a [token](SERVER.md#token). There is no published Docker image yet; you can build one from the repository's [Dockerfile](SERVER.md#docker).
 
 ## 3. Install the client
 

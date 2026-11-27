@@ -1,8 +1,8 @@
 # sqlguardllm (Node.js client)
 
-Official TypeScript client for the [sqlguardllm](https://github.com/jmmana/sqlguardllm) SQL firewall. The engine runs in `sqlguardllm serve` (one engine, many clients); this package is a thin, typed HTTP client with **zero runtime dependencies** (global `fetch`: Node 18+, Deno, Bun, edge runtimes). ESM and CJS.
+Official TypeScript client for the [sqlguardllm](https://github.com/jmmana/sqlguardllm) SQL firewall. It runs the embedded engine as a child process (local mode) or talks to `sqlguardllm serve` (remote mode, a thin, typed HTTP client) with **zero runtime dependencies** (global `fetch`: Node 18+, Deno, Bun, edge runtimes). ESM and CJS.
 
-> **Today this package needs a running `sqlguardllm serve`.** An embedded engine, so that `npm install sqlguardllm` works with no Python and no server, is planned in [#85](https://github.com/jmmana/sqlguardllm/issues/85).
+> `npm install sqlguardllm` also installs the engine for your platform (an optional dependency), so [local mode](#local-mode) needs no Python and no server. On a platform without an engine package, use the remote mode with a running `sqlguardllm serve`.
 
 ```sh
 npm install sqlguardllm
@@ -56,7 +56,7 @@ Row-filter values (tenant, user id) must come from your authenticated session, n
 
 The engine binary ships as one npm package per platform, `sqlguardllm-engine-<platform>` (`linux-x64`, `linux-arm64`, `macos-arm64`, `macos-x64`, `windows-x64`), declared as `optionalDependencies` with `os`/`cpu` so npm installs only yours. There is no `postinstall` and no download: it works offline, with `--ignore-scripts` and from a lockfile. `resolveEngine()` recomputes the SHA-256 of the engine folder and compares it with the value built into `sqlguardllm`; on any difference, or if the package is missing, it throws `SqlGuardError` (`engine_digest_mismatch`, `engine_not_found`) and nothing is started. On other platforms (including musl Linux such as Alpine) it throws `unsupported_platform`, and the message points to the remote mode (`sqlguardllm serve` and `new SqlGuard({ baseUrl })`).
 
-Maintainers: `python scripts/fetch-engine.py <version> --out engines`, then `npm run build:engines`, which writes the platform packages to `npm/dist/` and the digests to `src/engine-digests.json`. Publish the platform packages first and `sqlguardllm` last, with `npm/dist/optional-dependencies.json` merged into its `optionalDependencies`.
+Maintainers: the release workflow does this (see CONTRIBUTING.md, Releasing). By hand: `python scripts/fetch-engine.py <version> --out engines`, then `npm run build:engines` (platform packages in `npm/dist/`, digests in `src/engine-digests.json`), then `node npm/publish.mjs --out npm/dist --dry-run` to `npm pack` all six packages without publishing.
 
 ## Local mode
 

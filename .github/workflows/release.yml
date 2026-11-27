@@ -123,9 +123,13 @@ jobs:
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
 
+  # The five engine packages first, the client last (it lists them as optionalDependencies).
+  # Every engine comes from the archives of this same run: checksums and the signed provenance
+  # attestation are verified before anything is unpacked. A version already on npm is skipped, so
+  # a failed run can simply be re-run.
   npm:
-    name: Publish the Node.js client to npm
-    needs: [build, engines]
+    name: Publish the Node.js client and engine packages to npm
+    needs: [build, engines, attest]
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -143,16 +147,34 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
-      - run: npm ci
-      - name: Publish (prepublishOnly runs typecheck, build and tests)
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-release
+          path: engine-release/
+      - name: Verify the engine archives (attestation, then checksums) and unpack them
+        working-directory: .
         env:
-          VERSION: ${{ needs.build.outputs.npm_version }}
-          TAG: ${{ needs.build.outputs.npm_tag }}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
-          if npm view "sqlguardllm@$VERSION" version >/dev/null 2>&1; then
-            echo "sqlguardllm@$VERSION is already on npm; nothing to do"; exit 0
-          fi
-          npm publish --tag "$TAG"
+          set -e
+          for f in engine-release/*; do
+            gh attestation verify "$f" --repo "$GITHUB_REPOSITORY"
+          done
+          python3 scripts/fetch-engine.py "$VERSION" --base-url engine-release --no-attestation --out engines
+      - run: npm ci
+      - name: Build the platform packages and the digests
+        run: node npm/build.mjs --engines ../../engines --out npm/dist
+      - name: Dry run, the same code path as publishing (npm pack, nothing is published)
+        run: node npm/publish.mjs --out npm/dist --dry-run --pack-dir npm/packed
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-pack-files
+          path: clients/node/npm/packed/*.files.txt
+      - name: Publish (platform packages first, sqlguardllm last; prepublishOnly runs typecheck, build and tests)
+        env:
+          TAG: ${{ needs.build.outputs.npm_tag }}
+        run: node npm/publish.mjs --out npm/dist --tag "$TAG"
 
   nuget:
     name: Publish the .NET client to NuGet
