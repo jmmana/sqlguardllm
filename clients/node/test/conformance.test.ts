@@ -42,7 +42,8 @@ function localEngine(): string[] | undefined {
   try {
     return [resolveEngine(), "--stdio"];
   } catch {
-    return undefined;
+    // No packaged engine: use the Python engine through the same launcher as the server.
+    return available ? [...launcher, "engine", "--stdio"] : undefined;
   }
 }
 const engine = localEngine();
