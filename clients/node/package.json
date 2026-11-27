@@ -44,7 +44,8 @@
   "scripts": {
     "build": "tsup",
     "build:engines": "node npm/build.mjs --engines ../../engines",
-    "typecheck": "tsc --noEmit",
+    "gen:types": "node scripts/gen-types.mjs",
+    "typecheck":"tsc --noEmit",
     "test": "vitest run",
     "prepublishOnly": "npm run typecheck && npm run build && npm test"
   },

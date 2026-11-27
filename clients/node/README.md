@@ -58,6 +58,31 @@ The engine binary ships as one npm package per platform, `sqlguardllm-engine-<pl
 
 Maintainers: `python scripts/fetch-engine.py <version> --out engines`, then `npm run build:engines`, which writes the platform packages to `npm/dist/` and the digests to `src/engine-digests.json`. Publish the platform packages first and `sqlguardllm` last, with `npm/dist/optional-dependencies.json` merged into its `optionalDependencies`.
 
+## Local mode
+
+```ts
+import { SqlGuard } from "sqlguardllm";
+
+const guard = await SqlGuard.local({ policyPath: "policy.json" });   // or { policy }, or { policy | policyPath, role } for a policy set
+try {
+  const sql = await guard.enforce("SELECT id FROM invoices", { tenant_id: 7 });
+} finally {
+  await guard.close();                                              // also: `await using guard = await SqlGuard.local(...)`
+}
+```
+
+`check`, `enforce`, `explain` and their results are the same as in remote mode. The embedded engine runs as a child process (no server, no Python):
+
+- It starts on the first call, answers `hello`, and must report protocol 1 and the same version (before 1.0, the same minor) as this package; otherwise every call fails.
+- Concurrent calls are multiplexed by request id. `timeoutMs` (default 5000) applies to each call; a timeout drops the engine.
+- If the engine crashes or times out, pending calls and calls during the backoff (100 ms doubling up to 5 s) throw `SqlGuardError` (`engine_crashed`, `timeout`, `engine_restarting`): fail closed, never `ok`. The next call after the backoff starts a new engine.
+- The engine does not keep Node alive and is killed when the process exits. `close()` stops it.
+- `policyPath` must be a JSON file. Options: `language` (`en`/`es`), `engine` (command to run instead of the packaged engine).
+
+Types for policies, results and protocol messages (`Policy`, `WireCheckResult`, `WireRequest`...) are generated from `schema/` into `src/generated.ts` (`npm run gen:types`); the unit tests fail when it is stale.
+
+Runtimes: Node 18, 20 and 22, as ESM and CommonJS; Bun best effort. Deno, browsers and edge runtimes cannot start processes: use the remote mode there.
+
 ## Development
 
 `npm ci && npm run build && npm test` in `clients/node`. Tests run against an in-process fake server that follows the `/v1` contract.
