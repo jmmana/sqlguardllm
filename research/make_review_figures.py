@@ -469,3 +469,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+    import make_adversarial
+
+    make_adversarial.main()

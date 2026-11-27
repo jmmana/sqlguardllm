@@ -10,11 +10,13 @@ import zipfile
 from collections import Counter
 from pathlib import Path
 
+import make_adversarial
 from evaluate import summarize
 from workload import manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "research/results"
+REDTEAM = ROOT / "research/redteam/2026-11-27"
 
 
 def main() -> None:
@@ -85,6 +87,36 @@ def main() -> None:
     planner = json.loads((ROOT / "research/results-native-service/planner.json").read_text())
     assert planner["rows"] == 1000000 and len(planner["observations"]) == 90
     assert all(r["index_conditions"] and not r["subquery_scan"] for r in planner["summaries"])
+    # Adversarial evidence: canary-fuzzing statistics and the stored red-team dataset.
+    fuzz = json.loads((RESULTS / "fuzz.json").read_text())
+    assert fuzz["complete"] and fuzz["examples"] == fuzz["examples_requested"]
+    assert sum(fuzz["invariant_failures"].values()) == sum(
+        sum(e["invariant_failures"].values()) for e in fuzz["engines"].values()
+    )
+    for e in fuzz["engines"].values():
+        assert e["allowed"] + e["rejected"] == e["checked"]
+        assert e["executed"] + e["engine_errors"] == e["allowed"]
+        assert sum(e["rejected_by_code"].values()) >= e["rejected"]  # one count per violation
+    rt_manifest = json.loads((REDTEAM / "manifest.json").read_text())
+    attacks = [
+        json.loads(line) for line in (REDTEAM / "attacks.jsonl").read_text().splitlines() if line
+    ]
+    status = Counter(a["status"] for a in attacks)
+    assert len(attacks) == rt_manifest["generated"] == 46
+    assert status["rejected"] == rt_manifest["rejected"]
+    assert status["allowed"] == rt_manifest["allowed"] and status["bypass"] == len(
+        rt_manifest["bypasses"]
+    )
+    assert Counter(a["technique"].lower() for a in attacks) == Counter(rt_manifest["by_technique"])
+    assert {a["prompt_sha256"] for a in attacks} == {rt_manifest["prompt_sha256"]}
+    prompt = (ROOT / "research/redteam/prompt.md").read_bytes()
+    assert hashlib.sha256(prompt).hexdigest() == rt_manifest["prompt_sha256"]
+    assert abs(rt_manifest["cost_usd"] - rt_manifest["cost_microusd"] / 1e6) < 1e-9
+    for name in ("rescore.json", "rescore-0.5.0a7.json"):
+        rescore = json.loads((REDTEAM / name).read_text())
+        assert rescore["bypasses"] == [] and rescore["invariant_failures"] == []
+        assert rescore["totals"]["generated"] == len(attacks)
+    make_adversarial.main()  # rebuild macros, tables and figure from the files above
     paper = ROOT / "research/paper"
     files = sorted(
         {
@@ -93,9 +125,8 @@ def main() -> None:
             "outcomes.pdf",
             "latency.pdf",
             "heatmap.pdf",
+            "redteam.pdf",
             "acmart.cls",
-            "acmart.dtx",
-            "acmart.ins",
             "ACM-LICENSE.txt",
             "references.bib",
         }
@@ -121,6 +152,10 @@ def main() -> None:
             *(RESULTS.glob("*.json")),
             *(ROOT / "research/results-review").glob("*.json*"),
             *(ROOT / "research/results-native-service").glob("*.json*"),
+            *(p for p in REDTEAM.iterdir() if p.is_file()),
+            ROOT / "research/redteam/prompt.md",
+            ROOT / "research/redteam/prompt.sha256",
+            ROOT / "research/redteam/run.py",
             ROOT / "research/datasets/spider-pilot.json",
             *(paper / name for name in files),
             paper / "main.pdf",

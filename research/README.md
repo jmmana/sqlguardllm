@@ -120,10 +120,40 @@ record and `evaluate.py` remain available; it contains 1,248 observations and a
 separate 148-case development regression record over ten parser dialect labels.
 That parser corpus is not execution certification of ten database products.
 
-No paid model calls are required to reproduce the semantic, mutation, timing or
-planner experiments. The prepared Claude pilot has no results until explicitly
+No paid model calls are required to reproduce the semantic, mutation, timing,
+planner, fuzzing or red-team re-scoring experiments. The prepared Claude pilot has no results until explicitly
 executed; the manuscript makes no LLM accuracy or injection-success claim.
 A Zenodo metadata draft is provided, but no DOI has yet been assigned.
+
+## Adversarial evidence: canary fuzzing and LLM red team
+
+Two searches that do not depend on the authored templates (paper section
+"Adversarial search"). Every number in the paper is computed from stored files by
+`make_adversarial.py`; nothing is typed by hand.
+
+- **Canary fuzzing** (`tests/fuzz/`, statistics in `results/fuzz.json`): 20,000
+  examples, seed 20261127, SQLite and DuckDB, 0 invariant failures. Not judged:
+  PostgreSQL, MySQL, SQL Server (nightly CI only), `aggregate_only`.
+- **LLM red team, run 1** (`redteam/2026-11-27/`): 46 kept queries, USD 0.31, one
+  bypass (DuckDB `COLUMNS('.*')`, fixed in 0.5.0a4). Requested model
+  `claude-opus-5-5`; the server fallback answered with `claude-opus-4-8`
+  (recorded per query). The dataset is part of the artifact and is hashed in
+  `artifact-sha256.json`.
+
+```bash
+# fuzz statistics (about 3 minutes)
+SQLGUARD_FUZZ_PROFILE=deep SQLGUARD_FUZZ_SEED=20261127 SQLGUARD_FUZZ_EXAMPLES=20000 \
+SQLGUARD_FUZZ_ENGINES=sqlite,duckdb SQLGUARD_FUZZ_STATS=research/results/fuzz.json \
+  uv run pytest tests/fuzz -m fuzz
+# re-score the stored red-team dataset with the current guard, no API call
+uv run python research/redteam/run.py --rescore research/redteam/2026-11-27
+# tables, macros and figure of the paper, then check the artifact hashes
+uv run --with matplotlib python research/make_adversarial.py
+uv run --with matplotlib python research/verify_artifacts.py
+```
+
+The workflows `claude-pilot.yml`, `research.yml` and `redteam.yml` run only on
+manual dispatch from `main`; none has a schedule or runs on pull requests.
 
 ## Inspect the evidence
 
@@ -166,7 +196,8 @@ show the first three scenes in 21 seconds. They are not browser recordings.
 
 ## Limitations and next evaluations
 
-External workloads, independent adversarial review, larger and more varied
+External workloads, third-party adversarial review or other attacker models, a
+canary oracle for `aggregate_only`, larger and more varied
 schemas, views/UDFs, ambiguous columns, native PostgreSQL and other server
 engines, and end-to-end database overhead remain unmeasured here. Masking,
 aggregate privacy, inference attacks and cost control require separate studies.

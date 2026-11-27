@@ -285,11 +285,11 @@ def test_rescore_reports_a_changed_verdict(tmp_path: Path) -> None:
     assert summary["changed_verdicts"] == [{"index": 1, "was_allowed": True, "now_allowed": False}]
 
 
-def test_workflow_runs_only_on_schedule_and_dispatch() -> None:
+def test_workflow_runs_only_on_manual_dispatch() -> None:
     text = (ROOT / ".github/workflows/redteam.yml").read_text()
     workflow = yaml.safe_load(text)
     triggers = workflow.get("on") or workflow[True]
-    assert set(triggers) == {"schedule", "workflow_dispatch"}
+    assert set(triggers) == {"workflow_dispatch"}  # no schedule: the owner caps the spend
     assert workflow["permissions"] == {"contents": "read"}
     assert "pull_request" not in text and "git push" not in text
     assert text.count("ANTHROPIC_API_TOKEN") == 1

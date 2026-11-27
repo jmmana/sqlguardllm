@@ -2,13 +2,11 @@ name: LLM red team
 
 # Defensive testing (research/redteam/README.md): Claude writes attacks against our own guard over
 # a synthetic schema; every query goes through the guard and the allowed ones run only on the
-# disposable service containers below, with canary data. Only a schedule and a manual run, only
+# disposable service containers below, with canary data. Only a manual run (no schedule: spend is capped by the owner), only
 # on main, never on a pull request. The job never pushes: the dataset is a workflow artifact that
 # a maintainer reviews and commits to research/redteam/.
 
 on:
-  schedule:
-    - cron: "17 5 * * 1"
   workflow_dispatch:
     inputs:
       max_attacks:

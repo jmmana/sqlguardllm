@@ -3,6 +3,11 @@ name: Claude pilot (manual, owner only)
 # No push, PR, pull_request_target, comment or public webhook trigger.
 on:
   workflow_dispatch:
+    inputs:
+      confirm_spend:
+        description: Type SPEND to confirm this paid run (up to USD 2.50 reserved)
+        required: true
+        default: "no"
 
 permissions:
   contents: read
@@ -19,6 +24,7 @@ jobs:
       github.repository == 'jmmana/sqlguardllm' &&
       github.ref == 'refs/heads/main' &&
       github.actor == 'jmmana' && github.triggering_actor == 'jmmana' &&
+      inputs.confirm_spend == 'SPEND' &&
       github.run_attempt == 1 && github.run_number <= 4
     runs-on: ubuntu-latest
     timeout-minutes: 15

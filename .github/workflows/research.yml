@@ -1,11 +1,6 @@
 name: Research native PostgreSQL
 
 on:
-  pull_request:
-    paths:
-      - "research/**"
-      - "src/**"
-      - ".github/workflows/research.yml"
   workflow_dispatch:
 
 permissions:

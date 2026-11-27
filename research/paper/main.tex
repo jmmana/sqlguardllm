@@ -10,6 +10,7 @@
   frame=single,framerule=0pt,xleftmargin=4pt,xrightmargin=4pt,
   keywordstyle=\color{guardgreen}\bfseries,escapeinside={(*@}{@*)}}
 \input{measurements}
+\input{adversarial}
 \title{\texttt{sqlguardllm}: Policy-Driven Validation and Rewriting of LLM-Generated SQL}
 \subtitle{An Execution-Oriented Systems Study}
 \author{Juan Manuel Castillo Pinto}
@@ -35,9 +36,16 @@ mismatches occurred, but 233 allowed queries were rejected and 194 rewritten
 queries failed execution. Seven targeted mutations expose coverage gaps in
 the original templates. Randomized, CPU-affined validation timing,
 template-cluster bootstrap intervals, and a million-row native planner probe
-provide additional descriptive evidence. These results characterize the
-published workloads; they do not establish security for arbitrary SQL.
-Decisions, errors, queries, timings and generation scripts are released.
+provide additional descriptive evidence. Two adversarial searches follow.
+Property-based fuzzing over canary data (\CFExamples{} examples, \CFEngines{})
+found no invariant failure in the reported run; earlier runs found a MySQL
+column-name case bypass and unhandled exceptions, now fixed. A language-model
+red team produced \RTAttacks{} kept queries for USD~\RTCost{}; the guard
+rejected \RTRejected{}, and one query (DuckDB \texttt{COLUMNS('.*')}) read
+hidden columns until a fix, after which a re-scoring shows no bypass. These results
+characterize the published workloads; they do not establish security for
+arbitrary SQL. Decisions, errors, queries, timings, the red-team dataset and
+generation scripts are released.
 \end{abstract}
 \keywords{SQL authorization, text-to-SQL, row-level security, query rewriting, reproducible evaluation}
 \maketitle
@@ -67,8 +75,11 @@ evaluation whose reference databases physically omit unauthorized data.
 We extend an initial 48-template workload with an outermost-\texttt{WHERE}
 baseline, edge probes, a probabilistic SQL grammar, targeted mutations,
 randomized timing and native PostgreSQL execution. The extension exposes
-utility failures absent from the original workload. The artifact preserves
-those failures alongside successful enforcement outcomes.
+utility failures absent from the original workload. We then add two searches
+that do not depend on templates we wrote: fuzzing judged by canary data, and
+a language model asked to attack the guard. The artifact preserves
+those failures, the bypasses and the complete red-team dataset alongside
+successful enforcement outcomes.
 
 \section{Threat Model and Semantics}
 The attacker controls the entire SQL string. Policy, authenticated context,
@@ -304,6 +315,57 @@ precede 15 paired rounds with randomized variant order, capturing
 The measurements describe native planner behavior and warm instrumented
 execution; client network latency and production concurrency are excluded.
 
+\subsection{Canary fuzzing and LLM red team}
+\paragraph{Canary fuzzing.}
+A \texttt{hypothesis} strategy writes SQL over a five-table demo schema:
+joins (including \texttt{USING} and \texttt{NATURAL}), derived tables,
+(recursive) CTEs, set operations, \texttt{GROUP BY}/\texttt{HAVING},
+\texttt{QUALIFY}, window functions, \texttt{DISTINCT ON}, correlated
+subqueries, \texttt{LIMIT}/\texttt{FETCH}/\texttt{TOP} variants, other casing and
+quoting of names, and whitespace and comments. The policy hides two columns,
+masks three, filters three tables by branch and caps results at seven rows;
+two roles (branches \{1,2\} and \{3\}) are exercised. The guard checks each
+query and every allowed query is executed in two data worlds. Every row of a
+filtered table carries \texttt{CANARY\_T<branch>\_} text, every hidden value
+contains \texttt{canary\_hidden} and every masked value
+\texttt{canary\_masked}. The oracle reads rows only, not the guard's code or its
+rewritten SQL. World~B changes every secret (hidden and masked values, and
+the rows of a branch no role receives) but keeps the same rows in the same
+physical order. Six invariants are checked per example: no row of another
+branch; no hidden or masked canary in any output cell; identical rows in both
+worlds (non-interference); at most the row cap; \texttt{check()} neither raises
+nor rejects without a reason (fail-closed); and idempotence of the guard's
+output. With the fix for each of two historical bypasses reverted
+(unqualified columns in \texttt{HAVING}/\texttt{QUALIFY}, fixed in 0.2.0a2;
+\texttt{TOP}/\texttt{FETCH} with \texttt{PERCENT} or \texttt{WITH TIES}, fixed
+in 0.3.0a1), the oracle reports both, and with the fixes it reports neither.
+The reported run uses the \texttt{\CFProfile{}} profile with seed \CFSeed{},
+\CFExamples{} examples on \CFEngines{}, sqlguardllm \CFGuard{}, SQLGlot
+\CFSqlglot{}, DuckDB \CFDuckdb{} and Hypothesis \CFHypothesis{}, run on
+\CFDate{}. Only the fuzzing policy is judged: hidden columns on row-filtered
+tables, \texttt{aggregate\_only}, required filters, hash masks and function
+allowlists are not exercised.
+
+\paragraph{LLM red team.}
+The purpose is defensive: a model is asked to attack our own guard, over a
+synthetic schema and canary data, and its queries are executed only in
+throw-away databases (in-process SQLite and DuckDB; PostgreSQL, MySQL and
+SQL Server service containers). One request was made on \RTDate{} for
+\RTModelRequested{} with adaptive thinking and structured output; at most
+\RTMaxAttacks{} attacks, \RTBudget{} output tokens and USD~\RTMaxUsd{} per run
+(worst-case estimate before sending: USD~\RTEstimate{}) are enforced before
+the request. The system prompt (SHA-256 prefix \texttt{\RTPromptHash{}}) and
+policy (\texttt{\RTPolicyHash{}}) are fixed and versioned. Each query goes
+through the guard of version \RTGuardVersion{}; allowed ones are executed on the
+engine of their dialect for both roles, and the same oracle judges the rows.
+A canary in an allowed query's output is a \emph{bypass}. Duplicates are
+detected by a literal-insensitive fingerprint and counted, never dropped.
+The request was served through the server-side fallback
+(\texttt{fallback\_used}=\RTFallback{}): the model recorded as answering in every
+per-query record is \RTModelAnswered{}, not the requested model. A stored dataset is
+re-judged with a later guard by \texttt{research/redteam/run.py --rescore},
+without any API call.
+
 \section{Results}
 \subsection{Original templates and predicate placement}
 All four core runtimes have identical outcomes for the five Python
@@ -381,6 +443,77 @@ not bypass probability for unseen attacks. Errors and over-rejections remain
 failures of utility. We do not pool runtimes to enlarge $N$ or apply the
 bound to handpicked templates/probes.
 
+\subsection{Adversarial search: canary fuzzing and LLM red team}
+\paragraph{Fuzzing.}
+In the reported run (seed \CFSeed{}, \CFExamples{} examples, \CFDuration{}\,s),
+the guard checked \CFChecked{} query--engine pairs, allowed \CFAllowed{},
+rejected \CFRejected{} and executed \CFExecuted{} rewritten queries
+(Table~\ref{tab:canary}). Invariant failures: \CFFailures{}. A clean run is not
+a certificate: earlier runs of the same fuzzer found three defects, all fixed
+and kept as regression cases. (i)~On MySQL, hidden and masked
+columns were readable by writing the column name in another case
+(\texttt{SELECT EMAIL FROM customers}), because MySQL ignores the case of
+column names but SQLGlot's MySQL dialect does not; it affects versions
+0.1.0a1 to 0.5.0a2 with dialect \texttt{mysql} and is fixed in 0.5.0a3.
+(ii)~\texttt{check()} raised \texttt{TypeError}, \texttt{ValueError} or
+\texttt{RecursionError} on some odd SQL instead of rejecting it; any such
+error while parsing is now a \texttt{parse\_error}. (iii)~DuckDB 2.0.1 ignores
+some \texttt{LIMIT}s (a \texttt{LEFT JOIN} whose right side its statistics prove
+empty); the guard's SQL is right, so this is documented as an engine limit and
+counted (\CFIgnoredLimit{} results in this run) rather than failed. Engine
+errors in Table~\ref{tab:canary} are rewritten queries the engine itself refused;
+they are not invariant failures, and they mean that not every fuzzer query is
+valid SQL for every engine.
+
+\begin{table}[t]
+\centering\small
+\caption{Canary fuzzing, one run. ``Eng.\ err.'' are engine errors on
+allowed queries; ``Ign.\ LIMIT'' are DuckDB results longer than the SQL's limit.
+``Fail.'' sums the six invariants.}
+\label{tab:canary}
+\input{canary-table}
+\end{table}
+
+\paragraph{Red team.}
+The model produced \RTAttacks{} kept queries (\RTUnique{} unique, \RTDuplicates{}
+duplicates) in \RTTechniques{} named techniques (at most \RTMaxTechnique{}
+queries per technique) for USD~\RTCost{} (\RTInTok{} input and \RTOutTok{} output
+tokens; stop reason \RTStop{}; \RTMalformed{} malformed items). The guard
+rejected \RTRejected{} and allowed \RTAllowedGuard{}; of the allowed queries,
+\RTAllowedSafe{} were clean and \RTBypasses{} leaked (Table~\ref{tab:redteam},
+Figure~\ref{fig:redteam}; one row per technique in
+Appendix~\ref{app:techniques}). Rejections are dominated by the hidden-column
+rule. The allowed queries were executed \RTExecutedRuns{} times
+(query--role--engine) on the engines of their dialects.
+
+The single bypass was \texttt{SELECT COLUMNS('.*') FROM customers} on DuckDB: the
+\texttt{COLUMNS()} star expansion read the hidden columns and the canary oracle saw
+\texttt{CANARY\_HIDDEN\_TAX} values in the output. It was found on guard
+\RTGuardVersion{}, fixed in \RTBypassFix{} by refusing \texttt{COLUMNS()} while
+hidden or masked columns are visible, and added to the corpus. Re-scoring the stored
+dataset with the fixed guard (commit \texttt{\RTRescoreSha{}}, whose package
+version string was still \RTRescoreVersion{}) on \RTRescoreEngines{} (no API call) gives
+\RTRescoreRejected{} rejected, \RTRescoreAllowed{} allowed, \RTRescoreBypasses{}
+bypasses and \RTRescoreChanged{} changed verdict: the query above. Package
+\RTRescoreLater{} gives the same totals. Re-scoring is
+regression evidence for this one run; it says nothing about queries the model
+did not write.
+
+\begin{table}[t]
+\centering\small
+\caption{LLM red team, run 1 (\RTDate{}). Rule counts are queries rejected by that rule; a query can
+be rejected by two rules.}
+\label{tab:redteam}
+\input{redteam-table}
+\end{table}
+
+\begin{figure}[t]
+\centering\includegraphics[width=.98\linewidth]{redteam.pdf}
+\caption{Guard verdicts per dialect and rejecting rule for the \RTAttacks{} red-team queries,
+computed from \texttt{attacks.jsonl}.}
+\label{fig:redteam}
+\end{figure}
+
 \subsection{Mutation detection}
 The original suite detects six of seven selected mutants, missing removal
 of function checks. Review edges detect that mutant through an admission-only
@@ -456,6 +589,12 @@ the templates.
 Text-to-SQL security studies \cite{peng2024security,song2024securesql}
 address model-facing threats beyond this fixed tenant policy.
 RBAC evaluation \cite{fei2026rbac} motivates separate utility and compliance.
+Property-based testing \cite{claessen2000quickcheck,maciver2019hypothesis} and
+oracle-based testing of database engines \cite{rigger2020pqs}
+motivate our fuzzer; the canary oracle differs in judging the data a query is
+allowed to reveal rather than engine correctness. Language models have been
+used to red-team language models \cite{perez2022redteaming}; here the target is a
+SQL guard and the judge is executable.
 SQLGlot provides parsing, expressions, scopes and generation \cite{sqlglot}.
 The contribution is the composition, result contract and falsifiable execution
 evidence for one implementation.
@@ -464,7 +603,9 @@ evidence for one implementation.
 \paragraph{Author bias and coverage.}
 Schemas, templates, edges, grammar and mutants were authored with knowledge
 of the implementation. A physical oracle does not establish independent
-workload design or external adversarial review. The grammar has 23 bounded
+workload design. Adversarial evidence now exists (canary fuzzing and one
+language-model red-team run), but both were designed and run by the author; no
+third-party security review or external red team is included. The grammar has 23 bounded
 families, intentionally retaining known issues before the reported run.
 Repeated contexts, runtimes and SQL strings are not additional independent
 attack families. Tested views require trusted policy/schema assumptions;
@@ -479,6 +620,31 @@ not work. Function allowlists, least-privilege credentials, native controls,
 timeouts and correct policies remain deployment responsibilities.
 Qualified-column and natural-join utility failures are material limitations.
 
+\paragraph{Fuzzing and red-team scope.}
+The red team is one run of one request: one attacker model (the model recorded
+as answering was \RTModelAnswered{}, through a fallback, not the requested
+\RTModelRequested{}), one prompt, one schema and \RTAttacks{} kept queries; a
+different prompt or model could find other bypasses or none, and prompt
+sensitivity was not measured. No refusal occurred in this run (stop reason
+\RTStop{}, \RTMalformed{} malformed items); refusals in other runs would
+shrink the dataset in ways not measured here. One bypass in \RTAttacks{} queries is
+not an estimate of the rate at which an attacker finds one. Canaries detect only what is in the output rows: they
+miss timing channels, error-message and existence leaks (including the
+nullness of a masked column, and the number of rows of a hidden branch, which
+is the same in both worlds), values transformed so that no canary
+text survives, and anything not returned. Only the fuzzing policy (masks,
+hidden columns, row filters, row cap) is judged; \texttt{aggregate\_only} has no
+canary oracle, and one schema and two roles are used. The fuzzer writes SQL
+through SQLGlot, so vendor syntax SQLGlot cannot produce is reached
+only through text mangling. Engines in the reported fuzz run: \CFEngines{};
+the re-scoring used \RTRescoreEngines{}. The original red-team run also
+executed on PostgreSQL, MySQL and SQL Server containers, but the fuzz run
+reported here did not, so the MySQL case bypass is documented from the regression
+record, not re-found by this run. Versions: fuzzing ran guard \CFGuard{}; the red
+team ran \RTGuardVersion{} and was re-scored with commit \texttt{\RTRescoreSha{}}
+and with \RTRescoreLater{}; neither covers other releases. DuckDB 2.0.1 limits are an engine property that the guard
+does not repair.
+
 \paragraph{Measurement and generality.}
 The semantic fixtures are small. The million-row indexed fixture covers
 three plans. Docker provides native server semantic/role evidence, not
@@ -492,17 +658,24 @@ A 20-question Spider-derived pilot \cite{spider} is prepared with paired clean
 and injected schema-note prompts, synthetic tenant augmentation,
 and separate task/policy scoring. Immutable source fingerprints accompany
 the subset, which retains original annotation ambiguities. Paid inference
-has not been run for this manuscript; there are no claimed execution-accuracy,
-injection-success or model-comparison results. One public schema cannot
+for this pilot has not been run; there are no claimed execution-accuracy,
+injection-success or model-comparison results. The red team above is a
+different experiment (model-written attacks against the guard) and makes no
+text-to-SQL accuracy claim. One public schema cannot
 substitute for contamination-aware Spider/BIRD evaluation.
 
 \section{Conclusion}
 Per-occurrence restrictions matter: the original workload distinguishes the
 full guard from outermost-\texttt{WHERE}, while native RLS/grants achieves
 the same tested outcomes. Expanded probes reveal utility failures and
-surviving mutations identify coverage gaps. The artifact makes these
-limits inspectable. Independent adversarial workloads, broader policies
-and engines, and completed model experiments remain empirical requirements.
+surviving mutations identify coverage gaps. Canary fuzzing (\CFExamples{} examples,
+\CFFailures{} invariant failures in the reported run) and one model-written
+red-team set (\RTAttacks{} queries, \RTBypasses{} bypass, fixed) add evidence the authored
+workload could not, and earlier fuzz runs found real defects. The
+artifact makes these limits inspectable. Third-party adversarial review,
+repeated red-team runs with other models, a canary oracle for aggregate
+policies, broader policies and engines, and completed text-to-SQL
+experiments remain empirical requirements.
 
 \section*{Artifacts and Reproducibility}
 \noindent\url{https://github.com/jmmana/sqlguardllm}\par
@@ -510,12 +683,30 @@ The repository contains source, bilingual captured
 demos, original and expanded measurements, and native-CI observations with
 run identifiers, archive digest, source hashes and versions. Revised numeric
 tables/figures derive from JSON; large per-draw records use deterministic
-gzip. The original 148-case development record spans ten parser dialect
+gzip. The red-team dataset (\texttt{research/redteam/2026-11-27/}:
+\texttt{attacks.jsonl}, \texttt{manifest.json}, \texttt{rescore.json}) and the
+fuzz statistics (\texttt{research/results/fuzz.json}) are published with the
+artifact, listed with SHA-256 digests in \texttt{research/artifact-sha256.json}
+and checked by \texttt{research/verify\_artifacts.py}; the red-team tables and
+figure are produced by \texttt{research/make\_adversarial.py}. The original 148-case development record spans ten parser dialect
 labels and remains distinct from real-engine execution.
+
+\paragraph{Reproduction commands.} Fuzz statistics (seed and counts as above):
+\begin{lstlisting}
+SQLGUARD_FUZZ_PROFILE=deep SQLGUARD_FUZZ_SEED=\CFSeed{} \
+SQLGUARD_FUZZ_EXAMPLES=20000 SQLGUARD_FUZZ_ENGINES=sqlite,duckdb \
+SQLGUARD_FUZZ_STATS=research/results/fuzz.json \
+  uv run pytest tests/fuzz -m fuzz
+\end{lstlisting}
+Re-scoring the stored red-team dataset without the API, then the tables:
+\begin{lstlisting}
+uv run python research/redteam/run.py --rescore research/redteam/2026-11-27
+uv run python research/make_adversarial.py
+\end{lstlisting}
 
 Code is Apache-2.0 licensed. Spider data/adaptations retain CC BY-SA 4.0
 attribution. No real private tenant data is used. The source ZIP includes
-the ACM class and its source/license; \texttt{nonacm} formatting does not
+the ACM class (LPPL-licensed) and its license text, not its documented source; \texttt{nonacm} formatting does not
 claim ACM publication or venue acceptance. Zenodo metadata is prepared but
 no DOI is assigned or claimed; add a persistent identifier only after an
 actual deposit.
@@ -525,7 +716,7 @@ AI assisted with drafting, evaluation code and visual/media scripts.
 Measurements come from executable runs and archived CI observations. The
 author remains responsible for claims and references before submission.
 
-\begin{thebibliography}{15}
+\begin{thebibliography}{19}
 \bibitem{peng2024security} Xutan Peng, Yipeng Zhang, Jingfeng Yang, and Mark Stevenson. 2024.
 On the Security Vulnerabilities of Text-to-SQL Models. arXiv:2211.15363, v4. \url{https://arxiv.org/abs/2211.15363}.
 \bibitem{song2024securesql} Yanqi Song, Ruiheng Liu, Shu Chen, Qianhao Ren, Yu Zhang, and Yongqi Yu. 2024.
@@ -554,6 +745,10 @@ Extending Query Rewriting Techniques for Fine-Grained Access Control. In \emph{S
 \url{https://pglite.dev/docs/}.
 \bibitem{spider} Tao Yu et al. 2018. Spider: A Large-Scale Human-Labeled Dataset for Complex and Cross-Domain Semantic Parsing and Text-to-SQL Task.
 In \emph{EMNLP}. \url{https://aclanthology.org/D18-1425/}.
+\bibitem{claessen2000quickcheck} Koen Claessen and John Hughes. 2000. QuickCheck: A Lightweight Tool for Random Testing of Haskell Programs. In \emph{ICFP}.
+\bibitem{maciver2019hypothesis} David R. MacIver, Zac Hatfield-Dodds, and contributors. 2019. Hypothesis: A new approach to property-based testing. \emph{Journal of Open Source Software} 4(43), 1891.
+\bibitem{rigger2020pqs} Manuel Rigger and Zhendong Su. 2020. Testing Database Engines via Pivoted Query Synthesis. In \emph{OSDI}.
+\bibitem{perez2022redteaming} Ethan Perez et al. 2022. Red Teaming Language Models with Language Models. In \emph{EMNLP}.
 \end{thebibliography}
 
 \clearpage
@@ -569,4 +764,12 @@ Python configurations; PostgreSQL/WASM also reproduces the RLS column.}
 \Description{A 48-row by six-column heatmap of correct outcomes across two tenants, with the full guard column outlined.}
 \label{fig:heatmap}
 \end{figure}
+
+\section{Red-Team Techniques}\label{app:techniques}
+\begin{table}[ht]
+\centering\footnotesize
+\caption{Every technique named by the model in run 1, with queries (Q) and guard verdicts
+(rejected, allowed and clean, bypass). The queries themselves are in \texttt{attacks.jsonl}.}
+\input{technique-table}
+\end{table}
 \end{document}

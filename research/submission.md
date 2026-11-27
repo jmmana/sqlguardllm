@@ -8,7 +8,10 @@ ACM `sigconf,nonacm` formatting does not claim an ACM venue or acceptance.
 
 - `paper/main.pdf`: revised English review copy.
 - `paper/main.tex`, generated tables/macros, four vector figures and bibliography.
-- `paper/acmart.cls`, class source/installer and license for a self-contained build.
+- `paper/acmart.cls` (LPPL) and `paper/ACM-LICENSE.txt` for a self-contained build. The
+  documented source (`acmart.dtx`/`.ins`) is not vendored; get it from CTAN if needed.
+- `redteam/2026-11-27/` and `results/fuzz.json`: LLM red-team dataset and fuzz statistics,
+  hashed in `artifact-sha256.json` and checked by `verify_artifacts.py`.
 - `sqlguardllm-arxiv-source.zip`: all required LaTeX sources and figures.
 - `results/`, `results-review/`, `results-native-service/`: original evidence,
   generated cases, utility failures, mutations, timings and native Docker observations.
@@ -30,8 +33,10 @@ ACM `sigconf,nonacm` formatting does not claim an ACM venue or acceptance.
 The abstract is the one in `paper/main.tex`. Core results include native
 PostgreSQL server execution and preserve known utility failures. The prepared
 Claude pilot is explicitly unmeasured until it runs; do not turn its protocol
-into accuracy or prompt-injection results. No security proof, independent
-red-team result or ten-engine execution claim is made.
+into accuracy or prompt-injection results. No security proof, third-party
+review or ten-engine execution claim is made. Adversarial evidence is limited to
+canary fuzzing (one run, SQLite and DuckDB, 20,000 examples) and one LLM red-team
+run (46 queries, one attacker model, answered through a server-side fallback).
 
 ## External publication steps
 

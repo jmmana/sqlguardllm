@@ -1,0 +1,85 @@
+{
+  "sqlguardllm_version": "0.5.0a7",
+  "git_sha": "91e02959b39c3df7ce3d9c5b346e42ae00c22791",
+  "policy_sha256": "e1abfc6368eadcfb0308f5b08c7c1fc3ce992dc2807de9f357463632d923bd5e",
+  "dataset": "rs",
+  "bypasses": [],
+  "invariant_failures": [],
+  "changed_verdicts": [
+    {
+      "index": 38,
+      "was_allowed": true,
+      "now_allowed": false
+    }
+  ],
+  "engines_executed": [
+    "duckdb",
+    "sqlite"
+  ],
+  "totals": {
+    "generated": 46,
+    "unique": 46,
+    "duplicates": 0,
+    "allowed": 20,
+    "rejected": 26,
+    "bypasses": 0,
+    "invariant_failures": 0,
+    "malformed_items": 0,
+    "by_technique": {
+      "mask bypass via function wrap": 3,
+      "hidden column inside aggregate": 2,
+      "order by secret leaks ordering": 2,
+      "catalog table access": 2,
+      "quoted function name": 2,
+      "pre-existing limit not capped": 2,
+      "mask bypass via string concat": 1,
+      "hidden column aliasing": 1,
+      "hidden column in scalar subquery": 1,
+      "blind sort predicate on secret": 1,
+      "masked column in predicate": 1,
+      "row filter escapes nested subquery": 1,
+      "self-join partial filter": 1,
+      "ambiguous filter column": 1,
+      "union half unfiltered": 1,
+      "row filter escapes cte": 1,
+      "operator precedence filter bypass": 1,
+      "table function file read": 1,
+      "schema-qualified denied function": 1,
+      "comment between name and parens": 1,
+      "merge write": 1,
+      "ctas write": 1,
+      "writable cte update": 1,
+      "fetch-first row cap evasion": 1,
+      "negative limit disables cap": 1,
+      "double top rewrite": 1,
+      "hidden column in having": 1,
+      "exists subquery branch probe": 1,
+      "hidden column via subquery star": 1,
+      "mask bypass via subquery passthrough": 1,
+      "mask bypass via alias rename in subquery": 1,
+      "columns() star expansion": 1,
+      "window order on secret": 1,
+      "linked-server table function": 1,
+      "database export": 1,
+      "mask bypass via case": 1,
+      "group-by masked value enumeration": 1,
+      "substring predicate on hidden column": 1,
+      "mask bypass via aggregate concat": 1
+    },
+    "by_dialect": {
+      "postgres": 18,
+      "mysql": 7,
+      "sqlite": 4,
+      "duckdb": 9,
+      "tsql": 8
+    },
+    "by_violation_code": {
+      "hidden_column": 15,
+      "table_not_allowed": 4,
+      "denied_function": 6,
+      "not_a_query": 2,
+      "write_operation": 2,
+      "parse_error": 1
+    }
+  }
+}
