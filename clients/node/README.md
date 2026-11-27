@@ -52,6 +52,12 @@ Error messages never include the token or the context.
 
 Row-filter values (tenant, user id) must come from your authenticated session, never from text the model produced. Otherwise the model could pick its own tenant.
 
+## Embedded engine packages
+
+The engine binary ships as one npm package per platform, `sqlguardllm-engine-<platform>` (`linux-x64`, `linux-arm64`, `macos-arm64`, `macos-x64`, `windows-x64`), declared as `optionalDependencies` with `os`/`cpu` so npm installs only yours. There is no `postinstall` and no download: it works offline, with `--ignore-scripts` and from a lockfile. `resolveEngine()` recomputes the SHA-256 of the engine folder and compares it with the value built into `sqlguardllm`; on any difference, or if the package is missing, it throws `SqlGuardError` (`engine_digest_mismatch`, `engine_not_found`) and nothing is started. On other platforms (including musl Linux such as Alpine) it throws `unsupported_platform`, and the message points to the remote mode (`sqlguardllm serve` and `new SqlGuard({ baseUrl })`).
+
+Maintainers: `python scripts/fetch-engine.py <version> --out engines`, then `npm run build:engines`, which writes the platform packages to `npm/dist/` and the digests to `src/engine-digests.json`. Publish the platform packages first and `sqlguardllm` last, with `npm/dist/optional-dependencies.json` merged into its `optionalDependencies`.
+
 ## Development
 
 `npm ci && npm run build && npm test` in `clients/node`. Tests run against an in-process fake server that follows the `/v1` contract.

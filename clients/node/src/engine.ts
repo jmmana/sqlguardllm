@@ -75,7 +75,7 @@ export function digestTree(root: string): string {
 export interface ResolveEngineOptions {
   env?: EngineEnv;
   /** Digests built into the package; tests override them. */
-  digests?: { version: string | null; platforms: Record<string, string> };
+  digests?: { version: string | null; platforms: Record<string, string | undefined> };
   /** Folder of a platform package; the default uses Node module resolution. */
   locate?: (packageName: string) => string;
 }
@@ -91,7 +91,7 @@ function defaultLocate(packageName: string): string {
  */
 export function resolveEngine(opts: ResolveEngineOptions = {}): string {
   const info = detectPlatform(opts.env);
-  const expected = (opts.digests ?? digests).platforms[info.key];
+  const expected = (opts.digests ?? (digests as NonNullable<ResolveEngineOptions["digests"]>)).platforms[info.key];
   if (!expected) {
     throw new SqlGuardError("engine_not_found", `this package has no engine digest for ${info.key}. ${REMOTE_HINT}`);
   }
