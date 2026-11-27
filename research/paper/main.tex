@@ -1,6 +1,8 @@
 \documentclass[sigconf,nonacm,natbib=false]{acmart}
 \settopmatter{printacmref=false,printfolios=true}
 \setcopyright{none}
+% acmart's math fonts already define \Bbbk; amssymb would redefine it (pdflatex error).
+\let\Bbbk\relax
 \usepackage{amsmath,amssymb,booktabs,graphicx,xcolor,listings}
 \IfFileExists{libertine.sty}{}{\usepackage{lmodern}}
 \definecolor{guardgreen}{HTML}{009E73}
