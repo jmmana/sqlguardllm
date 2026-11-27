@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/protocol/protocol.schema.json",
+  "title": "sqlguardllm engine protocol, version 1",
+  "description": "Bodies shared by the HTTP server (POST /v1/check, /v1/explain) and the stdio engine (sqlguardllm engine --stdio). See docs/PROTOCOL.md.",
+  "$defs": {
+    "Context": {
+      "type": ["object", "null"],
+      "description": "Values for the {context.path} placeholders of the row filters."
+    },
+    "CheckRequest": {
+      "type": "object",
+      "required": ["sql"],
+      "properties": {
+        "sql": {"type": "string"},
+        "context": {"$ref": "#/$defs/Context"}
+      }
+    },
+    "Violation": {
+      "type": "object",
+      "required": ["code", "message", "detail"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string"},
+        "detail": {"type": "string"}
+      }
+    },
+    "CheckResult": {
+      "type": "object",
+      "required": ["ok", "sql", "tables", "applied_filters", "violations"],
+      "properties": {
+        "ok": {"type": "boolean"},
+        "sql": {"type": ["string", "null"]},
+        "tables": {"type": "array", "items": {"type": "string"}},
+        "applied_filters": {"type": "array", "items": {"type": "string"}},
+        "violations": {"type": "array", "items": {"$ref": "#/$defs/Violation"}}
+      }
+    },
+    "ExplainResult": {
+      "type": "object",
+      "required": [
+        "ok", "sql", "tables", "columns", "unresolved_columns", "masked_columns",
+        "aggregate_only", "row_filters", "limit", "violations", "text"
+      ],
+      "properties": {
+        "ok": {"type": "boolean"},
+        "sql": {"type": ["string", "null"]},
+        "tables": {"type": "array", "items": {"type": "string"}},
+        "columns": {
+          "type": "object",
+          "additionalProperties": {"type": "array", "items": {"type": "string"}}
+        },
+        "unresolved_columns": {"type": "array", "items": {"type": "string"}},
+        "masked_columns": {"type": "object", "additionalProperties": {"type": "string"}},
+        "aggregate_only": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "row_filters": {"type": "object", "additionalProperties": {"type": "string"}},
+        "limit": {"type": ["integer", "null"]},
+        "violations": {"type": "array", "items": {"$ref": "#/$defs/Violation"}},
+        "text": {"type": "string"}
+      }
+    },
+    "ErrorBody": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {"code": {"type": "string"}, "message": {"type": "string"}}
+    },
+    "HttpError": {
+      "type": "object",
+      "required": ["error"],
+      "properties": {"error": {"$ref": "#/$defs/ErrorBody"}}
+    },
+    "Id": {"type": ["string", "integer"]},
+    "Request": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {"$ref": "#/$defs/Id"},
+        "type": {"enum": ["hello", "load_policy", "check", "explain", "shutdown"]}
+      },
+      "oneOf": [
+        {"properties": {"type": {"const": "hello"}}},
+        {
+          "properties": {
+            "type": {"const": "load_policy"},
+            "policy": {"type": "object"},
+            "policy_set": {"type": "object"},
+            "role": {"type": "string"},
+            "language": {"enum": ["en", "es"]}
+          },
+          "oneOf": [
+            {
+              "required": ["policy"],
+              "not": {"anyOf": [{"required": ["policy_set"]}, {"required": ["role"]}]}
+            },
+            {"required": ["policy_set", "role"], "not": {"required": ["policy"]}}
+          ]
+        },
+        {
+          "allOf": [{"$ref": "#/$defs/CheckRequest"}],
+          "properties": {"type": {"enum": ["check", "explain"]}, "handle": {"type": "string"}},
+          "required": ["handle"]
+        },
+        {"properties": {"type": {"const": "shutdown"}}}
+      ]
+    },
+    "Response": {
+      "type": "object",
+      "required": ["id", "type"],
+      "oneOf": [
+        {
+          "properties": {
+            "id": {"$ref": "#/$defs/Id"},
+            "type": {"const": "hello"},
+            "protocol": {"const": 1},
+            "engine_version": {"type": "string"},
+            "dialects": {"type": "array", "items": {"type": "string"}}
+          },
+          "required": ["protocol", "engine_version", "dialects"]
+        },
+        {
+          "properties": {
+            "id": {"$ref": "#/$defs/Id"},
+            "type": {"const": "load_policy"},
+            "handle": {"type": "string"}
+          },
+          "required": ["handle"]
+        },
+        {
+          "properties": {
+            "id": {"$ref": "#/$defs/Id"},
+            "type": {"const": "check"},
+            "result": {"$ref": "#/$defs/CheckResult"}
+          },
+          "required": ["result"]
+        },
+        {
+          "properties": {
+            "id": {"$ref": "#/$defs/Id"},
+            "type": {"const": "explain"},
+            "result": {"$ref": "#/$defs/ExplainResult"}
+          },
+          "required": ["result"]
+        },
+        {"properties": {"id": {"$ref": "#/$defs/Id"}, "type": {"const": "shutdown"}}},
+        {
+          "properties": {
+            "id": {"type": ["string", "integer", "null"]},
+            "type": {"const": "error"},
+            "allowed": {"const": false},
+            "error": {"$ref": "#/$defs/ErrorBody"}
+          },
+          "required": ["allowed", "error"]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+name: playground
+on:
+  pull_request:
+    paths: ["playground/**", "src/**", ".github/workflows/playground.yml"]
+  push:
+    branches: [main]
+    paths: ["playground/**", "src/**"]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install test dependencies and Chromium
+        working-directory: playground/test
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Test (serves the playground folder itself)
+        working-directory: playground/test
+        run: npm test

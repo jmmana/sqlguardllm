@@ -1,0 +1,49 @@
+name: npm pack (dry run)
+
+# Builds the six npm packages with placeholder engines and runs `npm pack` on each, exactly the code
+# path release.yml publishes with. Nothing is published, no secrets, read-only token. The file list
+# of every tarball is uploaded as an artifact. The real engines are checked in the release run.
+on:
+  pull_request:
+    paths:
+      - "clients/node/**"
+      - ".github/workflows/npm-pack.yml"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: clients/node/package-lock.json
+      - run: npm ci
+      - run: node npm/fake-engines.mjs "$RUNNER_TEMP/engines"
+      - run: node npm/build.mjs --engines "$RUNNER_TEMP/engines" --out npm/dist
+      - run: node npm/publish.mjs --out npm/dist --dry-run --pack-dir npm/packed
+      - name: The installed engine still matches its built-in digest (npm drops symlinks)
+        run: node npm/verify-packed.mjs npm/packed
+      - name: Every tarball has what it should (and no source, tests or scripts)
+        run: |
+          set -e
+          cat npm/packed/*.files.txt
+          for f in npm/packed/*.files.txt; do
+            if grep -qE '^(src|test|npm|scripts)/' "$f"; then echo "unexpected files in $f"; exit 1; fi
+          done
+          test "$(ls npm/packed/*.tgz | wc -l)" -eq 6
+          grep -q '^dist/index.js$' npm/packed/sqlguardllm-0*.files.txt
+          grep -q '^engine/sqlguardllm-engine$' npm/packed/sqlguardllm-engine-linux-x64-*.files.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-pack-files
+          path: clients/node/npm/packed/*.files.txt

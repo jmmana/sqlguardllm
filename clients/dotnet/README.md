@@ -2,6 +2,8 @@
 
 Official .NET client for [sqlguardllm](https://github.com/jmmana/sqlguardllm), the SQL firewall for LLM apps. It talks to `sqlguardllm serve` (the same engine, over HTTP) so .NET behaves exactly like Python. No runtime dependencies beyond `HttpClient` and `System.Text.Json`. Targets `net8.0` and `net10.0`.
 
+> `SqlGuardClient` needs a running `sqlguardllm serve`; `SqlGuard.CreateLocalAsync` runs the engine shipped in the package, with no Python and no server (see below).
+
 ```
 dotnet add package SqlGuardLlm
 ```
@@ -34,6 +36,38 @@ await using var conn = new NpgsqlConnection(readOnlyConnectionString);   // also
 var rows = await conn.QueryAsync(safeSql);                               // Dapper
 // or plain ADO.NET: using var cmd = conn.CreateCommand(); cmd.CommandText = safeSql; ...
 ```
+
+## Integrations
+
+Separate packages, so the core keeps no dependencies. See [docs/RECIPES.md](../../docs/RECIPES.md#net) and [`examples/dotnet`](../../examples/dotnet).
+
+- `SqlGuardLlm.Extensions`: `services.AddSqlGuard(configuration.GetSection("SqlGuard"))` (or `AddSqlGuard(o => ...)`, or `AddSqlGuard(localGuard)`), `AddSqlGuardContext(sp => ...)`, ADO.NET (`GuardAsync`, `CreateGuardedCommandAsync`, `ExecuteGuardedReaderAsync`) and Dapper (`QueryGuardedAsync`) helpers, and `GuardedSqlFunction`, a Microsoft.Extensions.AI `AIFunction`.
+- `SqlGuardLlm.EntityFrameworkCore`: `optionsBuilder.UseSqlGuard(guard)`, a `DbCommandInterceptor` that enforces raw SQL (`FromSql*`, `SqlQuery*`, `ExecuteSql*`).
+- `SqlGuardLlm.SemanticKernel`: `SqlGuardFunctionFilter`, an `IFunctionInvocationFilter`.
+
+## Embedded engine (no server)
+
+The package carries the engine for linux-x64, linux-arm64, osx-x64, osx-arm64 and win-x64 under `runtimes/{rid}/native/sqlguardllm-engine/`:
+
+```csharp
+await using var guard = await SqlGuard.CreateLocalAsync(new SqlGuardLocalOptions
+{
+    PolicyJson = """{"dialect": "postgres", "tables": ["invoices"]}""",
+});
+string safe = await guard.EnforceAsync(sqlFromModel, new Dictionary<string, object?> { ["tenant_id"] = tenantId });
+```
+
+Local mode has the same API and result types as remote mode: both implement `ISqlGuard` (`CheckAsync`, `EnforceAsync`, `ExplainAsync`), so code can take an `ISqlGuard` and run either. `SqlGuardLocal` is thread-safe: concurrent calls share one engine process and each answer is matched to its call by request id. Every call takes a `CancellationToken` (cancelling one call does not disturb the others) and has a per-call timeout (`SqlGuardLocalOptions.Timeout`, default 5 s). `DisposeAsync` stops the engine and fails pending calls.
+
+If the engine crashes or a call times out, the engine is killed and every pending call fails with `SqlGuardException` (`engine_closed`, or `timeout` for the call that timed out). Calls made during the restart backoff fail at once with `engine_restarting`; the first call after it starts a new engine, verified again against `engine.sha256`. The backoff starts at `RestartBackoff` (100 ms), doubles on every consecutive failure up to `MaxRestartBackoff` (5 s) and resets after a call is served. Nothing is ever reported ok while the engine is down.
+
+The library uses source-generated `System.Text.Json` and no reflection; it is annotated for trimming and Native AOT. `context` values may be strings, numbers, booleans, null, `JsonElement`, dictionaries and lists; any other type throws `ArgumentException`.
+
+Before it starts, the client recomputes the SHA-256 of every engine file against `engine.sha256` and refuses to run on any mismatch (`SqlGuardException`, code `engine_integrity`); it also refuses an engine whose version or protocol does not match the package. On an unsupported runtime (another OS or CPU, Alpine/musl) it throws `engine_unsupported`, whose message points to remote mode: use `SqlGuardClient` against `sqlguardllm serve`. The hashes ship in the same package as the binaries, so they catch corruption and tampering after install; the supply chain (checksums and attestations of the release) is verified by `scripts/fetch-engine.py` when the package is built. Unix permissions are not kept by NuGet, so the client sets the executable bit on first start: a read-only file system needs it set at image build time.
+
+### Publishing
+
+It works with `dotnet run`, `dotnet publish -r <rid>`, self-contained and single-file publishes, Native AOT and Linux container images (glibc based, such as `mcr.microsoft.com/dotnet/runtime-deps`; Alpine/musl is not supported). The package ships `build/SqlGuardLlm.targets`, which keeps the engine folder intact in a RID-specific publish (the SDK would otherwise flatten native assets): it ends up as `sqlguardllm-engine/` next to your executable, which is where the client looks. Copy the whole publish folder, not just the executable. CI proves each of these with the packed package (`clients/dotnet/smoke`, `.github/workflows/dotnet-client.yml`).
 
 ## API
 

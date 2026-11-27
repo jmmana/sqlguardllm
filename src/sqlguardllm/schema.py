@@ -1,8 +1,9 @@
 """JSON Schemas of policy and policy-set files, for editors and CI.
 
 The published copies live in ``schema/`` and are regenerated with
-``sqlguardllm schema > schema/policy.schema.json`` and
-``sqlguardllm schema --policy-set > schema/policy-set.schema.json``; a test keeps them in sync.
+``sqlguardllm schema > schema/policy.schema.json``,
+``sqlguardllm schema --policy-set > schema/policy-set.schema.json`` and
+``sqlguardllm schema --cases > schema/policy-tests.schema.json``; tests keep them in sync.
 """
 
 from __future__ import annotations
@@ -10,7 +11,9 @@ from __future__ import annotations
 from dataclasses import fields
 from typing import Any
 
+from sqlguardllm.lint import LintCode
 from sqlguardllm.policy import Policy
+from sqlguardllm.result import ViolationCode
 
 SCHEMA_ID = "https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy.schema.json"
 POLICY_SET_SCHEMA_ID = (
@@ -97,6 +100,13 @@ _PROPERTIES: dict[str, dict[str, Any]] = {
         "additionalProperties": {**_STRINGS, "minItems": 1},
         "description": "Table → columns. Lets * over a table with masked columns be expanded.",
     },
+    "lint_suppress": {
+        "type": "object",
+        "propertyNames": {"enum": [code.value for code in LintCode]},
+        "additionalProperties": {"type": "string", "pattern": r"\S"},
+        "description": "sqlguardllm lint warning code → why it doesn't apply to this policy. "
+        "Only the linter reads it.",
+    },
 }
 
 
@@ -177,4 +187,44 @@ def policy_set_schema() -> dict[str, Any]:
             },
         },
         "$defs": {"policy": policy, "role": role},
+    }
+
+
+def policy_tests_schema() -> dict[str, Any]:
+    """The JSON Schema (draft 2020-12) of a policy test cases file."""
+    non_blank = {"type": "string", "pattern": r"\S"}
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://raw.githubusercontent.com/jmmana/sqlguardllm/main/schema/policy-tests.schema.json",
+        "title": "sqlguardllm policy test cases",
+        "type": "object",
+        "required": ["cases"],
+        "additionalProperties": False,
+        "properties": {
+            "cases": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "required": ["sql", "expect"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "name": non_blank,
+                        "sql": non_blank,
+                        "role": {**non_blank, "description": "Required when testing a policy set."},
+                        "context": {"type": "object", "description": "Values for row filters."},
+                        "expect": {"enum": ["allow", "reject"]},
+                        "violation": {"enum": [code.value for code in ViolationCode]},
+                        "sql_contains": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "A literal, case-sensitive substring of rewritten SQL.",
+                        },
+                    },
+                    "if": {"properties": {"expect": {"const": "allow"}}},
+                    "then": {"not": {"required": ["violation"]}},
+                    "else": {"not": {"required": ["sql_contains"]}},
+                },
+            },
+        },
     }

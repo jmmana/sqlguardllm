@@ -27,6 +27,7 @@ git clone https://github.com/jmmana/sqlguardllm.git
 cd sqlguardllm
 uv sync                      # Python 3.10+, installs dev tools
 uv run pytest                # unit tests + adversarial corpus
+SQLGUARD_FUZZ_PROFILE=deep uv run pytest tests/fuzz -m fuzz   # 20,000 fuzzed queries (docs/THREAT_MODEL.md)
 uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy
 ```
 
@@ -40,7 +41,11 @@ Issues that describe work follow the same shape, so anyone can pick them up with
 - **Size**: S (half a day), M (1–2 days), L (3–5 days).
 - **Notes**: dependencies (`Depends on #N`) and links to the design.
 
+The [Claude issue helper](docs/CLAUDE_ISSUE_HELPER.md) can prepare a proposal for maintainers to review.
+
 ## Pull requests
+
+Coding agents follow the [agent workflow](AGENTS.md): use Claude API assistance for each issue, keep one focused implementation branch per agent, and remove merged branches after integration.
 
 1. Fork, then branch from `main`: `feat/<short-name>`, `fix/<short-name>` or `corpus/<short-name>`.
 2. Keep PRs focused: one issue, one result.
@@ -68,3 +73,25 @@ sqlguardllm is licensed under [Apache-2.0](LICENSE). By submitting a contributio
 ## Code of conduct
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Be kind; critique ideas, not people.
+
+## Releasing
+
+Maintainers only. Every release goes to PyPI, npm and NuGet together, with one version.
+
+1. Set the version in `pyproject.toml` (for example `0.6.0a1`) and the matching one in `clients/node/package.json` and `<Version>` of `clients/dotnet/src/SqlGuardLlm/SqlGuardLlm.csproj` (`0.6.0-alpha.1`; `b1` is `-beta.1`, `rc1` is `-rc.1`), then run `uv lock` and `npm install --package-lock-only` in `clients/node`.
+2. Move the `Unreleased` notes in `CHANGELOG.md` under `## [0.6.0a1] - YYYY-MM-DD`.
+3. Merge to `main`, then tag: `git tag -a v0.6.0a1 -m "sqlguardllm 0.6.0a1" && git push origin v0.6.0a1`.
+
+The `Release` workflow checks that tag, versions and changelog agree, runs the tests, and publishes to PyPI, npm and NuGet with Trusted Publishing (no tokens). npm gets the dist-tag from the version: before 1.0 every release is `latest`; from 1.0 on, prereleases get `alpha`, `beta` or `rc` and final releases `latest`. npm publishes six packages per release: `sqlguardllm-engine-{linux-x64,linux-arm64,macos-arm64,macos-x64,windows-x64}` first, then `sqlguardllm` last (its `optionalDependencies` are merged in at publish time and never committed). The engines are the archives of that same run, attested and re-verified (attestation, then SHA-256) before they are unpacked; each package is published with `npm publish --provenance`, and one already on npm is skipped, so a failed release can be re-run. `clients/node/npm/publish.mjs --dry-run` does `npm pack` on all six without publishing; the `npm pack (dry run)` workflow runs it on every pull request (with placeholder engines) and uploads the file list of every tarball, and the release runs it with the real engines just before publishing.
+
+**Before the first tag that publishes the engine packages (owner, once).** npm Trusted Publishing is configured per package, on npmjs.com, and as far as I could establish it needs the package to exist: I found no "pending publisher" for a name that does not exist yet (PyPI has one, npm does not, as far as I know; check npm's current docs, this may have changed). So the five `sqlguardllm-engine-*` names need a one-time bootstrap:
+
+1. Log in with an account that can publish to the `sqlguardllm-engine-*` names (`npm login`, 2FA on).
+2. For each of the five names, publish a minimal placeholder by hand (`sh scripts/bootstrap-npm-engines.sh` does this for all five), for example `0.0.0` with `--tag bootstrap` (a folder with only a `package.json` that has the name, `"version": "0.0.0"`, `"license": "Apache-2.0"`, and `publishConfig.access: public`; `npm publish --access public --tag bootstrap`). This does not touch `latest`. It has no provenance; real releases do.
+3. On npmjs.com, open each of the five packages and the existing `sqlguardllm` → Settings → Trusted Publisher → GitHub Actions: organization or user `jmmana`, repository `sqlguardllm`, workflow filename `release.yml`, environment `npm`.
+4. Make sure the GitHub environment `npm` exists in the repository settings. Then tag as above.
+
+The alternative is a short-lived granular access token stored as a secret in the `npm` environment for the first release only, which this workflow does not use and which is worse than the one-time manual placeholder. After the first release, delete any such token.
+
+If npm holds a release for approval (staged publishing), approve it at npmjs.com → Staged Packages.
+

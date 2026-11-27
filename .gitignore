@@ -8,6 +8,7 @@ __pycache__/
 htmlcov/
 dist/
 build/
+!clients/dotnet/build/
 *.egg-info/
 site/
 .env
@@ -25,3 +26,4 @@ research/paper/*.out
 research/paper/*.fls
 research/paper/*.fdb_latexmk
 docs/assets/demo-contact.*.png
+.hypothesis/

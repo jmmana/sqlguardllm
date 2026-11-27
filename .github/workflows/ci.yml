@@ -36,6 +36,13 @@ jobs:
         run: uv run mypy
       - name: Tests and adversarial corpus
         run: uv run pytest
+      - name: Demo policies (declared cases and strict lint)
+        run: |
+          uv run sqlguardllm test examples/policy-tests.yaml --policy examples/policy.yaml
+          uv run sqlguardllm test examples/roles-tests.yaml --policy examples/roles.yaml
+          uv run sqlguardllm lint --strict --policy examples/policy.yaml
+          uv run sqlguardllm lint --strict --policy examples/roles.yaml
+          uv run sqlguardllm lint --strict --policy examples/mcp/roles.yaml
 
   package:
     name: Build and check the package

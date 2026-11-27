@@ -24,6 +24,8 @@ An invalid policy or an empty `--token-env` variable exits with code 2. The toke
 
 ## Contract
 
+See the [package guide](packages.md#http-protocol-version) for the protocol compatibility policy.
+
 All responses are `application/json; charset=utf-8`.
 
 - `GET /v1/health` returns `{"status": "ok", "version": "..."}`. It never needs a token.
@@ -47,6 +49,14 @@ curl -H "Authorization: Bearer $SQLGUARD_TOKEN" ...
 ```
 
 Every request except `/v1/health` then needs the header (compared in constant time); otherwise 401.
+
+## Audit log
+
+Off by default. `--audit-log PATH|-` records every `/v1/check` decision as JSON Lines in a file or, with `-`, on stderr; `--audit-sql {none,redacted,raw}` says how much SQL the events carry (default `redacted`: literals replaced by `?`). With `--role` the events carry the role. Context values are never logged. See [Audit log](AUDIT.md).
+
+```bash
+sqlguardllm serve --policy policy.yaml --audit-log /var/log/sqlguard/audit.jsonl
+```
 
 ## Docker
 

@@ -61,6 +61,8 @@ class Policy:
             aggregates, and groups smaller than ``k`` never come back.
         schema: Table → its columns. Lets ``*`` over a table with masked columns be expanded
             with the masks instead of rejected.
+        lint_suppress: ``sqlguardllm lint`` warning code → why it doesn't apply to this policy.
+            Only the linter reads it: checking SQL ignores it.
     """
 
     dialect: str
@@ -81,6 +83,7 @@ class Policy:
     masked_columns: Mapping[str, str] = field(default_factory=dict)
     aggregate_only: Mapping[str, int] = field(default_factory=dict)
     schema: Mapping[str, Collection[str]] | None = None
+    lint_suppress: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not isinstance(self.dialect, str) or not self.dialect.strip():
@@ -166,6 +169,21 @@ class Policy:
                     raise PolicyError(f"schema[{table!r}] must contain non-empty strings")
                 frozen_schema[table] = items
             object.__setattr__(self, "schema", MappingProxyType(frozen_schema))
+        self._check_lint_suppress()
+
+    def _check_lint_suppress(self) -> None:
+        from sqlguardllm.lint import LINT_CODES  # noqa: PLC0415 - lint imports this module
+
+        if not isinstance(self.lint_suppress, Mapping):
+            raise PolicyError(
+                "lint_suppress must map lint codes to the reason for suppressing them"
+            )
+        for code, reason in self.lint_suppress.items():
+            if code not in LINT_CODES:
+                raise PolicyError(f"unknown lint code in lint_suppress: {code!r}")
+            if not isinstance(reason, str) or not reason.strip():
+                raise PolicyError(f"lint_suppress[{code!r}] needs the reason as a non-empty string")
+        object.__setattr__(self, "lint_suppress", MappingProxyType(dict(self.lint_suppress)))
 
     @classmethod
     def from_database(
@@ -178,6 +196,8 @@ class Policy:
         **options: Any,
     ) -> Policy:
         """Build a policy whose ``tables`` and ``schema`` are read from a live database.
+
+        Experimental: this helper can change while the database introspection API evolves.
 
         Needs ``pip install "sqlguardllm[db]"`` and your database driver. Only names are read.
         ``include``/``exclude`` are glob patterns over table names (``"invoice*"``,
@@ -227,7 +247,10 @@ def read_mapping(path: str | Path) -> Mapping[str, Any]:
             import yaml  # noqa: PLC0415
         except ImportError as exc:  # pragma: no cover - depends on the environment
             raise PolicyError('YAML policies need: pip install "sqlguardllm[yaml]"') from exc
-        data = yaml.safe_load(text)
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            raise PolicyError("invalid YAML syntax") from exc
     else:
         data = json.loads(text)
     if not isinstance(data, Mapping):

@@ -75,6 +75,7 @@ Codes are part of the public API and **stable across minor versions**. Messages 
 | `too_complex` | The query exceeds `max_joins`, `max_subquery_depth` or `forbid_cartesian` |
 | `missing_required_filter` | A table in `required_filters` is read without a predicate on one of its columns |
 | `aggregate_required` | A table in `aggregate_only` is read without aggregating (raw columns, `*`, or window functions) |
+| `audit_failure` | Only with `AuditLog(strict=True)`: the decision could not be recorded, so an allowed query is rejected ([audit log](AUDIT.md)) |
 
 ## Pipeline
 
@@ -117,7 +118,7 @@ This is what catches `WITH d AS (DELETE … RETURNING *) SELECT * FROM d` (a `De
 
 - Resolve sources per scope with `sqlglot.optimizer.scope`, so a CTE named like a real table refers to the CTE inside its scope and to the table outside it.
 - Every physical table must be in `policy.tables` → else `table_not_allowed`.
-- **Identifier matching**: unquoted identifiers are normalized with the dialect's rules (`sqlglot.optimizer.normalize_identifiers`); quoted identifiers match exactly. Policy entries may be qualified (`sales.customers`); unqualified references are qualified with `default_schema` when set.
+- **Identifier matching**: unquoted identifiers are normalized with the dialect's rules (`sqlglot.optimizer.normalize_identifiers`); quoted identifiers match exactly. Policy entries may be qualified (`sales.customers`); unqualified references are qualified with `default_schema` when set. Hidden and masked **column** names are then compared case-insensitively in every dialect, quoted or not: MySQL ignores the case of column names even where sqlglot's MySQL dialect keeps it (because MySQL table names can be case-sensitive), and matching more can only reject or mask more.
 - **Table-valued functions** that read outside the allowlist are sources too, and are rejected unless explicitly allowed: DuckDB `read_csv`, `read_parquet`, `read_json`; PostgreSQL `dblink`; T-SQL `OPENROWSET`, `OPENQUERY`, `OPENDATASOURCE`; and similar.
 
 ### 5. Columns
@@ -197,7 +198,7 @@ Why a derived table and not an extra `WHERE` condition: it doesn't need to under
 
 - No limit on the outermost query → add `max_rows`. A literal limit above `max_rows` → lowered. A non-literal limit (expression or parameter) → replaced by `max_rows`.
 - Rendered by sqlglot in the dialect's syntax: `LIMIT n`, `TOP n` (T-SQL), `FETCH FIRST n ROWS ONLY` (Oracle), verified with 30.35.
-- Set operations get the limit on the combined result.
+- Set operations get the limit on the combined result. When the output dialect is T-SQL and the set operation has an outer `ORDER BY`, use `OFFSET … FETCH` on the set operation itself. Preserve any existing offset and keep the smaller literal row count. An existing zero count renders as `TOP 0`.
 - `max_rows=None` disables this step (not recommended).
 
 ### 9. Generate
@@ -234,7 +235,8 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 ### Richer policies
 
 - **`schema: {table: [columns]}`** enables exact column checks: columns are qualified with `sqlglot.optimizer.qualify`, unknown columns are rejected, and stars can be expanded (needed by masking).
-- **`Policy.from_database(url, include=[...])`** *(implemented, unreleased)* reads tables and columns with the SQLAlchemy inspector (optional extra `sqlguardllm[db]`) to build `schema` and `tables`.
+- **`sqlguardllm lint`** *(implemented, unreleased)* warns about policies that are valid but probably unsafe, with stable codes, each explained with a fix in English and Spanish: no table allowlist, a tenant-like column (`tenant_id`, `branch_id`, `sucursal`…) without a row filter, a sensitive-looking column (`password`, `email`, `ssn`, `card`…) neither hidden nor masked, `max_rows` null or above a threshold, `aggregate_only` with `k` below 5, and default-denied functions allowed again. Column checks need `schema` and are reported as skipped without it. **`lint_suppress: {code: reason}`** silences a reviewed code; the guard ignores it. **`sqlguardllm test`** runs declared cases (SQL, role or context, `expect: allow|reject`, a violation code or a substring of the rewritten SQL) against a policy or policy set, with JUnit output for CI.
+- **`Policy.from_database(url, include=[...])`** *(experimental)* reads tables and columns with the SQLAlchemy inspector (optional extra `sqlguardllm[db]`) to build `schema` and `tables`.
 - **`PolicySet`** *(implemented, unreleased)*: one file with a `base` policy and `roles` that override or extend it (`roles: {manager: {...}, analyst: {extends: manager, ...}}`), loaded once (`PolicySet.from_file`, `from_dict`) and asked for `policy_set.for_role("manager")`, which returns the `Policy`; `policy_set.guard("manager", language="es")` returns a `Guard` cached per role, language and `pretty`. Example: [`examples/roles.yaml`](../examples/roles.yaml). Merge rules, applied from `base` down the `extends` chain:
   - A policy key set in a role **replaces** the inherited value, for scalars, lists and mappings alike: what the role says is what it gets. `row_filters: {}` removes every inherited filter.
   - Keys under **`add:`** **extend** the inherited value: lists are joined (union) and mappings merged key by key, the role winning for a key in both. Adding to a scalar, to an inherited `null` (`tables: null`, `schema: null`) or to a key the role also sets is a `PolicyError`.
@@ -245,7 +247,7 @@ The output is `tree.sql(dialect=policy.dialect)`, optionally pretty-printed. Wha
 
 ### MCP server
 
-> Status: **implemented** (unreleased), with `--role` for policy sets, `--language` and `--timeout`. The optional cost guard is still planned. Setup for each client in [MCP.md](MCP.md).
+> Status: **implemented** (unreleased), with `--role` for policy sets, `--language` and `--timeout`. The optional cost guard (`--max-cost`, `--max-plan-rows`, PostgreSQL and MySQL) is implemented. Setup for each client in [MCP.md](MCP.md).
 
 `sqlguardllm mcp --policy policy.yaml --db "$DATABASE_URL" [--context JSON]` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio (optional extra `sqlguardllm[mcp]`). It gives any MCP client (Claude Desktop, Cursor, VS Code, agents) a database tool that can't do harm:
 

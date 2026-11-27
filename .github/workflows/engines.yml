@@ -1,18 +1,31 @@
 name: Engines
 
 # The rewritten SQL runs on real PostgreSQL 16, MySQL 8 and SQL Server 2022 (plus DuckDB and
-# SQLite in-process) and returns only the rows the row filters allow.
+# SQLite in-process) and returns only the rows the row filters allow. Every night, and on demand,
+# the deep fuzzing profile (tests/fuzz) checks 20,000 generated queries on all five engines.
 
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+    inputs:
+      examples:
+        description: Fuzzing examples (empty for 20000)
+        required: false
+        default: ""
+      seed:
+        description: Fuzzing seed to replay (empty for a new one)
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 concurrency:
-  group: engines-${{ github.ref }}
+  group: engines-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -64,3 +77,68 @@ jobs:
           SQLGUARD_MYSQL_URL: mysql+pymysql://root:test-only@127.0.0.1:3306/sg
           SQLGUARD_MSSQL_URL: mssql+pymssql://sa:Test-only-1234@localhost:1433/master
         run: uv run pytest tests/engines -v
+
+  fuzz:
+    name: Deep fuzzing on real engines
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test-only
+          MYSQL_DATABASE: sg
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -ptest-only" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Test-only-1234"
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Test-only-1234 -Q 'SELECT 1'"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Dependencies
+        run: uv sync --locked --extra db
+      - name: Drivers
+        run: uv pip install "psycopg[binary]" pymysql pymssql
+      - name: Deep fuzzing (the seed is printed; a failure is minimised into the corpus)
+        env:
+          SQLGUARD_FUZZ_PROFILE: deep
+          SQLGUARD_FUZZ_EXAMPLES: ${{ inputs.examples }}
+          SQLGUARD_FUZZ_SEED: ${{ inputs.seed }}
+          SQLGUARD_FUZZ_STATS: fuzz-stats.json
+          SQLGUARD_FUZZ_TRACE: fuzz-last-statement.txt
+          SQLGUARD_REQUIRE_ENGINES: "1"
+          SQLGUARD_PG_URL: postgresql+psycopg://postgres:test-only@localhost:5432/postgres
+          SQLGUARD_MYSQL_URL: mysql+pymysql://root:test-only@127.0.0.1:3306/sg
+          SQLGUARD_MSSQL_URL: mssql+pymssql://sa:Test-only-1234@localhost:1433/master
+        run: uv run pytest tests/fuzz -m fuzz -v
+      - name: Keep the statistics and any new regression case
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-${{ github.run_id }}
+          path: |
+            fuzz-stats.json
+            fuzz-last-statement.txt
+            tests/corpus/fuzz_regressions.yaml
+          if-no-files-found: ignore

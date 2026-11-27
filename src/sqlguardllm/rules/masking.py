@@ -72,7 +72,9 @@ def _masked_sources(
             ref = table_name(source, compiled.dialect)
             entry = find(compiled.masked.keys(), ref, compiled.default_schema)
             if entry is not None:
-                found[norm(alias, compiled.dialect)] = (entry, dict(compiled.masked[entry]))
+                # Case-folded, like hidden columns (see rules/columns.py `_hidden_sources`).
+                columns = {name.casefold(): how for name, how in compiled.masked[entry].items()}
+                found[norm(alias, compiled.dialect)] = (entry, columns)
     return found
 
 
@@ -116,6 +118,10 @@ def plan_masks(scopes: list[Scope], compiled: Compiled) -> tuple[MaskPlan, list[
         expression = scope.expression
 
         if isinstance(expression, exp.Select):
+            if any(True for _ in expression.find_all(exp.Columns)) and local:
+                # COLUMNS('regex') picks columns at run time: it can't be masked, so it is refused.
+                tables = ", ".join(str(t) for t, _ in local.values())
+                details.append(f"COLUMNS() over {tables} (masked columns)")
             for projection in expression.expressions:
                 star = isinstance(projection, exp.Star)
                 qualified_star = isinstance(projection, exp.Column) and isinstance(
@@ -145,7 +151,7 @@ def plan_masks(scopes: list[Scope], compiled: Compiled) -> tuple[MaskPlan, list[
                 )
             for join in expression.args.get("joins") or []:
                 for ident in join.args.get("using") or []:
-                    if norm(ident, compiled.dialect) in all_masked:
+                    if norm(ident, compiled.dialect).casefold() in all_masked:
                         details.append(f"USING ({ident.name}) on a masked column")
                 if str(join.args.get("method") or "").upper() == "NATURAL":
                     details.append("NATURAL JOIN over a table with masked columns")
@@ -154,18 +160,19 @@ def plan_masks(scopes: list[Scope], compiled: Compiled) -> tuple[MaskPlan, list[
             if not isinstance(column.this, exp.Identifier):
                 continue
             name = norm(column.this, compiled.dialect)
+            key = name.casefold()
             strategy: str | None = None
             owner = ""
             if column.table:
                 qualifier = norm(column.args["table"], compiled.dialect)
-                if qualifier in visible and name in visible[qualifier][1]:
+                if qualifier in visible and key in visible[qualifier][1]:
                     owner = f"{visible[qualifier][0]}.{name}"
-                    strategy = visible[qualifier][1][name]
-            elif name in all_masked:
+                    strategy = visible[qualifier][1][key]
+            elif key in all_masked:
                 # Unqualified: mask it if any visible source masks a column with that name.
                 for table, cols in visible.values():
-                    if name in cols:
-                        owner, strategy = f"{table}.{name}", cols[name]
+                    if key in cols:
+                        owner, strategy = f"{table}.{name}", cols[key]
                         break
             elif name in visible:
                 details.append(f"{name} (whole-row reference to {visible[name][0]})")
@@ -215,12 +222,17 @@ def apply_masks(plan: MaskPlan, compiled: Compiled) -> None:
         replacement: list[exp.Expression] = []
         for alias, entry in expansion.sources:
             strategies = next(
-                (dict(cols) for table, cols in compiled.masked.items() if table == entry), {}
+                (
+                    {name.casefold(): how for name, how in cols.items()}
+                    for table, cols in compiled.masked.items()
+                    if table == entry
+                ),
+                {},
             )
             for name in compiled.schema[entry]:
                 column = exp.column(name, table=alias)
-                if name in strategies:
-                    masked = mask_expression(column, strategies[name], out)
+                if name.casefold() in strategies:
+                    masked = mask_expression(column, strategies[name.casefold()], out)
                     replacement.append(cast(exp.Expression, exp.alias_(masked, name)))
                 else:
                     replacement.append(column)

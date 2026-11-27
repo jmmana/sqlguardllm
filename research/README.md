@@ -124,3 +124,50 @@ No paid model calls are required to reproduce the semantic, mutation, timing or
 planner experiments. The prepared Claude pilot has no results until explicitly
 executed; the manuscript makes no LLM accuracy or injection-success claim.
 A Zenodo metadata draft is provided, but no DOI has yet been assigned.
+
+## Inspect the evidence
+
+| File | Contents |
+|---|---|
+| `results/metadata.json` | Versions, timestamp, evaluated base commit, source/workload hashes, timing scope |
+| `results/workload.json` | All 48 versioned templates and declared outcomes for tenant 1 |
+| `results/execution.json` | Every decision, generated SQL, returned rows or error, and outcome |
+| `results/latency.json` | All timed validation samples in nanoseconds and per-case quantiles |
+| `results/regression.json` | Development-corpus decisions, violation codes and checks |
+| `results/summary.json` | Counts and pooled warm-validation quantiles |
+| `results/fuzz.json` | One run of the property-based fuzzer (`tests/fuzz/`): seed, examples, and per engine the queries allowed, rejected by violation code, executed, engine errors and invariant failures. Not covered by `verify_artifacts.py`; reproduce with the `replay` command it records |
+
+Tenant 2 queries are instantiated from the same public templates by
+`workload.cases(2)`. No unreported model-generated attack set is used.
+
+The keyword and read-only-shape configurations intentionally omit access
+control. They illustrate failure modes. `no_row_filters` is an ablation of
+the same library, and native RLS is the established enforcement comparator.
+
+## Build the paper
+
+With a working TeX Live installation:
+
+```bash
+cd research/paper
+latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
+```
+
+The document embeds its bibliography for a self-contained arXiv source build;
+`references.bib` is also provided for reference managers. Figures, measurement
+macros and result tables are generated from the checked-in raw results.
+`main.pdf` is a review artifact, not an accepted or submitted publication.
+
+## Regenerate the media
+
+See [docs/DEMOS.md](../docs/DEMOS.md). The six-scene, 42-second English and
+Spanish videos are captioned visual explanations of captured executions. GIFs
+show the first three scenes in 21 seconds. They are not browser recordings.
+
+## Limitations and next evaluations
+
+External workloads, independent adversarial review, larger and more varied
+schemas, views/UDFs, ambiguous columns, native PostgreSQL and other server
+engines, and end-to-end database overhead remain unmeasured here. Masking,
+aggregate privacy, inference attacks and cost control require separate studies.
+Zero observed failures on this workload does not establish absence of bypasses.

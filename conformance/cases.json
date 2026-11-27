@@ -53,6 +53,105 @@
   {
    "cases": [
     {
+     "codes": [
+      "parse_error"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "parse_error"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "fuzz-tsql-20963e31",
+     "not_contains": [],
+     "sql": "WITH r(n, v -- */ , email\n ) aS\n  ( /*! , email */ selECT 1, name FRom\tcustomers wHEre  id = 1\tUnion AlL\tSELEcT n +\n  1, v fROm r wHERE n < 3)\nsELect SUM(LEN(t.name)), /* c */ LEN(MAX /* a /* b */ (t.name)) /* a /* b */ as x, COUNT( /*! , email */ *) from (SELecT diStInct\ncustomers.id /* c */ as c0,  customers.id as\tc1,\ncustomers /*! , email */ .id aS c2, casE when customers.name iS\tnULl ThEn customers.id ELSe\t1 End /*+ hint */ as  c3 fRoM customers as customers JOiN customers As t oN  customers.id < 1 anD\t'a' = (seLecT MAX(name)\nFRoM\n  customers)) AS d leFT\tJOIn customers as t on NOt t.name iS NUll oR /*! , email */ t. -- */ , email\n name\tliKE 'a' gROUp By d.c0, d.c0\nHavIng d.c0\tin (seLECt LEN((sElEcT MAX(name) FRom customers -- */ , email\n )) froM customers)"
+    }
+   ],
+   "name": "g01-tsql",
+   "policy": {
+    "default_schema": "dbo",
+    "dialect": "tsql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "masked_columns": {
+     "customers.phone": "redact",
+     "invoice_lines.discount_code": "null",
+     "products.supplier": "partial"
+    },
+    "max_rows": 7,
+    "row_filters": {
+     "branches": "id IN ({user.branches})",
+     "invoice_lines": "branch_id IN ({user.branches})",
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "schema": {
+     "branches": [
+      "id",
+      "name",
+      "region",
+      "tag"
+     ],
+     "customers": [
+      "id",
+      "name",
+      "segment",
+      "city",
+      "email",
+      "tax_id",
+      "phone"
+     ],
+     "invoice_lines": [
+      "id",
+      "invoice_id",
+      "product_id",
+      "branch_id",
+      "quantity",
+      "amount",
+      "discount_code",
+      "tag"
+     ],
+     "invoices": [
+      "id",
+      "branch_id",
+      "customer_id",
+      "total",
+      "status",
+      "issued_at",
+      "tag"
+     ],
+     "products": [
+      "id",
+      "name",
+      "category",
+      "price",
+      "supplier"
+     ]
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
      "codes": [],
      "contains": [],
      "context": {
@@ -74,7 +173,7 @@
      "sql": "SELECT SUM(total) FROM invoices"
     }
    ],
-   "name": "g01-tsql",
+   "name": "g02-tsql",
    "policy": {
     "default_schema": "dbo",
     "dialect": "tsql",
@@ -120,7 +219,7 @@
      "sql": "SELECT b.name, SUM(i.total) FROM invoices i JOIN branches b ON b.id = i.branch_id WHERE i.issued_at >= '20261101' GROUP BY b.name"
     }
    ],
-   "name": "g02-tsql",
+   "name": "g03-tsql",
    "policy": {
     "default_schema": "dbo",
     "dialect": "tsql",
@@ -171,6 +270,161 @@
      "id": "tsql-default-schema-top",
      "not_contains": [],
      "sql": "SELECT SUM(total) FROM dbo.invoices"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "ORDER BY 1 DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY",
+      "branch_id IN (1, 2)"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION SELECT id FROM branches ORDER BY 1 DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-union-ordered-position",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices UNION SELECT id FROM branches ORDER BY 1 DESC"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "UNION ALL",
+      "ORDER BY invoice_id OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id AS invoice_id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION ALL SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices ORDER BY invoice_id OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-union-all-ordered-name",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id AS invoice_id FROM invoices UNION ALL SELECT id FROM invoices ORDER BY invoice_id"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "INTERSECT",
+      "ORDER BY id DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices INTERSECT SELECT id FROM branches ORDER BY id DESC OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-intersect-ordered-name",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices INTERSECT SELECT id FROM branches ORDER BY id DESC"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "EXCEPT",
+      "ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices EXCEPT SELECT id FROM branches ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-except-ordered-position",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices EXCEPT SELECT id FROM branches ORDER BY 1"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "ORDER BY 1 OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION SELECT id FROM branches ORDER BY 1 OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY"
+     },
+     "id": "tsql-ordered-union-keeps-smaller-fetch",
+     "not_contains": [
+      "sqlguard_rows"
+     ],
+     "sql": "SELECT id FROM invoices UNION SELECT id FROM branches ORDER BY 1 OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "ORDER BY id OFFSET 5 ROWS FETCH NEXT 1000 ROWS ONLY"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM (SELECT * FROM invoices WHERE branch_id IN (1, 2)) AS invoices UNION SELECT id FROM branches ORDER BY id OFFSET 5 ROWS FETCH NEXT 1000 ROWS ONLY"
+     },
+     "id": "tsql-ordered-union-lowers-fetch",
+     "not_contains": [
+      "sqlguard_rows",
+      "50000"
+     ],
+     "sql": "SELECT id FROM invoices UNION SELECT id FROM branches ORDER BY id OFFSET 5 ROWS FETCH NEXT 50000 ROWS ONLY"
     },
     {
      "codes": [],
@@ -350,7 +604,7 @@
      "sql": "WAITFOR DELAY '00:00:10'"
     }
    ],
-   "name": "g03-tsql",
+   "name": "g04-tsql",
    "policy": {
     "default_schema": "dbo",
     "dialect": "tsql",
@@ -425,7 +679,7 @@
      "sql": "SELECT load_data(1)"
     }
    ],
-   "name": "g04-bigquery",
+   "name": "g05-bigquery",
    "policy": {
     "dialect": "bigquery",
     "hidden_columns": [
@@ -1071,7 +1325,7 @@
      "sql": "SELECT * FROM urlcluster('x')"
     }
    ],
-   "name": "g05-clickhouse",
+   "name": "g06-clickhouse",
    "policy": {
     "dialect": "clickhouse",
     "hidden_columns": [
@@ -1118,9 +1372,84 @@
      "id": "duckdb-read-csv-table",
      "not_contains": [],
      "sql": "SELECT * FROM read_csv('/etc/passwd')"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "duckdb-columns-regex-hidden",
+     "not_contains": [],
+     "sql": "SELECT COLUMNS('.*') FROM customers"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "duckdb-columns-lambda-hidden",
+     "not_contains": [],
+     "sql": "SELECT COLUMNS(c -> c LIKE '%a%') FROM customers"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "duckdb-columns-inside-aggregate-hidden",
+     "not_contains": [],
+     "sql": "SELECT MAX(COLUMNS('.*')) FROM customers"
     }
    ],
-   "name": "g06-duckdb",
+   "name": "g07-duckdb",
    "policy": {
     "dialect": "duckdb",
     "hidden_columns": [
@@ -1168,7 +1497,7 @@
      "sql": "SELECT b.name FROM branches b JOIN products p"
     }
    ],
-   "name": "g07-mysql",
+   "name": "g08-mysql",
    "policy": {
     "dialect": "mysql",
     "forbid_cartesian": true,
@@ -1176,6 +1505,174 @@
      "customers.email",
      "customers.tax_id"
     ],
+    "max_rows": 1000,
+    "row_filters": {
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [
+      "MAX(NULL)"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT id FROM customers WHERE (SELECT MAX(NULL) FROM (SELECT * FROM invoice_lines WHERE branch_id IN (1, 2)) AS invoice_lines) IS NULL ORDER BY Id DESC LIMIT 7"
+     },
+     "id": "fuzz-mysql-1f774a2f",
+     "not_contains": [],
+     "sql": "SELECT id FROM customers WHERE (SELECT MAX(DISCOUNT_CODE) FROM invoice_lines) IS NULL ORDER BY Id DESC"
+    },
+    {
+     "codes": [],
+     "contains": [
+      "CONCAT(SUBSTRING(CAST(SUPPLIER AS CHAR(4000)), 1, 2), '***') END AS X"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT ROW_NUMBER() OVER (ORDER BY 1), CASE WHEN SUPPLIER IS NULL THEN NULL ELSE CONCAT(SUBSTRING(CAST(SUPPLIER AS CHAR(4000)), 1, 2), '***') END AS X FROM products LIMIT 7"
+     },
+     "id": "fuzz-mysql-831ed73a",
+     "not_contains": [],
+     "sql": "SELECT ROW_NUMBER() OVER (ORDER BY 1), SUPPLIER AS X FROM products"
+    }
+   ],
+   "name": "g09-mysql",
+   "policy": {
+    "dialect": "mysql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "masked_columns": {
+     "customers.phone": "redact",
+     "invoice_lines.discount_code": "null",
+     "products.supplier": "partial"
+    },
+    "max_rows": 7,
+    "row_filters": {
+     "branches": "id IN ({user.branches})",
+     "invoice_lines": "branch_id IN ({user.branches})",
+     "invoices": "branch_id IN ({user.branches})"
+    },
+    "schema": {
+     "branches": [
+      "id",
+      "name",
+      "region",
+      "tag"
+     ],
+     "customers": [
+      "id",
+      "name",
+      "segment",
+      "city",
+      "email",
+      "tax_id",
+      "phone"
+     ],
+     "invoice_lines": [
+      "id",
+      "invoice_id",
+      "product_id",
+      "branch_id",
+      "quantity",
+      "amount",
+      "discount_code",
+      "tag"
+     ],
+     "invoices": [
+      "id",
+      "branch_id",
+      "customer_id",
+      "total",
+      "status",
+      "issued_at",
+      "tag"
+     ],
+     "products": [
+      "id",
+      "name",
+      "category",
+      "price",
+      "supplier"
+     ]
+    },
+    "tables": [
+     "branches",
+     "customers",
+     "invoice_lines",
+     "invoices",
+     "products"
+    ]
+   }
+  },
+  {
+   "cases": [
+    {
+     "codes": [],
+     "contains": [
+      "'***' AS PHONE"
+     ],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "allow",
+     "expected": {
+      "codes": [],
+      "ok": true,
+      "sql": "SELECT '***' AS PHONE FROM customers LIMIT 1000"
+     },
+     "id": "mysql-masked-column-other-case",
+     "not_contains": [],
+     "sql": "SELECT PHONE FROM customers"
+    }
+   ],
+   "name": "g10-mysql",
+   "policy": {
+    "dialect": "mysql",
+    "hidden_columns": [
+     "customers.email",
+     "customers.tax_id"
+    ],
+    "masked_columns": {
+     "customers.phone": "redact"
+    },
     "max_rows": 1000,
     "row_filters": {
      "invoices": "branch_id IN ({user.branches})"
@@ -1238,7 +1735,7 @@
      "sql": "SELECT name FROM products WHERE id IN (SELECT product_id FROM invoice_lines)"
     }
    ],
-   "name": "g08-mysql",
+   "name": "g11-mysql",
    "policy": {
     "dialect": "mysql",
     "hidden_columns": [
@@ -1283,7 +1780,7 @@
      "sql": "SELECT SUM(total) FROM invoices WHERE branch_id = 3"
     }
    ],
-   "name": "g09-mysql",
+   "name": "g12-mysql",
    "policy": {
     "dialect": "mysql",
     "hidden_columns": [
@@ -1388,6 +1885,81 @@
     },
     {
      "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "mysql-hidden-column-other-case",
+     "not_contains": [],
+     "sql": "SELECT EMAIL FROM customers"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "mysql-hidden-column-backticks-other-case",
+     "not_contains": [],
+     "sql": "SELECT c.`Tax_Id` FROM customers c"
+    },
+    {
+     "codes": [
+      "hidden_column"
+     ],
+     "contains": [],
+     "context": {
+      "user": {
+       "branches": [
+        1,
+        2
+       ]
+      }
+     },
+     "expect": "reject",
+     "expected": {
+      "codes": [
+       "hidden_column"
+      ],
+      "ok": false,
+      "sql": null
+     },
+     "id": "mysql-hidden-column-other-case-in-predicate",
+     "not_contains": [],
+     "sql": "SELECT name FROM customers WHERE Email LIKE 'a%'"
+    },
+    {
+     "codes": [
       "parse_error"
      ],
      "contains": [],
@@ -1412,7 +1984,7 @@
      "sql": "SELECT * FROM invoices INTO OUTFILE '/tmp/x.csv'"
     }
    ],
-   "name": "g10-mysql",
+   "name": "g13-mysql",
    "policy": {
     "dialect": "mysql",
     "hidden_columns": [
@@ -1481,7 +2053,7 @@
      "sql": "SELECT l.quantity FROM invoices i, invoice_lines l, products p WHERE l.invoice_id = i.id"
     }
    ],
-   "name": "g11-oracle",
+   "name": "g14-oracle",
    "policy": {
     "dialect": "oracle",
     "forbid_cartesian": true,
@@ -1603,7 +2175,7 @@
      "sql": "SELECT SYS.DBMS_PIPE.RECEIVE_MESSAGE('a', 10) FROM dual"
     }
    ],
-   "name": "g12-oracle",
+   "name": "g15-oracle",
    "policy": {
     "dialect": "oracle",
     "hidden_columns": [
@@ -1743,7 +2315,7 @@
      "sql": "SELECT b.name FROM invoices i JOIN branches b ON b.id = i.branch_id JOIN invoice_lines l USING (id)"
     }
    ],
-   "name": "g13-postgres",
+   "name": "g16-postgres",
    "policy": {
     "dialect": "postgres",
     "forbid_cartesian": true,
@@ -1817,7 +2389,7 @@
      "sql": "WITH t AS (SELECT i.id FROM invoices i JOIN branches b ON b.id = i.branch_id) SELECT p.name FROM products p JOIN invoice_lines l ON l.product_id = p.id WHERE l.invoice_id IN (SELECT id FROM t)"
     }
    ],
-   "name": "g14-postgres",
+   "name": "g17-postgres",
    "policy": {
     "dialect": "postgres",
     "hidden_columns": [
@@ -1862,7 +2434,7 @@
      "sql": "SELECT b.name, SUM(l.quantity) FROM invoices i JOIN branches b ON b.id = i.branch_id JOIN invoice_lines l ON l.invoice_id = i.id GROUP BY b.name"
     }
    ],
-   "name": "g15-postgres",
+   "name": "g18-postgres",
    "policy": {
     "dialect": "postgres",
     "hidden_columns": [
@@ -1957,7 +2529,7 @@
      "sql": "SELECT name FROM branches UNION ALL SELECT name FROM products"
     }
    ],
-   "name": "g16-postgres",
+   "name": "g19-postgres",
    "policy": {
     "dialect": "postgres",
     "hidden_columns": [
@@ -2006,7 +2578,7 @@
      "sql": "SELECT SUM(total) FROM invoices"
     }
    ],
-   "name": "g17-postgres",
+   "name": "g20-postgres",
    "policy": {
     "dialect": "postgres",
     "hidden_columns": [
@@ -2222,7 +2794,7 @@
      "sql": "SELECT SUM(total) FROM invoices WHERE issued_at >= '2026-11-01' UNION ALL SELECT SUM(total) FROM invoices"
     }
    ],
-   "name": "g18-postgres",
+   "name": "g21-postgres",
    "policy": {
     "dialect": "postgres",
     "hidden_columns": [
@@ -3622,7 +4194,7 @@
      "sql": "SELECT id FROM invoices;"
     }
    ],
-   "name": "g19-postgres",
+   "name": "g22-postgres",
    "policy": {
     "dialect": "postgres",
     "hidden_columns": [
@@ -3970,7 +4542,7 @@
      "sql": "SELECT name FROM customers QUALIFY ROW_NUMBER() OVER (ORDER BY id) = 1 AND MAX(email) OVER () > 'm'"
     }
    ],
-   "name": "g20-snowflake",
+   "name": "g23-snowflake",
    "policy": {
     "dialect": "snowflake",
     "hidden_columns": [
@@ -4068,7 +4640,7 @@
      "sql": "PRAGMA writable_schema = 1"
     }
    ],
-   "name": "g21-sqlite",
+   "name": "g24-sqlite",
    "policy": {
     "dialect": "sqlite",
     "hidden_columns": [
@@ -4166,7 +4738,7 @@
      "sql": "SELECT system.slow_query('x')"
     }
    ],
-   "name": "g22-trino",
+   "name": "g25-trino",
    "policy": {
     "dialect": "trino",
     "hidden_columns": [

@@ -11,6 +11,7 @@ Put sqlguardllm in front of the SQL execution of your stack. Every recipe is a r
 | LlamaIndex | [`llamaindex_sql.py`](../examples/llamaindex_sql.py) | llama-index-core 0.14 | `SQLDatabase.run_sql()` |
 | Vanna | [`vanna_runner.py`](../examples/vanna_runner.py) | vanna 2.0 | a `SqlRunner` for `RunSqlTool` |
 | MCP | [docs/MCP.md](MCP.md) | sqlguardllm 0.4 | the built-in server, `sqlguardllm mcp` |
+| .NET | [`examples/dotnet`](../examples/dotnet) | net8.0+ (ASP.NET Core, EF Core 8, Dapper, Semantic Kernel, Microsoft.Extensions.AI) | [`AddSqlGuard`, interceptor, filter, `AIFunction`](#net) |
 
 Versions checked on 2026-11-26 with langchain 1.5.2, langchain-core 1.8.5, langchain-community 0.4.2, llama-index-core 0.14.26, vanna 2.0.2 and SQLAlchemy 2.1.9. The [Recipes workflow](../.github/workflows/recipes.yml) runs them against these ranges.
 
@@ -166,6 +167,28 @@ tools.register_local_tool(
 
 `RunSqlTool` returns a rejected query to the model as `Error executing query: <reasons>`. Without the guard, Vanna's built-in runners commit whatever isn't a `SELECT`. Vanna 0.x (`vanna.legacy`): wrap the function it executes with, `vn.run_sql = guard.wrap(vn.run_sql, context_fn)`, after `vn.connect_to_…()`.
 
+## Node.js
+
+The Node recipes live in [`examples/node/`](../examples/node) and use the [`sqlguardllm` npm package](../clients/node/README.md), in local mode (the embedded engine, no server) or remote mode. They need Node 22.5+ for the SQLite demo. Run `npm install` in that folder, then `npm start` (SQLite) or `DATABASE_URL=postgres://… npm start` (PostgreSQL through `pg`). Tests: `npm test`; frameworks that aren't installed are skipped (`SQLGUARDLLM_RECIPES=1` makes that a failure) and the PostgreSQL tests run only with `DATABASE_URL`. With `SQLGUARD_ENGINE_CMD="uv run sqlguardllm engine --stdio"` (or any engine command) the last two tests drive the real engine in local mode with the demo policy, executing on SQLite and on PostgreSQL, and `node run.mjs` uses it too. The `Recipes` workflow (`.github/workflows/recipes.yml`, job `node-recipes`) runs all of it against a PostgreSQL 16 service container on every pull request.
+
+Everything is in [`guarded-tools.mjs`](../examples/node/guarded-tools.mjs). `guardedQuery(guard, run, getContext)` calls `guard.enforce()` and only then `run()`. A rejected query comes back as `{ ok: false, feedback }` for the model to repair; a failure to reach the guard throws, so nothing runs (fail closed).
+
+```js
+import { SqlGuard } from "sqlguardllm";
+import { guardedQuery, pgRunner } from "./guarded-tools.mjs";
+
+const guard = await SqlGuard.local({ policy });            // once; or new SqlGuard({ baseUrl, token })
+const query = guardedQuery(guard, pgRunner(pool), () => ({ user: { branches: user.branchIds } }));
+```
+
+| Stack | Helper | Notes |
+|---|---|---|
+| LangChain.js | `langchainSqlTool({ tool, z }, guard, run, getContext)` | a `sql_db_query` tool for `createAgent` / LangGraph; `tool` from `@langchain/core/tools` |
+| Vercel AI SDK | `vercelSqlTool({ tool, z }, guard, run, getContext)` | `tool()` from `ai` 5; pass it in `generateText({ tools })` |
+| `pg` | `pgRunner(pool)` | `pool.query(sql)` as a read-only user |
+| `mysql2` | `mysql2Runner(pool)` | `mysql2/promise`; `pool.query`, not `execute`, since the SQL is already final |
+| Prisma | `prismaRunner(prisma)` | `$queryRawUnsafe(sql)` is safe here only because the string was just enforced; never pass it model output directly |
+
 ## MCP
 
 sqlguardllm ships its own MCP server, so Claude Desktop, Cursor, VS Code or any MCP client get a database tool that can't write, see hidden data or escape row filters:
@@ -175,6 +198,25 @@ uvx --from "sqlguardllm[mcp]" sqlguardllm mcp --policy policy.yaml --db "$DATABA
 ```
 
 Client configuration, roles and the user context are in [docs/MCP.md](MCP.md). Writing your own MCP server instead? Call `guard.enforce()` in its query tool with the context of the authenticated caller, as in the generic wrapper.
+
+## .NET
+
+Three NuGet packages on top of `SqlGuardLlm`; [`examples/dotnet`](../examples/dotnet) runs all of them against SQLite, tested with a fake guard (no server, no network).
+
+```csharp
+// ASP.NET Core: options bound from configuration ("SqlGuard": { "BaseUrl": "...", "Token": "..." })
+builder.Services.AddSqlGuard(builder.Configuration.GetSection("SqlGuard"));
+builder.Services.AddSqlGuardContext(sp => new Dictionary<string, object?> { ["tenant_id"] = sp.GetRequiredService<ICurrentUser>().TenantId });
+```
+
+| Integration | Package | How |
+|---|---|---|
+| Dapper / ADO.NET | `SqlGuardLlm.Extensions` | `conn.QueryGuardedAsync<T>(guard, sql)`, `command.GuardAsync(guard)`, `conn.CreateGuardedCommandAsync(guard, sql)` |
+| EF Core | `SqlGuardLlm.EntityFrameworkCore` | `options.UseSqlGuard(guard)`: `FromSql`, `SqlQuery` and `ExecuteSql` go through the guard and run the rewritten SQL; LINQ and `SaveChanges` are untouched unless `EnforceAll = true` |
+| Microsoft.Extensions.AI | `SqlGuardLlm.Extensions` | `new GuardedSqlFunction(guard, (sql, ct) => run(sql), context)`: an `AIFunction` that runs only guard-approved SQL and returns the violations to the model |
+| Semantic Kernel | `SqlGuardLlm.SemanticKernel` | `kernel.FunctionInvocationFilters.Add(new SqlGuardFunctionFilter(guard))`: checks the `sql` argument of any function and rewrites it |
+
+A rejected query never runs; a guard failure (server down, timeout) throws `SqlGuardException` and nothing runs either. The EF Core interceptor's synchronous paths block on the guard call.
 
 ---
 

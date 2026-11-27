@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <NoWarn>$(NoWarn);CS1591;SKEXP0001</NoWarn>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>SqlGuardLlm.SemanticKernel</PackageId>
+    <Authors>jmmana</Authors>
+    <Description>Semantic Kernel function invocation filter that checks the SQL a model sends to a function with sqlguardllm before the function runs.</Description>
+    <PackageTags>sql;llm;security;firewall;sqlguardllm;semantic-kernel</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/jmmana/sqlguardllm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jmmana/sqlguardllm</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.71.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SqlGuardLlm.Extensions/SqlGuardLlm.Extensions.csproj" />
+  </ItemGroup>
+</Project>

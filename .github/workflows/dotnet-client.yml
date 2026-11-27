@@ -3,26 +3,132 @@ name: dotnet-client
 on:
   push:
     branches: [main]
-    paths: ["clients/dotnet/**", ".github/workflows/dotnet-client.yml"]
+    paths:
+      - "clients/dotnet/**"
+      - "examples/dotnet/**"
+      - "scripts/build-engine.py"
+      - "scripts/engine_main.py"
+      - ".github/workflows/dotnet-client.yml"
   pull_request:
-    paths: ["clients/dotnet/**", ".github/workflows/dotnet-client.yml"]
+    paths:
+      - "clients/dotnet/**"
+      - "examples/dotnet/**"
+      - "scripts/build-engine.py"
+      - "scripts/engine_main.py"
+      - ".github/workflows/dotnet-client.yml"
 
 permissions:
   contents: read
 
 jobs:
+  # Unit tests and the whole conformance corpus, in remote mode and in local mode (the engine over stdio), on the
+  # three operating systems. SQLGUARD_REQUIRE_CONFORMANCE makes a missing engine a failure instead of a skip.
   test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: clients/dotnet
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      SQLGUARD_REQUIRE_CONFORMANCE: "1"
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
             8.0.x
             10.0.x
+      - name: Python environment of the engine and the server (warms uv so the tests do not time out on it)
+        run: uv sync --locked --extra serve
       - run: dotnet build -c Release
+        working-directory: clients/dotnet
       - run: dotnet test -c Release --no-build
-      - run: dotnet pack src/SqlGuardLlm -c Release -o out
+        working-directory: clients/dotnet
+
+  # The package as a user gets it: the engine of this platform is built, staged, packed, and then a consumer project
+  # restores the PACKED package and runs with `dotnet run`, `dotnet publish -r <rid>` (framework-dependent, then
+  # self-contained single-file, then trimmed, then Native AOT, each with trimming and AOT warnings as errors), and, on
+  # Linux, in a container image with no .NET installed. The SHA-256 check is exercised by tampering with a file.
+  package:
+    name: package (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, rid: linux-x64, platform: linux-x64 }
+          - { os: macos-15, rid: osx-arm64, platform: macos-arm64 }
+          - { os: windows-2022, rid: win-x64, platform: windows-x64 }
+    defaults:
+      run:
+        shell: bash
+    env:
+      WARNINGS: "IL2026;IL2046;IL2057;IL2060;IL2062;IL2067;IL2070;IL2072;IL2075;IL2087;IL2091;IL3050;IL3051;IL3053"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Native AOT toolchain (Linux)
+        if: startsWith(matrix.rid, 'linux')
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+      - name: Build the engine of this platform (PyInstaller one-dir, as in engine-binaries.yml)
+        run: |
+          uv run --isolated --no-dev --with "pyinstaller==6.22.3" python scripts/build-engine.py --out dist-engine
+          mkdir -p "engines/${{ matrix.platform }}"
+          cp -R "dist-engine/sqlguardllm-engine-${{ matrix.platform }}" "engines/${{ matrix.platform }}/"
+      - name: Stage the engine and pack the four packages
+        run: |
+          set -e
+          V=$(sed -nE 's#.*<Version>(.*)</Version>.*#\1#p' clients/dotnet/Directory.Build.props)
+          python3 clients/dotnet/build/stage-engines.py --engines engines --platform "${{ matrix.platform }}"
+          for p in SqlGuardLlm SqlGuardLlm.Extensions SqlGuardLlm.EntityFrameworkCore SqlGuardLlm.SemanticKernel; do
+            dotnet pack "clients/dotnet/src/$p" -c Release -o clients/dotnet/out
+          done
+          ls -l clients/dotnet/out
+          python3 clients/dotnet/build/stage-engines.py --check-nupkg clients/dotnet/out/SqlGuardLlm.$V.nupkg --allow-partial
+          # the symbols package exists and SourceLink points at this commit
+          ls clients/dotnet/out/SqlGuardLlm.$V.snupkg
+          unzip -p clients/dotnet/out/SqlGuardLlm.$V.nupkg SqlGuardLlm.nuspec | grep -q "commit=\"$GITHUB_SHA\""
+      - name: dotnet run, framework-dependent publish, self-contained single-file publish
+        run: |
+          set -e
+          V=$(sed -nE 's#.*<Version>(.*)</Version>.*#\1#p' clients/dotnet/Directory.Build.props)
+          echo "SQLGUARD_PKG_VERSION=$V" >> "$GITHUB_ENV"
+          S=clients/dotnet/smoke
+          dotnet run --project $S -c Release -p:SqlGuardLlmVersion=$V
+          dotnet publish $S -c Release -r ${{ matrix.rid }} --no-self-contained -p:SqlGuardLlmVersion=$V -o out-fdd
+          ./out-fdd/Smoke
+          dotnet publish $S -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:SqlGuardLlmVersion=$V -o out-single
+          ./out-single/Smoke
+      - name: A tampered engine file refuses to start
+        run: |
+          set -e
+          echo x >> out-single/sqlguardllm-engine/_internal/base_library.zip
+          if ./out-single/Smoke > tamper.txt 2>&1; then echo "tampered engine started"; exit 1; fi
+          cat tamper.txt; grep -q "SHA-256 mismatch" tamper.txt
+      - name: Trimmed and Native AOT publish, warnings as errors
+        run: |
+          set -e
+          S=clients/dotnet/smoke; V=$SQLGUARD_PKG_VERSION
+          dotnet publish $S -c Release -r ${{ matrix.rid }} --self-contained -p:PublishTrimmed=true -p:TrimmerSingleWarn=false "-p:WarningsAsErrors=${WARNINGS//;/%3B}" -p:SqlGuardLlmVersion=$V -o out-trim
+          ./out-trim/Smoke
+          dotnet publish $S -c Release -r ${{ matrix.rid }} -p:PublishAot=true "-p:WarningsAsErrors=${WARNINGS//;/%3B}" -p:SqlGuardLlmVersion=$V -o out-aot
+          ./out-aot/Smoke
+      - name: Linux container image (no .NET inside)
+        if: startsWith(matrix.rid, 'linux')
+        run: |
+          set -e
+          dotnet publish clients/dotnet/smoke -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:SqlGuardLlmVersion=$SQLGUARD_PKG_VERSION -o out-container
+          docker build -f clients/dotnet/smoke/Dockerfile -t sqlguard-smoke out-container
+          docker run --rm sqlguard-smoke

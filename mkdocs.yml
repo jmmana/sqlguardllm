@@ -1,0 +1,66 @@
+site_name: sqlguardllm
+site_url: https://jmmana.github.io/sqlguardllm/
+repo_url: https://github.com/jmmana/sqlguardllm
+edit_uri: edit/main/docs/
+theme:
+  name: material
+  features: [navigation.sections, content.code.copy, search.suggest]
+exclude_docs: |
+  pypi.md
+  ROADMAP.md
+  DEMOS.md
+  assets/*.mp4
+validation:
+  links:
+    not_found: warn
+    absolute_links: warn
+    unrecognized_links: warn
+nav:
+  - Home: index.md
+  - Packages:
+      - English:
+          - Choose a package: packages.md
+          - Python step by step: guide-python.md
+          - Node.js step by step: guide-node.md
+          - .NET step by step: guide-dotnet.md
+      - Español:
+          - Elige un paquete: es/packages.md
+          - Python paso a paso: es/guide-python.md
+          - Node.js paso a paso: es/guide-node.md
+          - .NET paso a paso: es/guide-dotnet.md
+  - Quickstart:
+      - English: quickstart.md
+      - Español: es/quickstart.md
+  - Rules: DESIGN.md
+  - Policy reference: policy-reference.md
+  - API reference: api.md
+  - Threat model: THREAT_MODEL.md
+  - Attack gallery: ATTACK_GALLERY.md
+  - Audit log:
+      - English: AUDIT.md
+      - Español: es/AUDIT.md
+  - Playground: https://jmmana.github.io/sqlguardllm/playground/
+  - Integrations:
+      - Overview: INTEGRATIONS.md
+      - Recipes: RECIPES.md
+      - MCP server: MCP.md
+      - HTTP server and clients: SERVER.md
+      - Engine stdio protocol: PROTOCOL.md
+hooks:
+  - scripts/mkdocs_hooks.py
+plugins:
+  - search
+  - gen-files:
+      scripts: [scripts/gen_policy_reference.py]
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: false
+            docstring_style: google
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypeVar, cast
@@ -15,6 +16,7 @@ from sqlglot.optimizer.scope import Scope, traverse_scope
 
 from sqlguardllm._compiled import Compiled, RowFilter
 from sqlguardllm._names import TableName, find, norm, parse_column_entry, parse_table_entry
+from sqlguardllm.audit import AuditEvent, AuditLog, as_audit_log, policy_fingerprint
 from sqlguardllm.data.denied_functions import default_denylist
 from sqlguardllm.explain import Explanation, protections, read_columns
 from sqlguardllm.messages import LANGUAGES, violation
@@ -163,15 +165,29 @@ class Guard:
         policy: What queries may read.
         language: Language of violation messages, ``"en"`` (default) or ``"es"``.
         pretty: Pretty-print the rewritten SQL.
+        audit: Where to record every decision of :meth:`check`: an :class:`AuditLog` or a
+            callable taking the :class:`AuditEvent`. ``None`` (default) records nothing.
+        role: Role name to put in audit events (set by :meth:`PolicySet.guard`).
 
     Raises:
         PolicyError: If the policy is invalid (checked once, here).
     """
 
-    def __init__(self, policy: Policy, *, language: str = "en", pretty: bool = False) -> None:
+    def __init__(
+        self,
+        policy: Policy,
+        *,
+        language: str = "en",
+        pretty: bool = False,
+        audit: AuditLog | Callable[[AuditEvent], None] | None = None,
+        role: str | None = None,
+    ) -> None:
         self.policy = policy
         self._compiled = _compile(policy, language)
         self._pretty = pretty
+        self._audit = as_audit_log(audit)
+        self._role = role
+        self._fingerprint = policy_fingerprint(policy) if self._audit is not None else ""
 
     def check(self, sql: str, context: Mapping[str, Any] | None = None) -> CheckResult:
         """Validate ``sql`` and, when it is allowed, return the rewritten SQL to execute.
@@ -182,9 +198,32 @@ class Guard:
                 from the model's output. ``{"user": {"branches": [1, 2]}}`` fills
                 ``{user.branches}``.
         """
+        audit = self._audit
+        started = time.perf_counter() if audit is not None else 0.0
         state = self._analyze(sql)
         self._rewrite(state, context)
-        return self._result(state)
+        result = self._result(state)
+        if audit is None:
+            return result
+        elapsed_ms = (time.perf_counter() - started) * 1000.0
+        delivered = audit.record(
+            sql=sql,
+            dialect=self._compiled.dialect_name,
+            policy_fingerprint=self._fingerprint,
+            role=self._role,
+            allowed=result.ok,
+            violation_codes=(v.code.value for v in result.violations),
+            tables={str(ref.name) for ref in state.refs},
+            duration_ms=elapsed_ms,
+            context=context,
+        )
+        if not delivered and audit.strict and result.ok:
+            # Fail closed: a decision that can't be recorded is not an allowance.
+            return CheckResult(
+                ok=False,
+                violations=(violation(ViolationCode.AUDIT_FAILURE, "", self._compiled.language),),
+            )
+        return result
 
     def explain(self, sql: str, context: Mapping[str, Any] | None = None) -> Explanation:
         """Describe what ``sql`` reads and what the guard does to it, allowed or not.
@@ -251,7 +290,9 @@ class Guard:
 
         try:
             parsed = sqlglot.parse(sql, read=compiled.dialect_name)
-        except SqlglotError as exc:
+        except (SqlglotError, TypeError, ValueError, RecursionError) as exc:
+            # Untrusted input never makes check() raise. sqlglot raises TypeError for some
+            # malformed calls when unittest or pytest is imported, and deep nesting recurses.
             return _State([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
         statements = [
             cast(exp.Expression, statement) for statement in parsed if statement is not None
@@ -263,7 +304,7 @@ class Guard:
 
         try:
             scopes = traverse_scope(root)
-        except SqlglotError as exc:
+        except (SqlglotError, TypeError, ValueError, RecursionError) as exc:
             return _State([violation(ViolationCode.PARSE_ERROR, _first_line(exc), lang)])
 
         refs, problems = collect_sources(root, scopes, compiled)
@@ -293,7 +334,9 @@ class Guard:
             state.violations = problems
             return
         state.filters = applied
-        state.root = apply_limit(state.root, compiled.max_rows)
+        state.root = apply_limit(
+            state.root, compiled.max_rows, output_dialect=compiled.output_dialect_name
+        )
         state.sql = state.root.sql(dialect=compiled.output_dialect_name, pretty=self._pretty)
 
     @staticmethod

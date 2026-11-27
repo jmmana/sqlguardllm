@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>sqlguardllm playground: try to break it</title>
+<meta name="description" content="Try to get a forbidden SQL query past sqlguardllm, running entirely in your browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1 data-i="title">Try to break it</h1>
+  <button id="lang" type="button" aria-label="Español / English">ES</button>
+</header>
+<p data-i="intro"></p>
+<div id="status" class="status" role="status" aria-live="polite"><span id="statusText"></span> <progress id="prog" aria-label="loading"></progress></div>
+<div class="grid">
+  <section aria-labelledby="h-in">
+    <h2 id="h-in" data-i="h_in">Query</h2>
+    <label for="role" data-i="role">Role</label>
+    <select id="role">
+      <option value="north"></option>
+      <option value="south"></option>
+    </select>
+    <p id="ctxShow"></p>
+    <p id="roleNote" class="note" hidden></p>
+    <label for="sql" data-i="sql">SQL</label>
+    <textarea id="sql" rows="4" spellcheck="false" autocomplete="off"></textarea>
+    <div class="row">
+      <button id="run" class="primary" type="button" disabled data-i="run">Check and run</button>
+      <button id="share" type="button" data-i="share">Copy share link</button>
+      <span id="shareMsg" role="status"></span>
+    </div>
+    <details open><summary data-i="presets">Attack presets</summary><div id="presets"></div></details>
+  </section>
+  <section aria-labelledby="h-pol">
+    <h2 id="h-pol" data-i="h_rules">Policy rules</h2>
+    <p data-i="rules_intro"></p>
+    <div id="rules">
+      <fieldset>
+        <legend data-i="r_email">Email column (customers.email)</legend>
+        <label class="opt"><input type="radio" name="email" value="visible"> <span data-i="r_email_visible"></span></label>
+        <label class="opt"><input type="radio" name="email" value="hidden"> <span data-i="r_email_hidden"></span></label>
+        <label class="opt"><input type="radio" name="email" value="masked"> <span data-i="r_email_masked"></span></label>
+        <div class="sub">
+          <label for="maskStrategy" data-i="r_mask">Mask</label>
+          <select id="maskStrategy">
+            <option value="partial"></option>
+            <option value="redact"></option>
+            <option value="null"></option>
+            <option value="hash" disabled></option>
+          </select>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend data-i="r_rows">Rows</legend>
+        <label class="opt"><input type="checkbox" id="rowFilter"> <span data-i="r_filter"></span></label>
+        <label for="maxRows" data-i="r_max">Maximum rows per query</label>
+        <input type="number" id="maxRows" min="1" step="1" inputmode="numeric">
+        <p class="help" data-i="r_max_help"></p>
+      </fieldset>
+      <fieldset>
+        <legend data-i="r_tables">Tables</legend>
+        <label class="opt"><input type="checkbox" id="allowUsers"> <span data-i="r_users"></span></label>
+        <label class="opt sub"><input type="checkbox" id="hidePwd"> <span data-i="r_pwd"></span></label>
+      </fieldset>
+      <p id="rulesErr" class="err" role="status" hidden></p>
+    </div>
+    <h2 id="h-json" data-i="h_pol">Policy (JSON, editable)</h2>
+    <label for="policy" class="sr" data-i="h_pol">Policy</label>
+    <textarea id="policy" rows="14" spellcheck="false" autocomplete="off"></textarea>
+    <p data-i="demodb"></p>
+    <button id="reset" type="button" data-i="reset">Reset policy</button>
+  </section>
+  <section aria-labelledby="h-out" class="wide">
+    <h2 id="h-out" data-i="h_out">Result</h2>
+    <div id="out" aria-live="polite"><p data-i="empty"></p></div>
+  </section>
+  <section aria-labelledby="h-help" class="wide">
+    <h2 id="h-help" data-i="h_help">What do these rules mean?</h2>
+    <div id="help"></div>
+  </section>
+</div>
+<p><small data-i="privacy"></small></p>
+</div>
+<script src="app.js" type="module"></script>
+</body>
+</html>
