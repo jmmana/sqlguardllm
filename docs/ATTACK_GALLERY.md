@@ -67,4 +67,6 @@ Cases live as YAML in `tests/corpus/`, one file per category:
   note: A write hidden in a CTE, invisible to keyword filters.
 ```
 
+The fuzzer (`tests/fuzz/`, see the [threat model](THREAT_MODEL.md#fuzzing-with-canary-data)) appends what it finds to `tests/corpus/fuzz_regressions.yaml` in the same format, marked `pending` until someone sets the expected answer.
+
 Adding cases is one of the best first contributions: see [CONTRIBUTING.md](../CONTRIBUTING.md). If you find a case that sqlguardllm **accepts but shouldn't**, that's a vulnerability: report it privately per [SECURITY.md](../SECURITY.md).

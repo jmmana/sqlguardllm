@@ -61,6 +61,30 @@
   sql: SELECT c.email AS contact FROM customers c
   expect: reject
   codes: [hidden_column]
+- id: mysql-hidden-column-other-case
+  dialect: mysql
+  sql: SELECT EMAIL FROM customers
+  expect: reject
+  codes: [hidden_column]
+  note: >-
+    MySQL ignores the case of column names, quoted or not, although sqlglot's MySQL dialect is
+    case-sensitive (for table names). Allowed by 0.1.0a1 to 0.5.0a2. Found by the fuzzer (#62).
+- id: mysql-hidden-column-backticks-other-case
+  dialect: mysql
+  sql: SELECT c.`Tax_Id` FROM customers c
+  expect: reject
+  codes: [hidden_column]
+- id: mysql-hidden-column-other-case-in-predicate
+  dialect: mysql
+  sql: SELECT name FROM customers WHERE Email LIKE 'a%'
+  expect: reject
+  codes: [hidden_column]
+- id: mysql-masked-column-other-case
+  dialect: mysql
+  sql: SELECT PHONE FROM customers
+  expect: allow
+  policy: {masked_columns: {customers.phone: redact}}
+  contains: ["'***' AS PHONE"]
 - id: pg-visible-columns
   dialect: postgres
   sql: SELECT c.name, c.segment FROM customers c ORDER BY c.name

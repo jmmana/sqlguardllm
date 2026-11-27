@@ -60,6 +60,12 @@ def _is_bare(column: exp.Column, clause: exp.Expression) -> bool:
 def _hidden_sources(
     sources: dict[str, exp.Expression | Scope], compiled: Compiled
 ) -> dict[str, tuple[TableName, frozenset[str]]]:
+    """Sources with hidden columns, by alias, with those columns case-folded.
+
+    Column names are matched without regard to case in every dialect. MySQL ignores the case of
+    column names, quoted or not (`EMAIL` reads `email`), although sqlglot's MySQL dialect keeps
+    it because MySQL table names can be case-sensitive. Matching more can only reject more.
+    """
     found: dict[str, tuple[TableName, frozenset[str]]] = {}
     for alias, source in sources.items():
         if isinstance(source, exp.Table) and isinstance(source.this, exp.Identifier):
@@ -69,7 +75,8 @@ def _hidden_sources(
                 compiled.default_schema,
             )
             if entry is not None:
-                found[norm(alias, compiled.dialect)] = (entry, compiled.hidden[entry])
+                columns = frozenset(column.casefold() for column in compiled.hidden[entry])
+                found[norm(alias, compiled.dialect)] = (entry, columns)
     return found
 
 
@@ -100,7 +107,7 @@ def check_columns(scopes: list[Scope], compiled: Compiled) -> list[Violation]:
                         details.append(f"{projection.table}.*")
             for join in expression.args.get("joins") or []:
                 for ident in join.args.get("using") or []:
-                    if norm(ident, compiled.dialect) in all_hidden:
+                    if norm(ident, compiled.dialect).casefold() in all_hidden:
                         details.append(f"USING ({ident.name})")
                 if str(join.args.get("method") or "").upper() == "NATURAL":
                     details.append("NATURAL JOIN over a table with hidden columns")
@@ -109,12 +116,13 @@ def check_columns(scopes: list[Scope], compiled: Compiled) -> list[Violation]:
             if not isinstance(column.this, exp.Identifier):
                 continue
             name = norm(column.this, compiled.dialect)
+            key = name.casefold()
             if column.table:
                 qualifier = norm(column.args["table"], compiled.dialect)
-                if qualifier in visible and name in visible[qualifier][1]:
+                if qualifier in visible and key in visible[qualifier][1]:
                     details.append(f"{visible[qualifier][0]}.{name}")
-            elif name in all_hidden:
-                owners = [str(t) for t, cols in visible.values() if name in cols]
+            elif key in all_hidden:
+                owners = [str(t) for t, cols in visible.values() if key in cols]
                 details.append(f"{owners[0]}.{name}" if owners else name)
             elif name in visible:
                 details.append(f"{name} (whole-row reference to {visible[name][0]})")

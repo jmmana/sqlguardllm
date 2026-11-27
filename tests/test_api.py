@@ -16,6 +16,13 @@ def test_enforce_returns_safe_sql(guard: Guard) -> None:
     assert guard.enforce("SELECT name FROM branches") == "SELECT name FROM branches LIMIT 1000"
 
 
+def test_deep_nesting_is_rejected_not_raised(guard: Guard) -> None:
+    # sqlglot's parser recurses once per level and raises RecursionError (found while fixing #62).
+    result = guard.check("SELECT " + "(" * 5000 + "1" + ")" * 5000)
+    assert not result.ok
+    assert result.codes == {ViolationCode.PARSE_ERROR}
+
+
 def test_enforce_raises_with_violations(guard: Guard) -> None:
     with pytest.raises(GuardViolation) as info:
         guard.enforce("DELETE FROM invoices")

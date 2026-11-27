@@ -4,11 +4,18 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Security
+- **On MySQL, hidden and masked columns could be read by writing the column name in another case.** MySQL ignores the case of column names, quoted or not, but sqlglot's MySQL dialect is case-sensitive (because MySQL table names can be), so with `customers.email` hidden `SELECT EMAIL FROM customers` was allowed, and a masked `PHONE` was neither masked nor refused outside the select list. Hidden and masked columns are now matched case-insensitively in every dialect, which can only reject or mask more. Affects 0.1.0a1 to 0.5.0a2 with `dialect="mysql"`: upgrade. Found by the new fuzzer (#62).
+
 ### Added
 - `sqlguardllm test` checks declared policy cases and reports results as text or JUnit XML (#66).
 - `examples/roles-tests.yaml` tests every role of the demo policy set, next to `examples/policy-tests.yaml` for the demo policy. CI runs both and lints the demo policies with `--strict` (#66, #67).
 - `sqlguardllm lint` warns about policies that are valid but probably unsafe, with stable codes: `no-table-allowlist`, `tenant-without-row-filter`, `sensitive-column-exposed`, `max-rows-disabled`, `max-rows-high` (above 10000 or `--max-rows-threshold`), `aggregate-k-low` (k below 5) and `denied-function-allowed`. Each warning has an explanation, a fix and a link to its field in the policy reference, in English or Spanish (`--language`), as text or JSON (`--format`). Policy sets are linted role by role. The column checks read the policy's `schema` and are reported as skipped without it. `--strict` exits 1 on warnings (#67).
 - Policy key `lint_suppress: {code: reason}` silences a reviewed lint warning, and the report shows the reason. It is in the policy and policy-set JSON Schemas, unknown codes and blank reasons are rejected, roles inherit and extend it, and checking SQL ignores it (#67).
+- Property-based fuzzing of the guard, judged by executing every allowed query on canary data (`tests/fuzz/`, `hypothesis`): no value of another role's rows or of a hidden or masked column in the output, the same rows when only secrets change, never more than `max_rows`, no exception from `check()`, and idempotence. 300 examples on SQLite and DuckDB in every pull request; 20,000 every night on PostgreSQL 16, MySQL 8, SQL Server 2022, DuckDB and SQLite. Failures are minimised into `tests/corpus/fuzz_regressions.yaml`; statistics in `research/results/fuzz.json`; the oracle and its limits in `docs/THREAT_MODEL.md`. It also found that DuckDB 2.0.1 drops the `LIMIT` of some `LEFT JOIN` queries, so there `max_rows` depends on the engine (#62).
+
+### Fixed
+- `check()` raised instead of rejecting on some malformed input: `RecursionError` for deeply nested SQL (thousands of parentheses), and `TypeError` from sqlglot's argument checks, which are on whenever `unittest` or `pytest` is imported (a T-SQL query whose nested comments leave `LEN` with two arguments). Any such error while parsing is now `parse_error`. Found by the fuzzer (#62).
 
 ## [0.5.0a2] - 2026-11-26
 

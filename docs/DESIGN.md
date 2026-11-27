@@ -117,7 +117,7 @@ This is what catches `WITH d AS (DELETE … RETURNING *) SELECT * FROM d` (a `De
 
 - Resolve sources per scope with `sqlglot.optimizer.scope`, so a CTE named like a real table refers to the CTE inside its scope and to the table outside it.
 - Every physical table must be in `policy.tables` → else `table_not_allowed`.
-- **Identifier matching**: unquoted identifiers are normalized with the dialect's rules (`sqlglot.optimizer.normalize_identifiers`); quoted identifiers match exactly. Policy entries may be qualified (`sales.customers`); unqualified references are qualified with `default_schema` when set.
+- **Identifier matching**: unquoted identifiers are normalized with the dialect's rules (`sqlglot.optimizer.normalize_identifiers`); quoted identifiers match exactly. Policy entries may be qualified (`sales.customers`); unqualified references are qualified with `default_schema` when set. Hidden and masked **column** names are then compared case-insensitively in every dialect, quoted or not: MySQL ignores the case of column names even where sqlglot's MySQL dialect keeps it (because MySQL table names can be case-sensitive), and matching more can only reject or mask more.
 - **Table-valued functions** that read outside the allowlist are sources too, and are rejected unless explicitly allowed: DuckDB `read_csv`, `read_parquet`, `read_json`; PostgreSQL `dblink`; T-SQL `OPENROWSET`, `OPENQUERY`, `OPENDATASOURCE`; and similar.
 
 ### 5. Columns
