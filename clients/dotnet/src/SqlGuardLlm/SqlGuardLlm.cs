@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace SqlGuardLlm;
 
@@ -26,7 +27,26 @@ public sealed record ExplainResult(
     bool Ok, string? Sql, IReadOnlyList<string> Tables, IReadOnlyList<Violation> Violations, JsonElement Raw);
 
 /// <summary>Result of /v1/health.</summary>
-public sealed record HealthResult(string Status, string Version);
+public sealed record HealthResult(
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("version")] string Version);
+
+/// <summary>
+/// The guard API, identical in remote mode (<see cref="SqlGuardClient"/>) and local mode
+/// (<see cref="SqlGuardLocal"/>). FAIL CLOSED: any failure throws <see cref="SqlGuardException"/>;
+/// a rejected query is not an error (<c>Ok = false</c>). Do not catch the exception and run the SQL anyway.
+/// </summary>
+public interface ISqlGuard : IAsyncDisposable
+{
+    /// <summary>Checks and rewrites a query. <paramref name="context"/> must come from your app (user, tenant), never from the model.</summary>
+    Task<CheckResult> CheckAsync(string sql, IReadOnlyDictionary<string, object?>? context = null, CancellationToken ct = default);
+
+    /// <summary>Returns the safe SQL or throws <see cref="GuardViolationException"/>.</summary>
+    Task<string> EnforceAsync(string sql, IReadOnlyDictionary<string, object?>? context = null, CancellationToken ct = default);
+
+    /// <summary>Like check, with the full explanation of the decision.</summary>
+    Task<ExplainResult> ExplainAsync(string sql, IReadOnlyDictionary<string, object?>? context = null, CancellationToken ct = default);
+}
 
 /// <summary>Client settings.</summary>
 public sealed class SqlGuardOptions
@@ -64,9 +84,8 @@ public sealed class GuardViolationException : SqlGuardException
 /// or answers something unexpected, methods throw <see cref="SqlGuardException"/>; they never
 /// return an ok result. Do not catch it and run the SQL anyway.
 /// </summary>
-public sealed class SqlGuardClient : IDisposable
+public sealed class SqlGuardClient : ISqlGuard, IDisposable
 {
-    private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
     private readonly HttpClient _http;
     private readonly SqlGuardOptions _options;
     private readonly bool _owns;
@@ -85,13 +104,13 @@ public sealed class SqlGuardClient : IDisposable
 
     public void Dispose() { if (_owns) _http.Dispose(); }
 
+    public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+
     /// <summary>Checks and rewrites a query. <paramref name="context"/> must come from your app (user, tenant), never from the model.</summary>
     public async Task<CheckResult> CheckAsync(string sql, IReadOnlyDictionary<string, object?>? context = null, CancellationToken ct = default)
     {
-        var r = await SendAsync<CheckResult>(HttpMethod.Post, "/v1/check", new { sql, context }, ct).ConfigureAwait(false);
-        if (r.Ok && string.IsNullOrEmpty(r.Sql))
-            throw new SqlGuardException("bad_response", "Server answered ok without SQL; treating as failure.");
-        return r;
+        var raw = await SendAsync(HttpMethod.Post, "/v1/check", Wire.HttpBody(sql, context), SqlGuardJsonContext.Default.JsonElement, ct).ConfigureAwait(false);
+        return Wire.ParseCheck(raw, "Server");
     }
 
     /// <summary>Returns the safe SQL or throws <see cref="GuardViolationException"/>.</summary>
@@ -102,40 +121,29 @@ public sealed class SqlGuardClient : IDisposable
     }
 
     public async Task<ExplainResult> ExplainAsync(string sql, IReadOnlyDictionary<string, object?>? context = null, CancellationToken ct = default)
-    {
-        var raw = await SendAsync<JsonElement>(HttpMethod.Post, "/v1/explain", new { sql, context }, ct).ConfigureAwait(false);
-        if (raw.ValueKind != JsonValueKind.Object)
-            throw new SqlGuardException("bad_response", "Unexpected explain response.");
-        try
-        {
-            var ok = raw.TryGetProperty("ok", out var o) && o.ValueKind == JsonValueKind.True;
-            var s = raw.TryGetProperty("sql", out var sq) && sq.ValueKind == JsonValueKind.String ? sq.GetString() : null;
-            var t = raw.TryGetProperty("tables", out var tb) && tb.ValueKind == JsonValueKind.Array
-                ? tb.Deserialize<List<string>>(Json)! : new List<string>();
-            var v = raw.TryGetProperty("violations", out var vi) && vi.ValueKind == JsonValueKind.Array
-                ? vi.Deserialize<List<Violation>>(Json)! : new List<Violation>();
-            return new ExplainResult(ok, s, t, v, raw.Clone());
-        }
-        catch (JsonException e) { throw new SqlGuardException("bad_response", "Unexpected explain response.", null, e); }
-    }
+        => Wire.ParseExplain(await SendAsync(HttpMethod.Post, "/v1/explain", Wire.HttpBody(sql, context), SqlGuardJsonContext.Default.JsonElement, ct).ConfigureAwait(false));
 
     public Task<HealthResult> HealthAsync(CancellationToken ct = default)
-        => SendAsync<HealthResult>(HttpMethod.Get, "/v1/health", null, ct);
+        => SendAsync(HttpMethod.Get, "/v1/health", null, SqlGuardJsonContext.Default.HealthResult, ct);
 
-    private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken ct)
+    private async Task<T> SendAsync<T>(HttpMethod method, string path, byte[]? body, JsonTypeInfo<T> type, CancellationToken ct)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(_options.Timeout);
         using var req = new HttpRequestMessage(method, new Uri(_options.BaseUrl, path.TrimStart('/')));
         if (!string.IsNullOrEmpty(_options.Token))
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.Token);
-        if (body is not null) req.Content = new StringContent(JsonSerializer.Serialize(body, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.Never }), System.Text.Encoding.UTF8, "application/json"); // a known length: the server rejects chunked bodies
+        if (body is not null)
+        {
+            req.Content = new ByteArrayContent(body); // a known length: the server rejects chunked bodies
+            req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
+        }
         try
         {
             using var resp = await _http.SendAsync(req, cts.Token).ConfigureAwait(false);
             var text = await resp.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode) throw HttpError((int)resp.StatusCode, text);
-            var result = JsonSerializer.Deserialize<T>(text, Json);
+            var result = JsonSerializer.Deserialize(text, type);
             if (result is null) throw new SqlGuardException("bad_response", "Empty response from server.", (int)resp.StatusCode);
             return result;
         }

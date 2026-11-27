@@ -1,12 +1,12 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("SqlGuardLlm.Tests")]
 
 namespace SqlGuardLlm;
+
+/// <summary>A verified engine executable and its arguments.</summary>
+internal sealed record EngineLaunch(string FileName, IReadOnlyList<string> Arguments);
 
 /// <summary>
 /// Finds the engine shipped in this package (<c>runtimes/{rid}/native/sqlguardllm-engine/</c>)
@@ -72,80 +72,21 @@ internal static class EngineLocator
         return Path.Combine(folder, exe);
     }
 
-    private static SqlGuardException Refuse(string why)
-        => new("engine_integrity", $"Refusing to start the sqlguardllm engine: {why}. Reinstall the package.");
-}
-
-/// <summary>
-/// The engine of this package as a child process (<c>sqlguardllm-engine --stdio</c>, protocol 1,
-/// see docs/PROTOCOL.md). No Python and no server needed. FAIL CLOSED like <see cref="SqlGuardClient"/>:
-/// a binary that does not match its SHA-256, a wrong version or protocol, a dead process, a timeout or
-/// any unexpected answer throws <see cref="SqlGuardException"/>; nothing is ever reported ok.
-/// </summary>
-public sealed class SqlGuardEngine : IDisposable
-{
-    private const int Protocol = 1;
-    private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
-    private readonly Process _proc;
-    private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly TimeSpan _timeout;
-    private string _handle = "";
-    private int _id;
-    private bool _broken;
-
-    private SqlGuardEngine(Process proc, TimeSpan timeout) { _proc = proc; _timeout = timeout; }
-
-    /// <summary>Verifies the packaged engine, starts it, checks version and protocol and loads the policy
-    /// (the object form of the policy file, e.g. <c>{"dialect": "postgres", "tables": ["invoices"]}</c>).</summary>
-    public static async Task<SqlGuardEngine> StartAsync(object policy, TimeSpan? timeout = null, CancellationToken ct = default)
-        => await StartAsync(policy, EngineLocator.CurrentRid(), AppContext.BaseDirectory, timeout, ct).ConfigureAwait(false);
-
-    internal static async Task<SqlGuardEngine> StartAsync(object policy, string rid, string baseDirectory, TimeSpan? timeout, CancellationToken ct)
+    /// <summary>Locates and verifies the packaged engine and makes it executable. Run on every (re)start.</summary>
+    public static EngineLaunch Resolve(string rid, string baseDirectory)
     {
-        var folder = EngineLocator.Locate(baseDirectory, rid);
-        var exe = EngineLocator.Verify(folder, rid);
+        var exe = Verify(Locate(baseDirectory, rid), rid);
         if (!OperatingSystem.IsWindows())
         {
             try { File.SetUnixFileMode(exe, File.GetUnixFileMode(exe) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             { throw new SqlGuardException("engine_start", "Cannot make the sqlguardllm engine executable (read-only file system?).", null, e); }
         }
-        var psi = new ProcessStartInfo(exe, "--stdio")
-        {
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-            UseShellExecute = false, CreateNoWindow = true,
-            StandardOutputEncoding = new UTF8Encoding(false), StandardInputEncoding = new UTF8Encoding(false),
-        };
-        Process proc;
-        try { proc = Process.Start(psi) ?? throw new SqlGuardException("engine_start", "The sqlguardllm engine did not start."); }
-        catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException)
-        { throw new SqlGuardException("engine_start", "The sqlguardllm engine did not start.", null, e); }
-        _ = proc.StandardError.ReadToEndAsync(); // keep the pipe drained; diagnostics are never surfaced
-        var engine = new SqlGuardEngine(proc, timeout ?? TimeSpan.FromSeconds(5));
-        try
-        {
-            var hello = await engine.RequestAsync("hello", new Dictionary<string, object?>(), ct).ConfigureAwait(false);
-            engine.CheckHello(hello);
-            var loaded = await engine.RequestAsync("load_policy", new Dictionary<string, object?> { ["policy"] = policy }, ct).ConfigureAwait(false);
-            engine._handle = loaded.TryGetProperty("handle", out var h) && h.ValueKind == JsonValueKind.String ? h.GetString()! : "";
-            if (engine._handle.Length == 0) throw new SqlGuardException("bad_response", "Engine answered load_policy without a handle.");
-            return engine;
-        }
-        catch { engine.Dispose(); throw; }
-    }
-
-    private void CheckHello(JsonElement hello)
-    {
-        var protocol = hello.TryGetProperty("protocol", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out var n) ? n : -1;
-        var version = hello.TryGetProperty("engine_version", out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
-        var own = typeof(SqlGuardEngine).Assembly.GetName().Version;
-        if (protocol != Protocol || !LockstepOk(version, own?.Major ?? 0, own?.Minor ?? 0))
-            throw new SqlGuardException("engine_version",
-                $"Refusing the sqlguardllm engine: it reports version {version ?? "?"} protocol {protocol}; this package needs the same major.minor and protocol {Protocol}.");
+        return new EngineLaunch(exe, ["--stdio"]);
     }
 
     /// <summary>Same major version and, before 1.0, the same minor version (docs/PROTOCOL.md).</summary>
-    internal static bool LockstepOk(string? engineVersion, int major, int minor)
+    public static bool LockstepOk(string? engineVersion, int major, int minor)
     {
         if (engineVersion is null) return false;
         var parts = engineVersion.Split('.');
@@ -153,71 +94,6 @@ public sealed class SqlGuardEngine : IDisposable
         return emaj == major && (major >= 1 || emin == minor);
     }
 
-    /// <summary>Checks and rewrites a query. <paramref name="context"/> must come from your app, never from the model.</summary>
-    public async Task<CheckResult> CheckAsync(string sql, IReadOnlyDictionary<string, object?>? context = null, CancellationToken ct = default)
-    {
-        var res = await RequestAsync("check", new Dictionary<string, object?> { ["handle"] = _handle, ["sql"] = sql, ["context"] = context }, ct).ConfigureAwait(false);
-        try
-        {
-            var r = res.TryGetProperty("result", out var body) && body.ValueKind == JsonValueKind.Object ? body.Deserialize<CheckResult>(Json) : null;
-            if (r is null) throw new SqlGuardException("bad_response", "Engine answered check without a result.");
-            if (r.Ok && string.IsNullOrEmpty(r.Sql)) throw new SqlGuardException("bad_response", "Engine answered ok without SQL; treating as failure.");
-            return r;
-        }
-        catch (JsonException e) { throw new SqlGuardException("bad_response", "Engine answered something unexpected.", null, e); }
-    }
-
-    /// <summary>Returns the safe SQL or throws <see cref="GuardViolationException"/>.</summary>
-    public async Task<string> EnforceAsync(string sql, IReadOnlyDictionary<string, object?>? context = null, CancellationToken ct = default)
-    {
-        var r = await CheckAsync(sql, context, ct).ConfigureAwait(false);
-        return r.Ok ? r.Sql! : throw new GuardViolationException(r.Violations);
-    }
-
-    private async Task<JsonElement> RequestAsync(string type, Dictionary<string, object?> fields, CancellationToken ct)
-    {
-        await _gate.WaitAsync(ct).ConfigureAwait(false);
-        try
-        {
-            if (_broken) throw new SqlGuardException("engine_closed", "The sqlguardllm engine is no longer usable.");
-            var id = ++_id;
-            fields["id"] = id; fields["type"] = type;
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(_timeout);
-            try
-            {
-                await _proc.StandardInput.WriteLineAsync(JsonSerializer.Serialize(fields)).ConfigureAwait(false);
-                await _proc.StandardInput.FlushAsync(cts.Token).ConfigureAwait(false);
-                var line = await _proc.StandardOutput.ReadLineAsync(cts.Token).ConfigureAwait(false)
-                    ?? throw new SqlGuardException("engine_closed", "The sqlguardllm engine exited.");
-                using var doc = JsonDocument.Parse(line);
-                var root = doc.RootElement.Clone();
-                if (root.ValueKind != JsonValueKind.Object) throw new SqlGuardException("bad_response", "Engine answered something unexpected.");
-                if (root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && t.GetString() == "error")
-                {
-                    var code = root.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.Object && e.TryGetProperty("code", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString()! : "engine_error";
-                    throw new SqlGuardException(code, $"Engine refused the request ({code}).");
-                }
-                if (!root.TryGetProperty("id", out var rid) || rid.ValueKind != JsonValueKind.Number || rid.GetInt32() != id
-                    || !root.TryGetProperty("type", out var rt) || rt.GetString() != type)
-                    throw new SqlGuardException("bad_response", "Engine answered out of order.");
-                return root;
-            }
-            catch (OperationCanceledException e) when (!ct.IsCancellationRequested)
-            { _broken = true; throw new SqlGuardException("timeout", "Request to the sqlguardllm engine timed out.", null, e); }
-            catch (OperationCanceledException) { _broken = true; throw; } // a half-read answer would desync the pipe
-            catch (Exception e) when (e is IOException or JsonException or ObjectDisposedException or InvalidOperationException)
-            { _broken = true; throw new SqlGuardException("engine_closed", "Lost the sqlguardllm engine process.", null, e); }
-            catch (SqlGuardException) { _broken = true; throw; }
-        }
-        finally { _gate.Release(); }
-    }
-
-    public void Dispose()
-    {
-        _broken = true;
-        try { if (!_proc.HasExited) { _proc.StandardInput.Close(); if (!_proc.WaitForExit(1000)) _proc.Kill(true); } }
-        catch (Exception e) when (e is InvalidOperationException or IOException) { }
-        _proc.Dispose();
-    }
+    private static SqlGuardException Refuse(string why)
+        => new("engine_integrity", $"Refusing to start the sqlguardllm engine: {why}. Reinstall the package.");
 }
