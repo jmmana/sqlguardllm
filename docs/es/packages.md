@@ -7,12 +7,12 @@ Usa el paquete de Python para ejecutar el guard en tu aplicación. Usa un client
 | Lenguaje | Instalación | Modo y entorno |
 | --- | --- | --- |
 | [Python](guide-python.md) | `pip install --pre sqlguardllm` | Motor local en el mismo proceso o servidor HTTP. Python 3.10+ en Linux, macOS y Windows. |
-| [Node.js / TypeScript](guide-node.md) | `npm install sqlguardllm` | Remoto por HTTP. Node.js 18+ en Linux, macOS y Windows. |
-| [.NET](guide-dotnet.md) | `dotnet add package SqlGuardLlm --prerelease` | Remoto por HTTP. El cliente en el repositorio es compatible con .NET 8 y .NET 10 en Linux, macOS y Windows. |
+| [Node.js / TypeScript](guide-node.md) | `npm install sqlguardllm` | Local (el motor viene en el paquete: sin Python ni servidor) o remoto por HTTP. Node.js 18+; motor embebido en linux x64/arm64, macOS x64/arm64 y Windows x64. |
+| [.NET](guide-dotnet.md) | `dotnet add package SqlGuardLlm --prerelease` | Local (el motor viene en el paquete: sin Python ni servidor) o remoto por HTTP. .NET 8 y .NET 10; motor embebido en linux-x64, linux-arm64, osx-x64, osx-arm64 y win-x64. |
 
 **Paso a paso**, de la instalación a un programa que revisa una consulta permitida y una rechazada, con su salida exacta: [Python](guide-python.md), [Node.js / TypeScript](guide-node.md), [.NET](guide-dotnet.md).
 
-Los clientes de Node.js y .NET necesitan una [instancia de `sqlguardllm serve`](../SERVER.md) activa. Iníciala en un entorno de Python o en un contenedor. Los motores embebidos para [Node.js](https://github.com/jmmana/sqlguardllm/issues/73) y [.NET](https://github.com/jmmana/sqlguardllm/issues/77) están previstos.
+Los paquetes de Node.js y .NET llevan el motor y lo ejecutan como proceso hijo de tu aplicación (`SqlGuard.local`, `SqlGuard.CreateLocalAsync`), con la misma API que sus clientes remotos. En una plataforma sin motor embebido (Linux musl como Alpine, otras CPU), con Deno, navegadores o entornos edge, o para compartir un motor entre servicios, usa una [instancia de `sqlguardllm serve`](../SERVER.md) activa, que inicias en un entorno de Python o en un contenedor.
 
 Para Python, consulta el [inicio rápido](quickstart.md). Instala `sqlguardllm[yaml]` para cargar políticas YAML, `sqlguardllm[serve]` para cargar YAML en el servidor HTTP o `sqlguardllm[mcp]` para ejecutar el [servidor MCP](../MCP.md). Durante la fase alfa, usa también la opción `--pre` al instalar un extra.
 

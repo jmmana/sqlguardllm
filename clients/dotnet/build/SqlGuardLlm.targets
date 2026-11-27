@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    The engine is a folder (sqlguardllm-engine/ with its _internal/ libraries) in runtimes/{rid}/native/. For a RID-specific
+    build or publish (`dotnet publish -r linux-x64`, self-contained, single-file, container images) the SDK flattens native
+    assets to the output root, which breaks the folder and collides on same-named files. Keep the folder layout instead:
+    sqlguardllm-engine/ next to the app, which is where EngineLocator looks.
+    Packed to build/SqlGuardLlm.targets, so it is imported by every project that references the package.
+  -->
+  <Target Name="SqlGuardKeepEngineLayout" AfterTargets="ResolvePackageAssets" Condition="'$(RuntimeIdentifier)' != ''">
+    <ItemGroup>
+      <_SqlGuardEngineFile Include="@(NativeCopyLocalItems)"
+                           Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(FullPath)', 'native[/\\]sqlguardllm-engine[/\\]'))">
+        <DestinationSubDirectory>$([System.Text.RegularExpressions.Regex]::Replace('%(RelativeDir)', '^.*native[/\\](?=sqlguardllm-engine[/\\])', ''))</DestinationSubDirectory>
+      </_SqlGuardEngineFile>
+      <NativeCopyLocalItems Remove="@(_SqlGuardEngineFile)" />
+      <NativeCopyLocalItems Include="@(_SqlGuardEngineFile)" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -8,7 +8,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>SqlGuardLlm.EntityFrameworkCore</PackageId>
-    <Version>0.5.0-alpha.4</Version>
     <Authors>jmmana</Authors>
     <Description>EF Core DbCommandInterceptor that sends raw SQL (FromSql, SqlQuery, ExecuteSql) through sqlguardllm before it reaches the database.</Description>
     <PackageTags>sql;llm;security;firewall;sqlguardllm;efcore</PackageTags>

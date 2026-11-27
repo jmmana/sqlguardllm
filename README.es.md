@@ -44,25 +44,25 @@ Documentación completa: https://jmmana.github.io/sqlguardllm/
 pip install --pre sqlguardllm
 ```
 
-**Node.js / TypeScript** 18+: un cliente de `sqlguardllm serve`.
+**Node.js / TypeScript** 18+: ejecuta el motor embebido (sin Python ni servidor) o habla con `sqlguardllm serve`.
 
 ```bash
 npm install sqlguardllm
 ```
 
-**.NET** 8 o 10: un cliente de `sqlguardllm serve`, en NuGet desde la 0.5.0-alpha.2.
+**.NET** 8 o 10: ejecuta el motor embebido (sin Python ni servidor) o habla con `sqlguardllm serve`.
 
 ```bash
 dotnet add package SqlGuardLlm --prerelease
 ```
 
-**El servidor** con el que hablan los clientes de Node.js y .NET, en otra terminal (Python 3.10+). No hay imagen de Docker publicada; el [Dockerfile](Dockerfile) construye una si la necesitas.
+**El servidor** es opcional en Node.js y .NET: sus paquetes llevan el motor y lo ejecutan en local (`SqlGuard.local` / `SqlGuard.CreateLocalAsync`). Ejecútalo, en otra terminal (Python 3.10+), cuando varios servicios comparten una política o tu plataforma no tiene motor embebido. No hay imagen de Docker publicada; el [Dockerfile](Dockerfile) construye una si la necesitas.
 
 ```bash
 uvx sqlguardllm serve --policy policy.json --port 8787    # o: pipx run sqlguardllm serve ...
 ```
 
-**Paso a paso** para cada lenguaje, de la instalación a un programa y su salida exacta: [Python](https://jmmana.github.io/sqlguardllm/es/guide-python/) · [Node.js / TypeScript](https://jmmana.github.io/sqlguardllm/es/guide-node/) · [.NET](https://jmmana.github.io/sqlguardllm/es/guide-dotnet/) · [qué paquete elegir](https://jmmana.github.io/sqlguardllm/es/packages/). Están previstos motores embebidos para Node.js ([#85](https://github.com/jmmana/sqlguardllm/issues/85)) y .NET ([#86](https://github.com/jmmana/sqlguardllm/issues/86)), sin servidor.
+**Paso a paso** para cada lenguaje, de la instalación a un programa y su salida exacta: [Python](https://jmmana.github.io/sqlguardllm/es/guide-python/) · [Node.js / TypeScript](https://jmmana.github.io/sqlguardllm/es/guide-node/) · [.NET](https://jmmana.github.io/sqlguardllm/es/guide-dotnet/) · [qué paquete elegir](https://jmmana.github.io/sqlguardllm/es/packages/). Las guías de Node.js y .NET usan el motor embebido: sin Python y sin servidor.
 
 ## Pruébalo: entrada, decisión y SQL devuelto
 
@@ -288,7 +288,7 @@ Un motor, varios clientes. El motor es de Python porque está construido sobre [
 - **.NET:** `dotnet add package SqlGuardLlm --prerelease` ([`clients/dotnet`](clients/dotnet/README.md)), en NuGet desde la 0.5.0-alpha.2: net8.0 y net10.0, falla cerrado.
 - **Cualquier otro lenguaje:** la [API HTTP](docs/SERVER.md), el [servidor MCP](docs/MCP.md) o la CLI.
 
-Los pasos de instalación de cada lenguaje están en [Instalación](#instalación). Están previstos motores embebidos, para que los paquetes de Node.js y .NET funcionen sin Python y sin servidor, en [#85](https://github.com/jmmana/sqlguardllm/issues/85) y [#86](https://github.com/jmmana/sqlguardllm/issues/86).
+Los pasos de instalación de cada lenguaje están en [Instalación](#instalación). Los paquetes de Node.js y .NET llevan el motor para linux-x64, linux-arm64, macOS (x64, arm64) y win-x64, así que funcionan sin Python y sin servidor; en otras plataformas usan el modo remoto.
 
 ## Playground: intenta romperlo
 

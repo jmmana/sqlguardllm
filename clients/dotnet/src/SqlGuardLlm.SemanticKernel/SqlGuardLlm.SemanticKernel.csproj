@@ -8,7 +8,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>SqlGuardLlm.SemanticKernel</PackageId>
-    <Version>0.5.0-alpha.4</Version>
     <Authors>jmmana</Authors>
     <Description>Semantic Kernel function invocation filter that checks the SQL a model sends to a function with sqlguardllm before the function runs.</Description>
     <PackageTags>sql;llm;security;firewall;sqlguardllm;semantic-kernel</PackageTags>

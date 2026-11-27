@@ -224,7 +224,16 @@ export class LocalEngine {
     const proc = this.proc;
     this.kill(fail("closed", "the engine was closed"));
     if (proc && proc.exitCode === null && proc.signalCode === null) {
-      await new Promise<void>((done) => proc.once("exit", () => done()));
+      // The process was unref'd so an idle engine never keeps the app alive; waiting for its exit has to keep it alive,
+      // or a program that ends with `await guard.close()` would exit with an unsettled await (code 13).
+      proc.ref();
+      await new Promise<void>((done) => {
+        const timer = setTimeout(done, 2000);
+        proc.once("exit", () => {
+          clearTimeout(timer);
+          done();
+        });
+      });
     }
   }
 }

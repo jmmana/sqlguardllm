@@ -7,7 +7,9 @@ import { ALLOWED_SQL, CONTEXT, HIDDEN_COLUMN_SQL, POLICY, WRITE_SQL, createDemoD
 import { guardedQuery, pgRunner } from "./guarded-tools.mjs";
 
 // Local mode: the embedded engine, no server. For a server use `new SqlGuard({ baseUrl, token })`.
-const guard = await SqlGuard.local({ policy: process.env.DATABASE_URL ? { ...POLICY, dialect: "postgres" } : POLICY });
+// SQLGUARD_ENGINE_CMD (e.g. "uv run sqlguardllm engine --stdio") runs another engine, such as a source checkout.
+const engine = process.env.SQLGUARD_ENGINE_CMD?.split(" ");
+const guard = await SqlGuard.local({ policy: process.env.DATABASE_URL ? { ...POLICY, dialect: "postgres" } : POLICY, engine });
 let run;
 let pool;
 if (process.env.DATABASE_URL) {

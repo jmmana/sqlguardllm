@@ -140,4 +140,20 @@ describe("local mode", () => {
     const out = execFileSync(process.execPath, [file], { stdio: "pipe", timeout: 20000 }).toString();
     expect(out.trim()).toBe("true");
   });
+
+  it("a program that ends with a top-level `await guard.close()` finishes normally (no unsettled await)", () => {
+    const script = `
+      const { SqlGuard } = await import(${JSON.stringify(join(__dirname, "../dist/index.js"))});
+      const g = await SqlGuard.local({ policy: {}, engine: [process.execPath, ${JSON.stringify(fake)}] });
+      console.log((await g.check("SELECT 1")).ok);
+      await g.close();
+      console.log("closed");`;
+    const file = join(tmp, "close.mjs");
+    writeFileSync(file, script);
+    let built = true;
+    try { execFileSync(process.execPath, ["-e", `require("fs").accessSync(${JSON.stringify(join(__dirname, "../dist/index.js"))})`]); } catch { built = false; }
+    if (!built) return; // needs `npm run build`; CI builds first
+    const out = execFileSync(process.execPath, [file], { stdio: "pipe", timeout: 20000 }).toString();
+    expect(out.trim().split("\n")).toEqual(["true", "closed"]);
+  });
 });
