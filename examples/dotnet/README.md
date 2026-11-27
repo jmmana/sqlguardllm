@@ -7,4 +7,4 @@ sqlguardllm serve --policy examples/policy.yaml &
 dotnet run --project examples/dotnet/SqlGuardExamples
 ```
 
-The example is built and exercised in CI by `clients/dotnet/tests/SqlGuardLlm.Integrations.Tests` (`dotnet test clients/dotnet/SqlGuardLlm.sln`), which runs `Demo.RunAsync` with a fake guard, so no server or network is needed.
+The example is built and exercised by `clients/dotnet/tests/SqlGuardLlm.Integrations.Tests`, part of `dotnet test clients/dotnet/SqlGuardLlm.sln` (the .NET CI job), which runs `Demo.RunAsync` with a fake guard, so no server or network is needed.

@@ -4,6 +4,9 @@ All notable changes to sqlguardllm are documented here. The format follows [Keep
 
 ## [Unreleased]
 
+### Added
+- **.NET integrations (#78).** `SqlGuardLlm.Extensions` (`services.AddSqlGuard(...)` with options bound from configuration, ADO.NET and Dapper helpers, a Microsoft.Extensions.AI `GuardedSqlFunction`), `SqlGuardLlm.EntityFrameworkCore` (a `DbCommandInterceptor` that enforces raw SQL) and `SqlGuardLlm.SemanticKernel` (a function invocation filter), plus runnable examples in `examples/dotnet/`.
+
 ## [0.5.0a4] - 2026-11-27
 
 Security release: upgrade if you use `dialect="duckdb"` with hidden or masked columns. It also brings the embedded-engine groundwork (engine protocol, standalone binaries, npm and NuGet engine packages), the opt-in audit log and the LLM red team.
